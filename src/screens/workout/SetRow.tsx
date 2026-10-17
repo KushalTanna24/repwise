@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
-import { Check } from 'lucide-react';
+import { Check, Play, Square } from 'lucide-react';
+import { heldSeconds } from '@/lib/alerts';
 import { fromDisplay, parseNumber, toDisplay } from '@/domain/stats';
 import type { Exercise, SetRecord } from '@/domain/types';
 import { Menu } from '@/components/ui/menu';
@@ -14,6 +15,10 @@ interface Props {
   /** Which load column this exercise shows. */
   loadField: 'actualKg' | 'assistKg' | null;
   targetAssist: number | null;
+  exIdx: number;
+  highlight?: boolean;
+  /** Timed moves: seconds held, from the hold timer. */
+  onHold: (sec: number) => void;
   onPatch: (patch: Partial<SetRecord>) => void;
   onToggle: () => boolean;
   onSkip: () => void;
@@ -63,7 +68,7 @@ export function NumberCell({
   );
 }
 
-export function SetRow({ index, set, ex, units, loadField, targetAssist, onPatch, onToggle, onSkip, onRemove }: Props) {
+export function SetRow({ index, exIdx, highlight, onHold, set, ex, units, loadField, targetAssist, onPatch, onToggle, onSkip, onRemove }: Props) {
   const done = set.status === 'done';
   const skipped = set.status === 'skipped';
   const loadRef = useRef<HTMLInputElement>(null);
@@ -79,15 +84,56 @@ export function SetRow({ index, set, ex, units, loadField, targetAssist, onPatch
     if (!onToggle()) loadRef.current?.focus();
   }
 
+  // Hold timer for timed moves: ▶ starts, the row fills toward the target, tap again to log.
+  const [holdStart, setHoldStart] = useState<number | null>(null);
+  const [now, setNow] = useState(Date.now());
+  const target = set.targetReps ?? 30;
+  const held = holdStart ? heldSeconds(holdStart, now) : 0;
+  const buzzed = useRef(false);
+  useEffect(() => {
+    if (!holdStart) return;
+    buzzed.current = false;
+    const t = setInterval(() => setNow(Date.now()), 200);
+    return () => clearInterval(t);
+  }, [holdStart]);
+  useEffect(() => {
+    if (holdStart && held >= target && !buzzed.current) {
+      buzzed.current = true;
+      navigator.vibrate?.([200, 80, 200]);
+    }
+  }, [held, holdStart, target]);
+
+  function hold() {
+    if (!holdStart) {
+      navigator.vibrate?.(12);
+      setNow(Date.now());
+      setHoldStart(Date.now());
+      return;
+    }
+    const sec = heldSeconds(holdStart, Date.now());
+    setHoldStart(null);
+    if (sec > 0) onHold(sec);
+  }
+  const holding = timed && !done && !skipped;
+
   return (
     <motion.div
       layout="position"
+      data-set-row={`${exIdx}-${index}`}
       className={cn(
-        'grid grid-cols-[36px_1fr_1fr_44px] items-center gap-2 rounded-[12px] px-1 py-1 transition-colors',
+        'relative grid grid-cols-[36px_1fr_1fr_44px] items-center gap-2 overflow-hidden rounded-[12px] px-1 py-1 transition-colors',
         done && 'bg-green/12',
         skipped && 'opacity-45',
+        highlight && 'ring-2 ring-blue',
       )}
     >
+      {holdStart && (
+        <div
+          aria-hidden
+          className={cn('absolute inset-y-0 left-0 transition-[width] duration-200 ease-linear', held >= target ? 'bg-green/20' : 'bg-blue/15')}
+          style={{ width: `${Math.min(100, (held / target) * 100)}%` }}
+        />
+      )}
       <Menu
         label={`Set ${index + 1} options`}
         trigger={
@@ -112,13 +158,29 @@ export function SetRow({ index, set, ex, units, loadField, targetAssist, onPatch
       ) : (
         <div className="text-center text-footnote text-label-3">—</div>
       )}
-      <NumberCell
-        label={`Set ${index + 1} ${timed ? 'seconds' : 'reps'}`}
-        value={set.actualReps}
-        placeholder={set.targetReps != null ? String(set.targetReps) : '–'}
-        disabled={skipped}
-        onCommit={(n) => onPatch({ actualReps: n == null ? null : Math.round(n) })}
-      />
+      {holdStart ? (
+        <div className="relative text-center text-title3 font-bold tabular" aria-live="polite">
+          {held}
+          <span className="text-footnote font-semibold text-label-2"> / {target}s</span>
+        </div>
+      ) : (
+        <NumberCell
+          label={`Set ${index + 1} ${timed ? 'seconds' : 'reps'}`}
+          value={set.actualReps}
+          placeholder={set.targetReps != null ? String(set.targetReps) : '–'}
+          disabled={skipped}
+          onCommit={(n) => onPatch({ actualReps: n == null ? null : Math.round(n) })}
+        />
+      )}
+      {holding ? (
+        <button
+          onClick={hold}
+          aria-label={holdStart ? `Stop hold and log set ${index + 1}` : `Start hold timer for set ${index + 1}`}
+          className={cn('press relative grid size-10 place-items-center justify-self-end rounded-full text-white', holdStart ? 'bg-orange' : 'bg-blue')}
+        >
+          {holdStart ? <Square className="size-4 fill-current" /> : <Play className="ml-0.5 size-4 fill-current" />}
+        </button>
+      ) : (
       <button
         onClick={toggle}
         disabled={skipped}
@@ -133,6 +195,7 @@ export function SetRow({ index, set, ex, units, loadField, targetAssist, onPatch
           <Check className="size-5" strokeWidth={3} />
         </motion.span>
       </button>
+      )}
     </motion.div>
   );
 }

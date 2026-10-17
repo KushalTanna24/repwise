@@ -1,11 +1,35 @@
 import { useEffect, useState } from 'react';
 import dayjs from 'dayjs';
 import { AnimatePresence, motion } from 'motion/react';
-import { greeting, shouldGreet } from '@/lib/alerts';
+import { greeting, shouldAnnounce, shouldGreet } from '@/lib/alerts';
+import { notify } from '@/lib/notify';
 import { useData } from '@/store/app';
 import { useLaunch } from './Splash';
 
 const KEY = 'repwise_last_greet';
+const VERSION_KEY = 'repwise_seen_version';
+
+/** Shown once on the first open of a new version. */
+const WHATS_NEW = {
+  version: __APP_VERSION__,
+  title: 'Repwise updated',
+  body: 'Freestyle Next-set guide, plank hold timer, supplements, water in History, calendar with goal dates.',
+};
+
+function read(key: string) {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+function write(key: string, v: string) {
+  try {
+    localStorage.setItem(key, v);
+  } catch {
+    /* banner may repeat; harmless */
+  }
+}
 const SHOW_MS = 6000;
 
 function lastGreet() {
@@ -21,17 +45,21 @@ export function DailyBanner() {
   const data = useData();
   const splashDone = useLaunch((s) => s.splashDone);
   const [open, setOpen] = useState(false);
+  const [news, setNews] = useState(false);
   const today = dayjs().format('YYYY-MM-DD');
 
   useEffect(() => {
-    if (!splashDone || !shouldGreet(lastGreet(), today)) return;
-    try {
-      localStorage.setItem(KEY, today);
-    } catch {
-      /* banner may repeat; harmless */
+    if (!splashDone) return;
+    const announce = shouldAnnounce(read(VERSION_KEY), WHATS_NEW.version, read(KEY) != null || data.sessions.length > 0);
+    write(VERSION_KEY, WHATS_NEW.version);
+    if (!announce && !shouldGreet(lastGreet(), today)) return;
+    write(KEY, today);
+    if (announce) {
+      setNews(true);
+      void notify(WHATS_NEW.title, WHATS_NEW.body, 'update', '/');
     }
     const show = setTimeout(() => setOpen(true), 250);
-    const hide = setTimeout(() => setOpen(false), 250 + SHOW_MS);
+    const hide = setTimeout(() => setOpen(false), 250 + (announce ? SHOW_MS * 1.6 : SHOW_MS));
     return () => {
       clearTimeout(show);
       clearTimeout(hide);
@@ -70,10 +98,10 @@ export function DailyBanner() {
           <img src="/icon.svg" alt="" className="size-[38px] shrink-0 rounded-[9px]" />
           <div className="min-w-0 flex-1">
             <div className="flex items-baseline justify-between gap-2">
-              <span className="text-footnote font-semibold text-label">{greeting(new Date().getHours())}</span>
+              <span className="text-footnote font-semibold text-label">{news ? `${WHATS_NEW.title} ✨` : greeting(new Date().getHours())}</span>
               <span className="text-caption text-label-2">now</span>
             </div>
-            <p className="text-subhead leading-snug text-label">{body}</p>
+            <p className="text-subhead leading-snug text-label">{news ? WHATS_NEW.body : body}</p>
           </div>
         </motion.div>
       )}

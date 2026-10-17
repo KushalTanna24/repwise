@@ -110,6 +110,7 @@ export function emptyAppData(now: string): AppData {
     bodyweights: [],
     water: {},
     supplements: [],
+    goals: [],
     suppLog: {},
     meta: { updatedAt: now },
   };

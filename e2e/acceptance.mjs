@@ -18,6 +18,7 @@ const errors = [];
 page.on('pageerror', (e) => errors.push(`pageerror: ${e.message.split('\n')[0]}`));
 page.on('console', (m) => m.type() === 'error' && errors.push(`console: ${m.text().split('\n')[0].slice(0, 160)}`));
 
+page.on('requestfailed', (r) => console.log('REQFAIL', r.url().slice(0, 120), r.failure()?.errorText));
 const results = [];
 process.on('unhandledRejection', async (e) => {
   console.log('ERROR', e.message.split('\n')[0]);
@@ -31,9 +32,28 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const shot = (n) => page.screenshot({ path: `${OUT}${n}.png` });
 const text = () => page.evaluate(() => document.body.textContent.replace(/\s+/g, ' '));
 const click = async (sel) => {
-  await page.waitForSelector(sel, { visible: true, timeout: 5000 });
+  try {
+    await page.waitForSelector(sel, { visible: true, timeout: 5000 });
+  } catch (e) {
+    await page.screenshot({ path: `${OUT}zz-failed.png` });
+    console.log('FAILED AT', sel, '|', (await text()).slice(0, 300));
+    const st = await page.evaluate(() => new Promise((res) => { const r = indexedDB.open('keyval-store'); r.onsuccess = () => { const g = r.result.transaction('keyval').objectStore('keyval').get('repwise_v4'); g.onsuccess = () => { const d = JSON.parse(g.result).state.data; res({ active: !!d.activeSession, plan: d.plannedSession && d.plannedSession.key, sessions: d.sessions.length, rot: d.program.rotation['full-body-abc'] }); }; }; }));
+    console.log('STATE', JSON.stringify(st));
+    throw e;
+  }
+  // Centre first so fixed bars (tab bar, Next bar) never sit on top of the target.
+  await page.$eval(sel, (el) => el.scrollIntoView({ block: 'center' }));
+  await sleep(150);
   await page.click(sel);
   await sleep(350);
+};
+const dumpState = () => page.evaluate(() => new Promise((res) => { const r = indexedDB.open('keyval-store'); r.onsuccess = () => { const g = r.result.transaction('keyval').objectStore('keyval').get('repwise_v4'); g.onsuccess = () => { const d = JSON.parse(g.result).state.data; res(JSON.stringify({ active: !!d.activeSession, plan: d.plannedSession && d.plannedSession.key, hash: location.hash })); }; }; }));
+const hist = () => page.evaluate(() => JSON.stringify({ hash: location.hash, len: history.length, state: history.state }));
+const typeInto = async (sel, value) => {
+  await page.$eval(sel, (el) => el.scrollIntoView({ block: 'center' }));
+  await sleep(150);
+  await page.click(sel);
+  await page.type(sel, value);
 };
 const noSplash = () => page.waitForFunction(() => !document.querySelector('[data-splash]'), { timeout: 8000 });
 const reload = async () => {
@@ -104,7 +124,7 @@ await sleep(700);
 await shot('02b-guide');
 t = await text();
 check('Exercise guide opens with setup, steps and demo link', t.includes('Setup') && t.includes('Common mistakes') && t.includes('Watch a demo'));
-await click('button::-p-text(Done)');
+await click('[data-vaul-drawer] button::-p-text(Done)');
 await sleep(500);
 
 // Water: one tap per glass, persists
@@ -122,9 +142,10 @@ await reload();
 check('Water survives refresh and shows in the ring stats', (await text()).includes('2/8'));
 
 // Workout A, refresh mid-way, finish with the last exercise untouched
-await click('button::-p-text(Start workout)');
+await click('button[aria-label="Start workout"]');
 await sleep(800);
 await shot('03-workout-start');
+check('Freestyle Next bar suggests the first set', (await text()).includes('Next · set 1'));
 await logAll(40, 1);
 await shot('04-workout-logged');
 await reload();
@@ -132,14 +153,22 @@ const persisted = await page.$$eval('[data-vaul-drawer] input[aria-label$="load"
 check('Logged values survive refresh mid-workout', persisted.filter((v) => v === '40').length >= 3);
 await finish();
 await shot('05-finish-summary');
-await click('button::-p-text(Done)');
+await click('[data-vaul-drawer] button::-p-text(Done)');
 await sleep(600);
 check('Rotation advanced to B after finishing A', (await text()).includes('Full Body B'));
+t = await text();
+check('Done-today card and Next time label after finishing', t.includes('Done today') && t.includes('Next time'));
+const listCount = () => page.$$eval('ol li', (els) => els.length);
+const collapsed = await listCount();
+await click('button[aria-expanded]');
+await sleep(500);
+check('Up Next collapses after training and expands on tap', collapsed === 0 && (await listCount()) > 0);
+await shot('05b-today-done');
 await reload();
 check('Refresh does not advance rotation', (await text()).includes('Full Body B'));
 
 // Discard does not advance
-await click('button::-p-text(Start workout)');
+await click('button[aria-label="Start workout"]');
 await sleep(700);
 await click('button::-p-text(Discard workout)');
 await click('[role="alertdialog"] button::-p-text(Discard)');
@@ -162,17 +191,17 @@ check('Viewing history does not advance rotation', (await text()).includes('Full
 
 // Finish B and C, expect A of cycle 2 with progression from the logged sets
 for (let k = 0; k < 2; k++) {
-  await click('button::-p-text(Start workout)');
+  await click('button[aria-label="Start workout"]');
   await sleep(700);
   await logAll(30);
   await finish();
-  await click('button::-p-text(Done)');
-  await sleep(600);
+  await click('[data-vaul-drawer] button::-p-text(Done)');
+  await sleep(1200);
 }
 t = await text();
 check('C completes the cycle: Full Body A, Cycle 2', t.includes('Full Body A') && t.includes('Cycle 2'));
 await shot('08-today-cycle2');
-await click('button::-p-text(Start workout)');
+await click('button[aria-label="Start workout"]');
 await sleep(900);
 t = await text();
 check('Targets explain themselves from last session', t.includes('Keeping 40 kg. Beat 6 \u00b7 6 \u00b7 6.'));
@@ -239,6 +268,24 @@ check('Goal note shows on the launch splash', (await text()).includes('Bench 100
 await shot('13-splash-note');
 await noSplash();
 check('Splash clears quickly', true);
+
+// Supplements: add in Profile, tick on Today, see in History
+await click('nav button::-p-text(Profile)');
+await sleep(400);
+await typeInto('input[placeholder="e.g. Creatine"]', 'Creatine');
+await typeInto('input[placeholder="Optional, e.g. 5 g"]', '5 g');
+await click('button::-p-text(Add supplement)');
+await click('nav button::-p-text(Today)');
+await sleep(400);
+await click('button[aria-label="Creatine"]');
+await sleep(300);
+check('Supplement pill ticks with one tap', (await text()).includes('1 / 1 taken'));
+await shot('14-today-supplements');
+await click('nav button::-p-text(History)');
+await sleep(500);
+t = await text();
+check('History shows the calendar and a daily habits row', t.includes('All supplements') && t.includes('daily habits'));
+await shot('15-history-calendar');
 
 check('No runtime errors in console', errors.length === 0, errors.slice(0, 5).join(' / '));
 console.log(results.join('\n'));

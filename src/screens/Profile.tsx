@@ -3,7 +3,10 @@ import dayjs from 'dayjs';
 import { Cloud, CloudOff, Download, LoaderCircle, Upload } from 'lucide-react';
 import { ALL_EQUIPMENT } from '@/domain/catalogue';
 import { parseImport } from '@/domain/migrate';
-import { updateProfile } from '@/domain/session';
+import { applyProfileToActive, updateProfile } from '@/domain/session';
+import { addSupplement, renameSupplement, setSupplementArchived } from '@/domain/supplements';
+import { addGoal, removeGoal } from '@/domain/calendar';
+import { Menu } from '@/components/ui/menu';
 import { SPLITS } from '@/domain/splits';
 import { fromDisplay, parseNumber, toDisplay } from '@/domain/stats';
 import type { AppData, EquipmentKind, Profile as ProfileT } from '@/domain/types';
@@ -78,6 +81,7 @@ export function Profile() {
               { value: 45 as const, label: '45 min' },
               { value: 60 as const, label: '60 min' },
               { value: 75 as const, label: '75 min' },
+              { value: 90 as const, label: '90 min' },
             ]}
           />
         </FieldRow>
@@ -85,7 +89,29 @@ export function Profile() {
           <Select label="Units" value={p.units} onChange={(units) => setProfile({ units }, false)} options={[{ value: 'kg', label: 'kg' }, { value: 'lb', label: 'lb' }]} />
         </FieldRow>
       </List>
-      <p className="px-4 pt-2 text-footnote text-label-2">Goal and session length change sets, reps and exercise count from your next workout. History is never touched.</p>
+      <p className="px-4 pt-2 text-footnote text-label-2">Goal changes sets and reps, experience changes exercise choice and set count, session length adds or trims exercises. Applies from your next workout; history is never touched.</p>
+      {data.activeSession && (
+        <div className="mt-3">
+          <List>
+            <Row
+              title="Apply to current workout"
+              subtitle="Updates exercises you haven't started. Logged sets stay as they are."
+              onClick={() => {
+                act(applyProfileToActive);
+                toast('Current workout updated');
+              }}
+              className="text-blue"
+              chevron
+            />
+          </List>
+        </div>
+      )}
+
+      <SectionHeader title="Goals" />
+      <Goals data={data} />
+
+      <SectionHeader title="Supplements" />
+      <SupplementStack data={data} />
 
       <SectionHeader title="Body & goals" />
       <BodyGoals data={data} />
@@ -312,5 +338,103 @@ function NotificationsRow() {
         chevron={permission === 'default'}
       />
     </List>
+  );
+}
+function Goals({ data }: { data: AppData }) {
+  const [title, setTitle] = useState('');
+  const [date, setDate] = useState(dayjs().add(3, 'month').format('YYYY-MM-DD'));
+  function add() {
+    if (!title.trim()) return toast('Name the goal');
+    act((d) => addGoal(d, title, date));
+    setTitle('');
+    toast('Goal added to your calendar');
+  }
+  return (
+    <>
+      {data.goals.length > 0 && (
+        <List className="mb-3">
+          {data.goals.map((g) => (
+            <div key={g.id} className="flex items-center gap-2 py-2.5 pl-4 pr-2 [&:not(:last-child)]:border-b [&:not(:last-child)]:border-sep">
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-body">{g.title}</div>
+                <div className="text-footnote text-label-2">
+                  {dayjs(g.date).format('ddd D MMM YYYY')}
+                  {g.date >= dayjs().format('YYYY-MM-DD') ? ` · ${dayjs(g.date).diff(dayjs().startOf('day'), 'day')} days left` : ' · past'}
+                </div>
+              </div>
+              <Button variant="plain" size="sm" className="text-red" onClick={() => act((d) => removeGoal(d, g.id))}>
+                Remove
+              </Button>
+            </div>
+          ))}
+        </List>
+      )}
+      <List>
+        <FieldRow label="Goal">
+          <TextInput placeholder="e.g. Bench 100 kg" value={title} onChange={(e) => setTitle(e.target.value)} className="w-44" />
+        </FieldRow>
+        <FieldRow label="Target date">
+          <TextInput type="date" value={date} min={dayjs().format('YYYY-MM-DD')} onChange={(e) => setDate(e.target.value || date)} />
+        </FieldRow>
+      </List>
+      <Button className="mt-3 w-full" onClick={add}>
+        Add goal
+      </Button>
+      <p className="px-4 pt-2 text-footnote text-label-2">Goal dates are flagged on the History calendar with a countdown.</p>
+    </>
+  );
+}
+
+function SupplementStack({ data }: { data: AppData }) {
+  const [name, setName] = useState('');
+  const [dose, setDose] = useState('');
+  function add() {
+    if (!name.trim()) return toast('Name the supplement');
+    act((d) => addSupplement(d, name, dose));
+    setName('');
+    setDose('');
+  }
+  return (
+    <>
+      {data.supplements.length > 0 && (
+        <List className="mb-3">
+          {data.supplements.map((s) => (
+            <div key={s.id} className="flex items-center gap-2 py-2.5 pl-4 pr-2 [&:not(:last-child)]:border-b [&:not(:last-child)]:border-sep">
+              <div className="min-w-0 flex-1">
+                <div className={s.archived ? 'truncate text-body text-label-3' : 'truncate text-body'}>{s.name}</div>
+                <div className="text-footnote text-label-2">{s.archived ? 'Archived · history kept' : (s.dose ?? 'Daily')}</div>
+              </div>
+              <Menu
+                label={`${s.name} options`}
+                trigger={<Button variant="plain" size="sm">Edit</Button>}
+                items={[
+                  {
+                    label: 'Rename',
+                    onSelect: () => {
+                      const n = window.prompt('Rename supplement', s.name);
+                      if (n?.trim()) act((d) => renameSupplement(d, s.id, n));
+                    },
+                  },
+                  s.archived
+                    ? { label: 'Restore', onSelect: () => act((d) => setSupplementArchived(d, s.id, false)) }
+                    : { label: 'Archive', onSelect: () => act((d) => setSupplementArchived(d, s.id, true)), destructive: true },
+                ]}
+              />
+            </div>
+          ))}
+        </List>
+      )}
+      <List>
+        <FieldRow label="Name">
+          <TextInput placeholder="e.g. Creatine" value={name} onChange={(e) => setName(e.target.value)} className="w-40" />
+        </FieldRow>
+        <FieldRow label="Dose">
+          <TextInput placeholder="Optional, e.g. 5 g" value={dose} onChange={(e) => setDose(e.target.value)} className="w-40" />
+        </FieldRow>
+      </List>
+      <Button className="mt-3 w-full" onClick={add}>
+        Add supplement
+      </Button>
+    </>
   );
 }

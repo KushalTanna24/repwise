@@ -4,7 +4,10 @@ import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import path from 'node:path';
 
+import pkg from './package.json' with { type: 'json' };
+
 export default defineConfig({
+  define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   plugins: [
     react(),
     tailwindcss(),

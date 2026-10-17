@@ -1,21 +1,23 @@
 import dayjs from 'dayjs';
 import { useEffect, useState } from 'react';
-import { motion } from 'motion/react';
-import { Ellipsis, GlassWater, Minus, Play, Plus, RefreshCw, Repeat, SkipForward, Sparkles } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
+import { Check, ChevronRight, Ellipsis, GlassWater, Minus, Pill, Play, Plus, RefreshCw, Repeat, SkipForward, Sparkles } from 'lucide-react';
 import { getExercise } from '@/domain/catalogue';
 import { rebuildPlan } from '@/domain/planner';
 import { addWater, GLASS_ML } from '@/domain/water';
 import { skipPlannedSession, startSession } from '@/domain/session';
 import { SPLITS } from '@/domain/splits';
 import { latestWeight, sessionVolume, weekStats } from '@/domain/stats';
-import type { AppData, PlannedExercise } from '@/domain/types';
+import type { AppData, PlannedExercise, WorkoutSession } from '@/domain/types';
+import { activeSupplements, toggleSupplement } from '@/domain/supplements';
+import { cn } from '@/lib/cn';
 import { Screen } from '@/components/Screen';
 import { Rings } from '@/components/Rings';
 import { Button } from '@/components/ui/button';
 import { Card, List, Row, SectionHeader } from '@/components/ui/card';
 import { Menu } from '@/components/ui/menu';
 import { confirm } from '@/components/ui/alert';
-import { exName, fmtClock, fmtDay, fmtLoad, fmtRange, nowIso } from '@/lib/fmt';
+import { exName, fmtClock, fmtDay, fmtDuration, fmtLoad, fmtRange, nowIso } from '@/lib/fmt';
 import { go, openSheet } from '@/lib/route';
 import { toast } from '@/lib/toast';
 import { act, useApp, useData } from '@/store/app';
@@ -37,12 +39,14 @@ export function Today() {
           <p className="px-1 pb-4 pt-2 text-subhead text-label-2">Pick how you train. Repwise keeps your place in the rotation and builds every session from what you actually lift.</p>
           <SplitChooser />
           <Water data={data} />
+          <Supplements data={data} />
         </>
       ) : (
         <>
           <UpNext data={data} />
           <NotifyPrompt />
           <Water data={data} />
+          <Supplements data={data} />
           <Week data={data} />
           <Recent data={data} />
         </>
@@ -81,18 +85,31 @@ function UpNext({ data }: { data: AppData }) {
     openSheet('workout');
   }
 
+  const today = dayjs().format('YYYY-MM-DD');
+  const doneToday = !active ? [...data.sessions].reverse().find((s) => s.finishedAt && dayjs(s.startedAt).format('YYYY-MM-DD') === today) : undefined;
+  const [open, setOpen] = useUpNextOpen(today, !doneToday);
+
   return (
-    <Card className="mt-4 overflow-hidden">
+    <>
+      {doneToday && <DoneToday s={doneToday} />}
+      <Card className="mt-4 overflow-hidden">
       <div className="flex items-start justify-between gap-3 px-4 pt-4">
-        <div>
-          <div className="text-footnote font-semibold uppercase tracking-wide text-pink">
-            {active ? 'In progress' : 'Up next'} · Cycle {plan.cycle}
+        <button
+          className="min-w-0 flex-1 text-left"
+          aria-expanded={active ? true : open}
+          onClick={() => !active && setOpen(!open)}
+        >
+          <div className="text-footnote font-semibold uppercase tracking-wide text-pink">{active ? 'In progress' : doneToday ? 'Next time' : 'Up next'}</div>
+          <div className="mt-0.5 flex items-center gap-1.5 text-title2 font-bold">
+            <span className="truncate">{active ? active.title : plan.title}</span>
+            {!active && (
+              <motion.span animate={{ rotate: open ? 90 : 0 }} transition={{ type: 'spring', stiffness: 500, damping: 35 }} className="shrink-0 text-label-3">
+                <ChevronRight className="size-5" strokeWidth={3} />
+              </motion.span>
+            )}
           </div>
-          <div className="mt-0.5 text-title2 font-bold">{active ? active.title : plan.title}</div>
-          <div className="text-subhead text-label-2">
-            {split.name} · session {plan.sessionIndex + 1} of {split.sessions.length}
-          </div>
-        </div>
+          <RotationStrip titles={split.sessions.map((x) => x.title)} current={plan.sessionIndex} cycle={plan.cycle} count={plan.exercises.length} />
+        </button>
         {!active && (
           <Menu
             label="Session options"
@@ -110,25 +127,102 @@ function UpNext({ data }: { data: AppData }) {
         )}
       </div>
 
-      {!active && (
-        <ol className="mt-3">
-          {plan.exercises.map((e, i) => (
-            <PlanLine key={e.slotId} data={data} e={e} index={i} />
-          ))}
-        </ol>
-      )}
+      <AnimatePresence initial={false}>
+        {!active && open && (
+          <motion.ol
+            key="list"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 380, damping: 38 }}
+            className="mt-3 overflow-hidden"
+          >
+            {plan.exercises.map((e, i) => (
+              <PlanLine key={e.slotId} data={data} e={e} index={i} />
+            ))}
+          </motion.ol>
+        )}
+      </AnimatePresence>
 
       <div className="p-4">
         {active ? (
           <ResumeButton startedAt={active.startedAt} done={active.exercises.reduce((n, e) => n + e.sets.filter((s) => s.status === 'done').length, 0)} />
         ) : (
-          <Button size="lg" onClick={start} disabled={plan.exercises.every((e) => !e.exerciseId)}>
+          <Button size="lg" aria-label="Start workout" variant={doneToday ? 'tinted' : 'primary'} onClick={start} disabled={plan.exercises.every((e) => !e.exerciseId)}>
             <Play className="size-5 fill-current" />
-            Start workout
+            {doneToday ? `Start ${plan.title} anyway` : 'Start workout'}
           </Button>
         )}
       </div>
-    </Card>
+      </Card>
+    </>
+  );
+}
+
+const OPEN_KEY = 'repwise_upnext';
+
+/** Open by default before today's workout, closed after; a manual toggle sticks for the day. */
+function useUpNextOpen(today: string, fallback: boolean): [boolean, (v: boolean) => void] {
+  const read = () => {
+    try {
+      const v = JSON.parse(localStorage.getItem(OPEN_KEY) ?? 'null') as { date: string; open: boolean } | null;
+      return v?.date === today ? v.open : fallback;
+    } catch {
+      return fallback;
+    }
+  };
+  const [open, setOpen] = useState(read);
+  useEffect(() => setOpen(read()), [today, fallback]); // eslint-disable-line react-hooks/exhaustive-deps
+  return [
+    open,
+    (v) => {
+      setOpen(v);
+      try {
+        localStorage.setItem(OPEN_KEY, JSON.stringify({ date: today, open: v }));
+      } catch {
+        /* per-session only */
+      }
+    },
+  ];
+}
+
+/** Where you are in the split: one chip per session, current one filled. Not a weekly count. */
+function RotationStrip({ titles, current, cycle, count }: { titles: string[]; current: number; cycle: number; count: number }) {
+  const short = (t: string) => t.replace(/^Full Body /, '');
+  return (
+    <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-footnote text-label-2">
+      {titles.map((t, i) => (
+        <span
+          key={t}
+          className={cn(
+            'rounded-full px-2 py-0.5 text-caption font-bold',
+            i === current ? 'bg-pink text-white' : i < current ? 'bg-pink/15 text-pink' : 'bg-fill text-label-2',
+          )}
+        >
+          {short(t)}
+        </span>
+      ))}
+      <span>· Cycle {cycle} · {count} exercises</span>
+    </div>
+  );
+}
+
+function DoneToday({ s }: { s: WorkoutSession }) {
+  const v = sessionVolume(s);
+  return (
+    <button onClick={() => openSheet(`session:${s.id}`)} className="press mt-4 flex w-full items-center gap-3 rounded-card bg-green p-4 text-left text-white shadow-card">
+      <span className="grid size-11 shrink-0 place-items-center rounded-full bg-white/20">
+        <Check className="size-6" strokeWidth={3} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="text-footnote font-semibold uppercase tracking-wide text-white/80">Done today</div>
+        <div className="truncate text-title3 font-bold">{s.title}</div>
+        <div className="text-subhead text-white/85">
+          {fmtDuration(Date.parse(s.finishedAt!) - Date.parse(s.startedAt))} · {v.sets} sets
+        </div>
+      </div>
+      <ChevronRight className="size-5 shrink-0 text-white/70" />
+    </button>
   );
 }
 
@@ -294,6 +388,60 @@ function Water({ data }: { data: AppData }) {
       <Button variant="primary" className="h-11 px-4" aria-label="Add a glass of water" onClick={() => add(1)}>
         <Plus className="size-4" strokeWidth={3} /> Glass
       </Button>
+    </Card>
+  );
+}
+function Supplements({ data }: { data: AppData }) {
+  const today = dayjs().format('YYYY-MM-DD');
+  const stack = activeSupplements(data);
+  const taken = data.suppLog[today] ?? [];
+
+  if (!stack.length)
+    return (
+      <button onClick={() => go('profile')} className="press mt-3 flex w-full items-center gap-3 rounded-card bg-card p-3 pl-4 text-left shadow-card">
+        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-purple/12 text-purple">
+          <Pill className="size-5" />
+        </span>
+        <div className="flex-1">
+          <div className="text-headline font-semibold">Supplements</div>
+          <div className="text-footnote text-label-2">Add your stack in Profile to tick it off daily</div>
+        </div>
+        <ChevronRight className="size-4 text-label-3" />
+      </button>
+    );
+
+  return (
+    <Card className="mt-3 p-3 pl-4">
+      <div className="flex items-center gap-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-purple/12 text-purple">
+          <Pill className="size-5" />
+        </span>
+        <div className="text-headline font-semibold tabular">
+          {taken.filter((id) => stack.some((s) => s.id === id)).length} <span className="font-normal text-label-2">/ {stack.length} taken</span>
+        </div>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {stack.map((s) => {
+          const on = taken.includes(s.id);
+          return (
+            <motion.button
+              key={s.id}
+              whileTap={{ scale: 0.94 }}
+              aria-pressed={on}
+              aria-label={`${s.name}${on ? ' taken' : ''}`}
+              onClick={() => {
+                navigator.vibrate?.(10);
+                act((d) => toggleSupplement(d, today, s.id));
+              }}
+              className={cn('flex h-9 items-center gap-1.5 rounded-full px-3.5 text-subhead font-semibold transition-colors', on ? 'bg-purple text-white' : 'bg-fill text-label')}
+            >
+              {on && <Check className="size-4" strokeWidth={3} />}
+              {s.name}
+              {s.dose && <span className={on ? 'font-normal text-white/80' : 'font-normal text-label-2'}>{s.dose}</span>}
+            </motion.button>
+          );
+        })}
+      </div>
     </Card>
   );
 }

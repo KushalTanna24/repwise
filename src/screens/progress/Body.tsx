@@ -3,6 +3,7 @@ import dayjs from 'dayjs';
 import { Ellipsis, Scale } from 'lucide-react';
 import { bmi, fromDisplay, parseNumber, toDisplay } from '@/domain/stats';
 import { waterWeek } from '@/domain/water';
+import { activeSupplements, suppStreak } from '@/domain/supplements';
 import type { BodyWeight } from '@/domain/types';
 import { Chart } from '@/components/Chart';
 import { Button } from '@/components/ui/button';
@@ -232,6 +233,12 @@ function WaterWeek() {
         <Chart points={w.days.map((d) => ({ date: d.date, value: d.glasses }))} color="#007AFF" unit="glasses" kind="bar" height={150} />
       </div>
       <p className="mt-1 text-caption text-label-2">Goal {data.profile.waterGoal} glasses a day. Log from Today with one tap.</p>
+      {activeSupplements(data).length > 0 && (
+        <div className="mt-3 flex items-center justify-between border-t border-sep pt-3">
+          <span className="text-subhead text-label-2">Supplement streak</span>
+          <span className="text-headline font-semibold tabular text-purple">{suppStreak(data, dayjs().format('YYYY-MM-DD'))} days</span>
+        </div>
+      )}
     </Card>
   );
 }

@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react';
 import { ArrowDown, ArrowDownRight, ArrowUp, ArrowUpRight, Ellipsis, Minus, Plus, Repeat, Sparkles, SkipForward, Target } from 'lucide-react';
 import { getExercise } from '@/domain/catalogue';
+import { lastDoneMs, region, suggestNext } from '@/domain/flow';
 import { exerciseHistory } from '@/domain/stats';
 import { addSet, confirmSet, moveExercise, removeSet, skipExercise, skipSet, uncheckSet, updateSet } from '@/domain/session';
 import type { AppData, Recommendation, SessionExercise } from '@/domain/types';
@@ -7,12 +9,16 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Menu } from '@/components/ui/menu';
 import { cn } from '@/lib/cn';
-import { exName, fmtDay, fmtLoad, fmtRange } from '@/lib/fmt';
+import { exName, fmtClock, fmtDay, fmtLoad, fmtRange, nowIso } from '@/lib/fmt';
 import { toast } from '@/lib/toast';
 import { act, useApp } from '@/store/app';
 import { SetRow } from './SetRow';
+import { useHighlight } from './highlight';
 import { GuideButton } from '../Guide';
 import { startRest } from './RestTimer';
+
+/** Rest when the next suggested set is a different body area. */
+const SWITCH_REST_SEC = 45;
 
 const REC_STYLE: Record<Recommendation['kind'], { icon: typeof ArrowUp; cls: string }> = {
   increase: { icon: ArrowUpRight, cls: 'bg-green/12 text-[#248A3D]' },
@@ -42,6 +48,7 @@ export function ExerciseCard({ data, entry, index, count, onSwap }: Props) {
   const allDone = entry.sets.length > 0 && entry.sets.every((s) => s.status !== 'pending');
   const rec = entry.rec;
   const style = rec ? REC_STYLE[rec.kind] : null;
+  const highlight = useHighlight((s) => s.key);
 
   if (!entry.exerciseId) {
     return (
@@ -62,15 +69,21 @@ export function ExerciseCard({ data, entry, index, count, onSwap }: Props) {
       return true;
     }
     const before = useApp.getState().data;
-    const after = confirmSet(before, index, setIdx);
+    const now = nowIso();
+    const after = confirmSet(before, index, setIdx, now);
     if (after === before) {
       toast('Enter the weight you used');
       return false;
     }
     act(() => after);
-    const restSec = entry.plan?.restSec ?? 90;
-    const finishedExercise = after.activeSession!.exercises[index].sets.every((s) => s.status !== 'pending');
-    startRest(finishedExercise ? Math.min(restSec, 120) : restSec);
+    // Freestyle: switching body area only needs a short breather; repeating this exercise needs its full rest.
+    const session = after.activeSession!;
+    const next = suggestNext(session, after.customExercises, now);
+    if (next) {
+      const nextEx = getExercise(session.exercises[next.exIdx].exerciseId, after.customExercises);
+      const switching = next.exIdx !== index && !!ex && !!nextEx && region(nextEx.pattern) !== region(ex.pattern);
+      startRest(switching ? SWITCH_REST_SEC : (entry.plan?.restSec ?? 90));
+    }
     return true;
   }
 
@@ -83,6 +96,7 @@ export function ExerciseCard({ data, entry, index, count, onSwap }: Props) {
           <div className="flex items-center gap-2">
             <h3 className="truncate text-headline font-semibold">{exName(data, entry.exerciseId)}</h3>
             <GuideButton id={entry.exerciseId} className="-ml-1" />
+            {!allDone && !entry.skipped && <Recovery last={lastDoneMs(entry.sets)} restSec={entry.plan?.restSec ?? 90} />}
             {allDone && !entry.skipped && <span className="rounded-full bg-green px-2 py-0.5 text-caption font-bold text-white">Done</span>}
           </div>
           <div className="text-footnote text-label-2">
@@ -148,6 +162,12 @@ export function ExerciseCard({ data, entry, index, count, onSwap }: Props) {
             units={units}
             loadField={loadField}
             targetAssist={rec?.assistKg ?? null}
+            exIdx={index}
+            highlight={highlight === `${index}-${i}`}
+            onHold={(sec) => {
+              act((d) => updateSet(d, index, i, { actualReps: sec }));
+              toggle(i);
+            }}
             onPatch={(patch) => act((d) => updateSet(d, index, i, patch))}
             onToggle={() => toggle(i)}
             onSkip={() => act((d) => skipSet(d, index, i))}
@@ -159,5 +179,23 @@ export function ExerciseCard({ data, entry, index, count, onSwap }: Props) {
         <Plus className="size-4" strokeWidth={2.5} /> Add set
       </Button>
     </Card>
+  );
+}
+
+/** "Rested 1:12" while recovering, green "Ready" once this exercise's rest has passed. */
+function Recovery({ last, restSec }: { last: number | null; restSec: number }) {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    if (last == null) return;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [last]);
+  if (last == null) return null;
+  const since = now - last;
+  const ready = since >= restSec * 1000;
+  return (
+    <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-caption font-bold tabular', ready ? 'bg-green/15 text-[#248A3D]' : 'bg-orange/15 text-[#C93400]')}>
+      {ready ? 'Ready' : `Rested ${fmtClock(since)}`}
+    </span>
   );
 }

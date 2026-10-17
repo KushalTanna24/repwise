@@ -125,6 +125,13 @@ export interface ExtraSession {
   note?: string;
 }
 
+export interface Goal {
+  id: string;
+  title: string;
+  /** Target date, local YYYY-MM-DD. */
+  date: string;
+}
+
 export interface Supplement {
   /** Stable slug; renaming keeps history. */
   id: string;
@@ -176,6 +183,7 @@ export interface AppData {
   /** Glasses of water per local date (YYYY-MM-DD). */
   water: Record<string, number>;
   supplements: Supplement[];
+  goals: Goal[];
   /** Supplement ids taken per local date. */
   suppLog: Record<string, string[]>;
   meta: { updatedAt: string; migratedFrom?: 'repwise_v2'; migratedAt?: string };

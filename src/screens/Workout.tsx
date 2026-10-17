@@ -14,6 +14,12 @@ import { ExerciseCard } from './workout/ExerciseCard';
 import { ExercisePicker } from './workout/ExercisePicker';
 import { FinishSummary, type Summary } from './workout/FinishSummary';
 import { RestTimer, useRest } from './workout/RestTimer';
+import { flashSet } from './workout/highlight';
+import { closeSheet } from '@/lib/route';
+import { suggestNext } from '@/domain/flow';
+import { ensurePlan } from '@/domain/planner';
+import { getExercise } from '@/domain/catalogue';
+import { exName, fmtLoad } from '@/lib/fmt';
 
 type Mode = { kind: 'log' } | { kind: 'swap'; index: number } | { kind: 'add' };
 
@@ -32,6 +38,12 @@ export function WorkoutSheet({ open, onClose }: { open: boolean; onClose: () => 
   const [mode, setMode] = useState<Mode>({ kind: 'log' });
   const [summary, setSummary] = useState<Summary | null>(null);
   const finishing = useRef(false);
+
+  // A stale #/today/workout (e.g. refresh after finishing) must not leave an empty sheet over Today.
+  // Only on opening, so it never races the normal close after finish/discard.
+  useEffect(() => {
+    if (open && !useApp.getState().data.activeSession) closeSheet({ replace: true });
+  }, [open]);
 
   // Android back closes the sheet through the router, not through close().
   useEffect(() => {
@@ -67,9 +79,10 @@ export function WorkoutSheet({ open, onClose }: { open: boolean; onClose: () => 
       const after = finishSession(before, now);
       const saved = after.sessions.find((x) => x.id === before.activeSession?.id);
       if (after === before || !saved) return;
+      // Summary first: the empty-sheet guard must never see 'no workout, no summary' mid-finish.
+      setSummary({ session: saved, prs: sessionPRs(after, saved), next: ensurePlan(after).plannedSession?.title ?? null });
       act(() => after);
       useRest.setState({ endsAt: null, total: 0 });
-      setSummary({ session: saved, prs: sessionPRs(after, saved), next: useApp.getState().data.plannedSession?.title ?? null });
     } finally {
       finishing.current = false;
     }
@@ -124,6 +137,7 @@ export function WorkoutSheet({ open, onClose }: { open: boolean; onClose: () => 
         <ExercisePicker data={data} suggested={swapSlot ? swapCandidates(swapSlot, data).filter((e) => e.id !== swapEntry?.exerciseId) : []} onPick={pick} />
       ) : (
         <div className="grid gap-3 pt-1">
+          <NextBar />
           {s.exercises.map((e, i) => (
             <ExerciseCard key={`${e.slotId ?? 'x'}-${i}-${e.exerciseId}`} data={data} entry={e} index={i} count={s.exercises.length} onSwap={() => setMode({ kind: 'swap', index: i })} />
           ))}
@@ -137,5 +151,35 @@ export function WorkoutSheet({ open, onClose }: { open: boolean; onClose: () => 
         </div>
       )}
     </Sheet>
+  );
+}
+
+/** Freestyle guide: the best next set right now. Tap to jump to it; any other set is fine too. */
+function NextBar() {
+  const data = useData();
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 5000);
+    return () => clearInterval(t);
+  }, []);
+  const s = data.activeSession;
+  if (!s) return null;
+  const next = suggestNext(s, data.customExercises, new Date(now).toISOString());
+  if (!next) return null;
+  const entry = s.exercises[next.exIdx];
+  const set = entry.sets[next.setIdx];
+  const timed = getExercise(entry.exerciseId, data.customExercises)?.kind === 'timed';
+  const target = timed ? `${set.targetReps ?? ''}s` : `${set.targetKg ? `${fmtLoad(set.targetKg, data.profile.units)} × ` : ''}${set.targetReps ?? ''}`;
+  return (
+    <button
+      onClick={() => flashSet(next.exIdx, next.setIdx)}
+      className="press sticky top-0 z-10 flex w-full items-center gap-3 rounded-[16px] bg-blue px-4 py-3 text-left text-white shadow-[0_8px_24px_rgb(0_122_255/0.35)]"
+    >
+      <div className="min-w-0 flex-1">
+        <div className="text-caption font-bold uppercase tracking-wide text-white/75">Next · set {next.setIdx + 1}</div>
+        <div className="truncate text-headline font-semibold">{exName(data, entry.exerciseId)}</div>
+      </div>
+      <div className="shrink-0 text-subhead font-semibold tabular">{target}</div>
+    </button>
   );
 }
