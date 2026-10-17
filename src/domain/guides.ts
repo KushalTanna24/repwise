@@ -1,0 +1,312 @@
+/** How-to content for built-in exercises. General coaching cues, not medical advice. */
+export interface Guide {
+  setup: string;
+  steps: string[];
+  cues: string[];
+  mistakes: string[];
+}
+
+export const demoUrl = (name: string) => `https://www.youtube.com/results?search_query=${encodeURIComponent(`${name} proper form`)}`;
+
+export const GUIDES: Record<string, Guide> = {
+  'back-squat': {
+    setup: 'Bar in a rack at mid-chest height. Step under it so it sits on your upper back (not your neck), hands just outside shoulders. Walk it out two small steps; feet shoulder-width, toes turned out slightly.',
+    steps: [
+      'Take a big breath into your belly and brace like you are about to be poked in the stomach.',
+      'Sit down and slightly back, letting your knees travel forward over your toes.',
+      'Go down until your hip crease is level with or just below your knees, keeping your chest up.',
+      'Drive up through your whole foot, keeping the bar over the middle of your foot.',
+      'Breathe out at the top, re-brace, next rep.',
+    ],
+    cues: ['Spread the floor with your feet', 'Knees follow your toes', 'Chest proud, eyes ahead'],
+    mistakes: ['Knees caving inward', 'Heels lifting off the floor', 'Rounding the lower back at the bottom', 'Bouncing out of the bottom without control'],
+  },
+  'front-squat': {
+    setup: 'Bar rests on the front of your shoulders against your throat, fingertips under the bar, elbows pointing forward and high. Feet shoulder-width.',
+    steps: ['Brace hard before you descend.', 'Sit straight down between your heels, torso staying upright.', 'Reach depth with elbows still high.', 'Stand up by driving elbows up and pushing the floor away.'],
+    cues: ['Elbows up the whole time', 'Stay tall like a wall is behind you'],
+    mistakes: ['Elbows dropping so the bar rolls forward', 'Gripping the bar too tight with full hands', 'Leaning the chest forward'],
+  },
+  'hack-squat': {
+    setup: 'Back flat against the pad, shoulders under the pads, feet shoulder-width in the middle of the platform. Release the safety handles.',
+    steps: ['Lower under control by bending your knees.', 'Go as deep as you can while your back stays on the pad.', 'Press through your whole foot to stand back up.', 'Stop just short of locking your knees.'],
+    cues: ['Lower back glued to the pad', 'Slow down, strong up'],
+    mistakes: ['Locking knees hard at the top', 'Heels lifting', 'Cutting depth short'],
+  },
+  'leg-press': {
+    setup: 'Sit with your back and hips flat on the pad. Feet shoulder-width in the middle of the platform. Release the safeties.',
+    steps: ['Lower the platform by bending your knees toward your chest.', 'Stop when your hips start to peel off the seat.', 'Press back up through your heels and mid-foot.', 'Keep a soft bend in the knees at the top.'],
+    cues: ['Hips stay down on the seat', 'Knees track over toes'],
+    mistakes: ['Lower back rounding off the pad at the bottom', 'Locking the knees out', 'Using a tiny range of motion'],
+  },
+  'goblet-squat': {
+    setup: 'Hold one dumbbell vertically against your chest with both hands under the top end. Feet slightly wider than shoulders, toes out a little.',
+    steps: ['Brace and sit down between your legs.', 'Let your elbows go inside your knees at the bottom.', 'Keep the chest up and the weight close.', 'Stand up by pushing the floor away.'],
+    cues: ['Elbows push knees out', 'Weight stays touching your chest'],
+    mistakes: ['Letting the dumbbell drift away from the body', 'Heels lifting', 'Collapsing the chest forward'],
+  },
+  'bulgarian-split-squat': {
+    setup: 'Stand about two feet in front of a bench, facing away. Put the top of your back foot on the bench. Hold dumbbells at your sides.',
+    steps: ['Lower straight down by bending your front knee.', 'Go until your back knee nearly touches the floor.', 'Push through the front foot to stand back up.', 'Finish all reps on one leg, then switch.'],
+    cues: ['Most of your weight on the front foot', 'Torso tall or slightly forward'],
+    mistakes: ['Front foot too close to the bench', 'Pushing off the back foot', 'Front knee caving inward'],
+  },
+  'reverse-lunge': {
+    setup: 'Stand tall with dumbbells at your sides, feet hip-width.',
+    steps: ['Step one foot back about two feet.', 'Lower until both knees are bent around 90 degrees.', 'Drive through the front heel to return to standing.', 'Alternate legs or finish one side first.'],
+    cues: ['Step back, not sideways', 'Front shin fairly upright'],
+    mistakes: ['Taking too short a step', 'Back knee slamming the floor', 'Leaning way forward'],
+  },
+  'leg-extension': {
+    setup: 'Sit with your back against the pad and the roller just above your ankles. Line your knee up with the machine pivot. Hold the handles.',
+    steps: ['Straighten your legs by lifting the pad.', 'Squeeze your quads at the top for a moment.', 'Lower slowly to the start.'],
+    cues: ['Pause and squeeze at the top', 'Two seconds down'],
+    mistakes: ['Swinging the weight up', 'Hips lifting off the seat', 'Knee not aligned with the pivot'],
+  },
+  'romanian-deadlift': {
+    setup: 'Hold the barbell at hip height with an overhand grip just outside your thighs. Feet hip-width, knees slightly bent.',
+    steps: ['Push your hips straight back like closing a car door with your butt.', 'Slide the bar down your thighs, keeping your back flat.', 'Stop when you feel a strong hamstring stretch, usually around mid-shin.', 'Drive your hips forward to stand tall.'],
+    cues: ['Hips back, not down', 'Bar stays touching your legs', 'Long neck, flat back'],
+    mistakes: ['Rounding the back to reach lower', 'Bending the knees into a squat', 'Letting the bar drift away from the legs'],
+  },
+  'db-romanian-deadlift': {
+    setup: 'Hold a dumbbell in each hand in front of your thighs, palms facing you. Feet hip-width, knees soft.',
+    steps: ['Push your hips back.', 'Let the dumbbells slide down the front of your legs.', 'Stop at a strong hamstring stretch with a flat back.', 'Squeeze your glutes to stand up.'],
+    cues: ['Hips back', 'Dumbbells close to your legs'],
+    mistakes: ['Rounding the back', 'Squatting the weight down', 'Shoulders shrugging up'],
+  },
+  'hip-thrust': {
+    setup: 'Sit on the floor with your upper back against a bench edge. Roll a padded barbell over your hips. Feet flat, about shoulder-width.',
+    steps: ['Tuck your chin and brace.', 'Drive through your heels to lift your hips until your body is flat from knees to shoulders.', 'Squeeze your glutes hard at the top.', 'Lower under control.'],
+    cues: ['Shins vertical at the top', 'Ribs down, chin tucked'],
+    mistakes: ['Arching the lower back instead of using glutes', 'Feet too far out', 'Not reaching full hip extension'],
+  },
+  'leg-curl': {
+    setup: 'Adjust the machine so the pad sits just above your heels and your knee lines up with the pivot.',
+    steps: ['Curl your heels toward your butt.', 'Squeeze the hamstrings at the end.', 'Lower slowly all the way back.'],
+    cues: ['Hips stay down', 'Slow on the way back'],
+    mistakes: ['Hips lifting off the pad', 'Using momentum', 'Short range of motion'],
+  },
+  'cable-pull-through': {
+    setup: 'Rope on a low cable. Face away from the stack, rope between your legs, step out until there is tension. Feet a bit wider than hips.',
+    steps: ['Push your hips back and let the rope pull between your legs.', 'Keep a flat back and soft knees.', 'Drive your hips forward to stand tall, squeezing glutes.'],
+    cues: ['Hinge, do not squat', 'Arms are just hooks'],
+    mistakes: ['Pulling with the arms', 'Rounding the back', 'Leaning back at the top'],
+  },
+  'back-extension': {
+    setup: 'Set the pad just below your hip bones on a 45-degree bench. Hook your ankles under the rollers. Cross arms over chest.',
+    steps: ['Lower your torso by bending at the hips.', 'Go until you feel a hamstring stretch.', 'Squeeze your glutes to raise your body into a straight line.'],
+    cues: ['Squeeze glutes to come up', 'Stop at a straight line'],
+    mistakes: ['Hyperextending the lower back at the top', 'Pad too high so you cannot bend', 'Jerking up fast'],
+  },
+  'bench-press': {
+    setup: 'Lie with your eyes under the bar. Feet flat, shoulder blades pulled together and down, small arch in your upper back. Grip a bit wider than shoulders.',
+    steps: ['Unrack and hold the bar over your shoulders.', 'Lower to your lower chest with elbows about 45 degrees from your body.', 'Touch lightly, no bounce.', 'Press up and slightly back toward your face.'],
+    cues: ['Shoulder blades in your back pockets', 'Bend the bar', 'Feet push the floor'],
+    mistakes: ['Elbows flared straight out to the sides', 'Bouncing the bar off the chest', 'Butt lifting off the bench', 'Benching without a spotter or safeties near failure'],
+  },
+  'db-bench-press': {
+    setup: 'Sit with dumbbells on your thighs, lie back and bring them to chest level. Feet flat, shoulder blades pinched.',
+    steps: ['Press the dumbbells up over your chest.', 'Lower with control until they are level with your chest.', 'Press back up, bringing them slightly together at the top.'],
+    cues: ['Elbows about 45 degrees', 'Control the bottom'],
+    mistakes: ['Clanking dumbbells at the top', 'Dropping too fast', 'Wrists bent back'],
+  },
+  'incline-db-press': {
+    setup: 'Set the bench to about 30 degrees. Sit back with dumbbells at your upper chest, feet flat, shoulder blades back.',
+    steps: ['Press the dumbbells up over your upper chest.', 'Lower until they are beside your upper chest.', 'Press back up without locking hard.'],
+    cues: ['Low incline, about 30 degrees', 'Elbows slightly tucked'],
+    mistakes: ['Bench set too steep (turns into a shoulder press)', 'Arching the lower back off the bench', 'Short range of motion'],
+  },
+  'machine-chest-press': {
+    setup: 'Adjust the seat so the handles line up with your mid-chest. Back flat on the pad, feet on the floor.',
+    steps: ['Press the handles forward until your arms are almost straight.', 'Pause briefly.', 'Return slowly until you feel a chest stretch.'],
+    cues: ['Shoulders down and back', 'Slow return'],
+    mistakes: ['Seat too high or low', 'Shoulders rolling forward', 'Letting the stack slam'],
+  },
+  'cable-fly': {
+    setup: 'Set both pulleys at shoulder height. Take a handle in each hand and step forward into a split stance, arms out wide with a slight elbow bend.',
+    steps: ['Bring your hands together in a wide arc in front of your chest.', 'Squeeze your chest for a moment.', 'Open back up slowly until you feel a stretch.'],
+    cues: ['Hug a big tree', 'Elbow bend stays fixed'],
+    mistakes: ['Turning it into a press by bending the elbows', 'Going too heavy and losing control', 'Shrugging the shoulders'],
+  },
+  'push-up': {
+    setup: 'Hands slightly wider than shoulders, body in a straight line from head to heels, core and glutes tight.',
+    steps: ['Lower your chest toward the floor with elbows about 45 degrees.', 'Touch your chest close to the floor.', 'Push the floor away to the top.'],
+    cues: ['Body moves as one plank', 'Screw your hands into the floor'],
+    mistakes: ['Hips sagging', 'Elbows flared wide', 'Half reps'],
+  },
+  dip: {
+    setup: 'Grip parallel bars, jump up to straight arms, shoulders pushed down away from your ears. Lean slightly forward for more chest.',
+    steps: ['Bend your elbows to lower your body.', 'Go down until your upper arms are about parallel to the floor, or as far as is comfortable.', 'Press back up to straight arms.'],
+    cues: ['Shoulders down, chest proud', 'Controlled descent'],
+    mistakes: ['Dropping too deep with shoulder pain', 'Shrugging up at the bottom', 'Swinging the legs'],
+  },
+  'overhead-press': {
+    setup: 'Bar in a rack at upper-chest height. Grip just outside shoulders, bar resting on front of shoulders, elbows slightly in front of the bar. Feet hip-width.',
+    steps: ['Squeeze glutes and brace.', 'Press the bar straight up, moving your head back slightly to let it pass.', 'Push your head through once the bar passes your forehead.', 'Lower to the front of your shoulders.'],
+    cues: ['Glutes tight, ribs down', 'Bar path straight up'],
+    mistakes: ['Leaning back into a big arch', 'Pressing the bar out in front', 'Flaring elbows wide'],
+  },
+  'seated-db-press': {
+    setup: 'Bench nearly upright. Sit back with dumbbells at shoulder height, palms forward, feet planted.',
+    steps: ['Press the dumbbells up until arms are nearly straight.', 'Lower until they are around ear level.', 'Press again.'],
+    cues: ['Back against the pad', 'Elbows slightly forward'],
+    mistakes: ['Arching off the pad', 'Lowering too little', 'Banging the dumbbells together'],
+  },
+  'machine-shoulder-press': {
+    setup: 'Adjust the seat so the handles start around shoulder height. Back against the pad.',
+    steps: ['Press the handles overhead.', 'Stop just short of locking out.', 'Lower slowly to shoulder level.'],
+    cues: ['Ribs down', 'Smooth tempo'],
+    mistakes: ['Seat too low', 'Arching the back', 'Shrugging shoulders up'],
+  },
+  'chest-supported-row': {
+    setup: 'Set an incline bench (or machine pad) and lie chest down on it, holding dumbbells or handles with arms hanging straight.',
+    steps: ['Pull your elbows back toward your hips.', 'Squeeze your shoulder blades together at the top.', 'Lower until your arms are straight again.'],
+    cues: ['Chest stays on the pad', 'Lead with the elbows'],
+    mistakes: ['Lifting the chest off to cheat', 'Shrugging toward the ears', 'Short pulls'],
+  },
+  'seated-cable-row': {
+    setup: 'Sit at the cable row with feet on the platform, knees soft. Grab the handle, sit tall with arms straight.',
+    steps: ['Pull the handle to your lower ribs.', 'Squeeze shoulder blades together.', 'Let your arms extend forward slowly, feeling a stretch.'],
+    cues: ['Sit tall, do not rock', 'Elbows brush your sides'],
+    mistakes: ['Swinging the torso back and forth', 'Pulling to the neck', 'Rounding the back at the stretch'],
+  },
+  'one-arm-db-row': {
+    setup: 'One knee and hand on a bench, other foot on the floor. Dumbbell in the free hand, arm hanging straight, back flat.',
+    steps: ['Pull the dumbbell toward your hip.', 'Squeeze your back at the top.', 'Lower all the way for a full stretch.', 'Finish the set, then switch sides.'],
+    cues: ['Pull to your hip, not your chest', 'Keep shoulders square'],
+    mistakes: ['Twisting the torso to lift', 'Shrugging the dumbbell up', 'Rounding the back'],
+  },
+  'barbell-row': {
+    setup: 'Hold the bar with an overhand grip, hinge forward to about 45 degrees with a flat back and soft knees.',
+    steps: ['Brace and pull the bar to your lower ribs.', 'Squeeze your shoulder blades.', 'Lower under control to straight arms.'],
+    cues: ['Torso angle stays fixed', 'Elbows drive back'],
+    mistakes: ['Standing up as you pull', 'Rounding the back', 'Jerking the weight'],
+  },
+  'inverted-row': {
+    setup: 'Set a bar at waist height in a rack or Smith machine. Lie under it, grab slightly wider than shoulders, body straight, heels on the floor.',
+    steps: ['Pull your chest to the bar.', 'Squeeze shoulder blades together.', 'Lower to straight arms.'],
+    cues: ['Body stays a straight plank', 'Chest to bar'],
+    mistakes: ['Hips sagging', 'Half reps', 'Chin poking forward'],
+  },
+  'lat-pulldown': {
+    setup: 'Adjust the thigh pad so your legs are locked in. Grip the bar a bit wider than shoulders, sit tall, slight lean back.',
+    steps: ['Pull the bar to your upper chest by driving elbows down.', 'Squeeze your lats at the bottom.', 'Let the bar rise slowly until your arms are straight.'],
+    cues: ['Elbows down to your back pockets', 'Chest up to meet the bar'],
+    mistakes: ['Pulling behind the neck', 'Leaning way back and rowing', 'Letting the weight yank your arms up'],
+  },
+  'pull-up': {
+    setup: 'Hang from the bar with an overhand grip a bit wider than shoulders. Use an assisted machine or band if you cannot do full reps yet, and log the assistance.',
+    steps: ['Pull your shoulder blades down first.', 'Pull until your chin clears the bar.', 'Lower all the way to a dead hang under control.'],
+    cues: ['Chest to the bar', 'No kipping'],
+    mistakes: ['Half reps', 'Swinging the legs for momentum', 'Shrugging up at the top'],
+  },
+  'chin-up': {
+    setup: 'Hang from the bar with palms facing you, hands about shoulder-width.',
+    steps: ['Pull your shoulders down and back.', 'Pull until your chin is over the bar.', 'Lower slowly to straight arms.'],
+    cues: ['Elbows drive to your ribs', 'Full hang each rep'],
+    mistakes: ['Kicking the legs', 'Stopping short of the top', 'Dropping fast'],
+  },
+  'straight-arm-pulldown': {
+    setup: 'Rope or bar on a high cable. Step back, hinge slightly, arms straight in front at head height.',
+    steps: ['Keeping arms straight, sweep the handle down to your thighs.', 'Squeeze your lats.', 'Let it rise slowly back to head height.'],
+    cues: ['Arms stay long', 'Think of pushing the bar down with your armpits'],
+    mistakes: ['Bending the elbows into a pushdown', 'Moving the torso up and down', 'Going too heavy'],
+  },
+  'db-lateral-raise': {
+    setup: 'Stand with a light dumbbell in each hand at your sides, slight lean forward, soft elbows.',
+    steps: ['Raise the dumbbells out to the sides.', 'Stop around shoulder height.', 'Lower slowly.'],
+    cues: ['Lead with the elbows', 'Pour the water out slightly', 'Light weight, strict form'],
+    mistakes: ['Swinging the body', 'Shrugging the traps up', 'Lifting far above shoulder height'],
+  },
+  'cable-lateral-raise': {
+    setup: 'Low pulley, handle in the hand farthest from the machine, cable across the front of your body. Stand side-on.',
+    steps: ['Raise your arm out to the side to shoulder height.', 'Pause briefly.', 'Lower slowly across your body.'],
+    cues: ['Elbow leads', 'Stay tall, no lean'],
+    mistakes: ['Leaning away to cheat', 'Shrugging', 'Rushing the lowering'],
+  },
+  'face-pull': {
+    setup: 'Rope on a cable at upper-chest to face height. Grab the rope with thumbs pointing back, step back until arms are straight.',
+    steps: ['Pull the rope toward your face, splitting the ends apart.', 'Finish with hands beside your ears, elbows high.', 'Return slowly.'],
+    cues: ['Elbows high', 'Show your biceps at the end'],
+    mistakes: ['Pulling to the chest with low elbows', 'Leaning back', 'Too heavy to control'],
+  },
+  'rear-delt-fly': {
+    setup: 'Hinge forward to almost parallel with the floor (or lie chest down on an incline bench), light dumbbells hanging under your shoulders.',
+    steps: ['Raise the dumbbells out to the sides with soft elbows.', 'Stop when arms are in line with your body.', 'Lower slowly.'],
+    cues: ['Think wide, not up', 'Do not squeeze shoulder blades hard'],
+    mistakes: ['Using momentum', 'Too heavy', 'Turning it into a row'],
+  },
+  'reverse-pec-deck': {
+    setup: 'Sit facing the pad of the pec deck, handles set to the rear position, arms straight in front at shoulder height.',
+    steps: ['Sweep your arms back in a wide arc.', 'Stop when arms are in line with your body.', 'Return slowly.'],
+    cues: ['Chest on the pad', 'Arms long'],
+    mistakes: ['Pinching shoulder blades so traps take over', 'Jerking the handles', 'Seat too low'],
+  },
+  'db-curl': {
+    setup: 'Stand tall with a dumbbell in each hand, palms forward, elbows at your sides.',
+    steps: ['Curl the dumbbells up toward your shoulders.', 'Squeeze at the top.', 'Lower slowly to straight arms.'],
+    cues: ['Elbows pinned', 'Slow lower'],
+    mistakes: ['Swinging the body', 'Elbows drifting forward', 'Cutting the bottom of the rep'],
+  },
+  'cable-curl': {
+    setup: 'Bar or rope on a low cable, stand close, palms up, elbows at your sides.',
+    steps: ['Curl the handle up to your shoulders.', 'Squeeze.', 'Lower under control to straight arms.'],
+    cues: ['Elbows stay still', 'Constant tension'],
+    mistakes: ['Leaning back', 'Elbows moving forward', 'Rushing reps'],
+  },
+  'hammer-curl': {
+    setup: 'Stand with dumbbells at your sides, palms facing each other.',
+    steps: ['Curl the dumbbells up keeping palms facing in.', 'Squeeze at the top.', 'Lower slowly.'],
+    cues: ['Thumbs up the whole time', 'Elbows pinned'],
+    mistakes: ['Swinging', 'Wrists bending', 'Half reps'],
+  },
+  'triceps-pushdown': {
+    setup: 'Rope or bar on a high cable. Stand close, elbows tucked at your sides, forearms up.',
+    steps: ['Push the handle down until your arms are straight.', 'Squeeze the triceps.', 'Let it rise until forearms are just above parallel.'],
+    cues: ['Elbows glued to your sides', 'Only the forearms move'],
+    mistakes: ['Elbows flaring or moving forward', 'Leaning over to push with body weight', 'Short range'],
+  },
+  'overhead-triceps-extension': {
+    setup: 'Rope on a low or mid cable. Face away, rope behind your head, elbows pointing forward, staggered stance.',
+    steps: ['Straighten your arms forward and up.', 'Squeeze the triceps at full extension.', 'Bend the elbows to lower the rope behind your head.'],
+    cues: ['Elbows stay pointing forward', 'Big stretch at the bottom'],
+    mistakes: ['Elbows flaring out', 'Arching the lower back', 'Moving the upper arms'],
+  },
+  'standing-calf-raise': {
+    setup: 'Balls of your feet on the edge of the platform, shoulders under the pads, legs straight.',
+    steps: ['Lower your heels as far as you can for a full stretch.', 'Pause one second at the bottom.', 'Rise as high as possible onto your toes.', 'Pause at the top, then lower.'],
+    cues: ['Pause at the bottom', 'Full range beats heavy weight'],
+    mistakes: ['Bouncing', 'Bending the knees to help', 'Tiny range of motion'],
+  },
+  'seated-calf-raise': {
+    setup: 'Sit with the pad on your lower thighs and the balls of your feet on the platform.',
+    steps: ['Release the safety and lower your heels fully.', 'Pause in the stretch.', 'Press up onto your toes as high as you can.'],
+    cues: ['Slow and full range', 'Pause top and bottom'],
+    mistakes: ['Bouncing', 'Half reps', 'Rushing'],
+  },
+  plank: {
+    setup: 'Forearms on the floor, elbows under shoulders, legs straight back, body in one straight line.',
+    steps: ['Squeeze your glutes and brace your abs.', 'Hold the position, breathing steadily.', 'Stop the set when your hips start to sag.'],
+    cues: ['Ribs down, glutes tight', 'Push the floor away with your forearms'],
+    mistakes: ['Hips sagging', 'Butt piked high', 'Holding your breath'],
+  },
+  'hanging-knee-raise': {
+    setup: 'Hang from a pull-up bar with straight arms, or use a captain\'s chair with your back against the pad.',
+    steps: ['Curl your knees up toward your chest, rolling your pelvis up.', 'Pause at the top.', 'Lower slowly without swinging.'],
+    cues: ['Curl the pelvis, do not just lift the legs', 'No swing'],
+    mistakes: ['Swinging for momentum', 'Only lifting to hip height', 'Dropping fast'],
+  },
+  'cable-crunch': {
+    setup: 'Rope on a high cable. Kneel facing the stack, hold the rope beside your head.',
+    steps: ['Crunch down by curling your ribs toward your hips.', 'Squeeze your abs at the bottom.', 'Return slowly, keeping hips still.'],
+    cues: ['Round the spine, hips stay put', 'Exhale as you crunch'],
+    mistakes: ['Sitting back with the hips to pull the weight', 'Pulling with the arms', 'Too heavy'],
+  },
+  'dead-bug': {
+    setup: 'Lie on your back, arms pointing at the ceiling, hips and knees bent 90 degrees, lower back pressed into the floor.',
+    steps: ['Slowly extend one arm overhead and the opposite leg out straight.', 'Stop just before your lower back lifts.', 'Return and switch sides.'],
+    cues: ['Lower back stays flat', 'Move slowly, breathe out as you extend'],
+    mistakes: ['Lower back arching', 'Moving too fast', 'Same-side arm and leg'],
+  },
+};
