@@ -22,6 +22,15 @@ Recommendations are **rules-based**, not AI.
   - Assistance logging for bodyweight moves.
   - Everything is saved on each tap and survives refresh.
   - Finish shows duration, sets, volume and new bests.
+- **Exercise guides**: an ⓘ button on every exercise (Today and workout) opens setup, steps, cues and common mistakes for all 49 built-in exercises, plus a "Watch a demo" YouTube search. Works offline.
+- **Water**: one tap logs a 250 ml glass, with undo. The daily goal is set in Profile. It feeds the Today ring and a 7-day chart on Progress → Body.
+- **Rebuild workout**: swaps in different accessories while keeping the main lifts, so their progress stays comparable. Refresh keeps the rebuilt plan.
+- **Launch splash**: logo, name, then your goal note (about 2 s; tap to skip).
+- **Notifications**:
+  - Permission is asked from a tap.
+  - While rest runs and the app is in the background, you get alerts 10 s before the end and at the end. Tapping one reopens the workout.
+  - An iOS-style banner greets you on the first open of each day.
+  - Closed-app reminders would need a push server and are not built.
 - **History**: workouts and extras grouped by week, with a filter by exercise. The detail view shows target vs actual for every set. You can edit actuals or delete a workout; neither changes the rotation.
 - **Progress → Strength**: per-exercise best set, last vs previous, a top-set or volume chart, and a session list. Only done sets count.
 - **Progress → Body**: weigh-ins (add, edit, delete; same date asks before replacing), a 1M–All chart, and BMI with the formula, the weigh-in it used, and a note on its limits.
@@ -187,5 +196,7 @@ Local data is not affected by a rollback. The legacy app still reads `repwise_v2
 
 - Vercel deployment history and the `repwise_progression_v3` build could not be inspected (no Vercel access during the rebuild).
 - Renaming a custom exercise uses the browser's prompt dialog.
+- Rest alerts rely on Android keeping a backgrounded PWA's timers alive, which holds for the first few minutes. Very long rests may miss the alert.
+- Magic-link sign-in needs the Supabase Auth URL configuration (Site URL and Redirect URLs set to the production domain) and, for reliable delivery, custom SMTP. Both are set in the Supabase dashboard, not in this repo.
 - Cloud sync is designed for one device. Two devices editing offline would resolve by last write wins.
 - The streak counts weeks where the number of workouts met your days-per-week target.
