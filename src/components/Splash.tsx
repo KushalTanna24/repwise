@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { create } from 'zustand';
 import { useApp } from '@/store/app';
+
+/** Lets the daily banner wait until the splash is gone. */
+export const useLaunch = create<{ splashDone: boolean }>(() => ({ splashDone: false }));
 
 const LOGO_MS = 650;
 const NOTE_MS = 1700;
@@ -11,6 +15,9 @@ export function Splash() {
   const hydrated = useApp((s) => s.hydrated);
   const note = useApp((s) => s.data.profile.goalNote);
   const [phase, setPhase] = useState<'logo' | 'note' | 'done'>('logo');
+  useEffect(() => {
+    if (phase === 'done') useLaunch.setState({ splashDone: true });
+  }, [phase]);
 
   useEffect(() => {
     if (!hydrated) return;

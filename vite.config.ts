@@ -12,7 +12,7 @@ export default defineConfig({
       // Same path as the legacy worker so installed clients replace it cleanly.
       filename: 'sw.js',
       registerType: 'autoUpdate',
-      includeAssets: ['icon.svg'],
+      includeAssets: ['icon.svg', 'notify-sw.js'],
       manifest: {
         name: 'Repwise',
         short_name: 'Repwise',
@@ -23,7 +23,7 @@ export default defineConfig({
         theme_color: '#F2F2F7',
         icons: [{ src: '/icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' }],
       },
-      workbox: { navigateFallback: '/index.html', globPatterns: ['**/*.{js,css,html,svg,woff2}'] },
+      workbox: { navigateFallback: '/index.html', globPatterns: ['**/*.{js,css,html,svg,woff2}'], importScripts: ['notify-sw.js'] },
     }),
   ],
   resolve: { alias: { '@': path.resolve(__dirname, 'src') } },

@@ -18,6 +18,7 @@ import { openSheet } from '@/lib/route';
 import { toast } from '@/lib/toast';
 import { act, useApp, useData } from '@/store/app';
 import { signIn, signOut, useSyncState } from '@/sync/useSync';
+import { requestNotifications, useNotifyPermission } from '@/lib/notify';
 
 const EQUIPMENT_LABEL: Record<EquipmentKind, string> = {
   barbell: 'Barbells & racks',
@@ -111,6 +112,9 @@ export function Profile() {
           />
         </List>
       </div>
+
+      <SectionHeader title="Notifications" />
+      <NotificationsRow />
 
       <SectionHeader title="Backup & sync" />
       <Account />
@@ -285,5 +289,28 @@ function DataTools({ data }: { data: AppData }) {
       </List>
       <input ref={file} type="file" accept="application/json,.json" hidden onChange={onFile} />
     </>
+  );
+}
+
+function NotificationsRow() {
+  const permission = useNotifyPermission((s) => s.permission);
+  const state =
+    permission === 'granted'
+      ? { value: 'On', subtitle: 'Rest alerts 10 s before the end, even in other apps' }
+      : permission === 'denied'
+        ? { value: 'Blocked', subtitle: 'Chrome → site settings → Notifications → Allow, then reopen' }
+        : permission === 'unsupported'
+          ? { value: 'Not available', subtitle: 'Install Repwise to your home screen to use alerts' }
+          : { value: 'Off', subtitle: 'Tap to allow rest timer alerts' };
+  return (
+    <List>
+      <Row
+        title="Rest timer alerts"
+        subtitle={state.subtitle}
+        value={state.value}
+        onClick={permission === 'default' ? () => void requestNotifications().then((p) => toast(p === 'granted' ? 'Alerts on' : 'Alerts stay off')) : undefined}
+        chevron={permission === 'default'}
+      />
+    </List>
   );
 }

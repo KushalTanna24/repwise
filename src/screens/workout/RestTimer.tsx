@@ -3,6 +3,8 @@ import { AnimatePresence, motion } from 'motion/react';
 import { Timer, X } from 'lucide-react';
 import { create } from 'zustand';
 import { fmtClock } from '@/lib/fmt';
+import { restAlertDelays } from '@/lib/alerts';
+import { notify } from '@/lib/notify';
 
 const KEY = 'repwise_rest';
 
@@ -30,6 +32,31 @@ useRest.subscribe((s) => {
   }
 });
 
+/*
+ * Background alerts: Android keeps timers of a backgrounded PWA alive for the
+ * first few minutes, which covers normal rests. Only fire while the app is hidden;
+ * on screen the pill already shows the countdown.
+ */
+let timers: ReturnType<typeof setTimeout>[] = [];
+function scheduleAlerts(endsAt: number | null) {
+  timers.forEach(clearTimeout);
+  timers = [];
+  if (!endsAt) return;
+  const { warn, done } = restAlertDelays(endsAt, Date.now());
+  const hidden = () => document.visibilityState === 'hidden';
+  if (warn != null) timers.push(setTimeout(() => hidden() && notify('Rest almost over', '10 seconds left. Get set for the next set.', 'rest'), warn));
+  if (done != null)
+    timers.push(
+      setTimeout(() => {
+        navigator.vibrate?.([200, 100, 200]);
+        if (hidden()) void notify('Rest over', 'Time for your next set. Tap to open your workout.', 'rest');
+        useRest.setState({ endsAt: null, total: 0 });
+      }, done),
+    );
+}
+useRest.subscribe((s, prev) => s.endsAt !== prev.endsAt && scheduleAlerts(s.endsAt));
+scheduleAlerts(useRest.getState().endsAt);
+
 export const startRest = (sec: number) => useRest.setState({ endsAt: Date.now() + sec * 1000, total: sec });
 const stopRest = () => useRest.setState({ endsAt: null, total: 0 });
 const addRest = (sec: number) => useRest.setState((s) => (s.endsAt ? { endsAt: s.endsAt + sec * 1000, total: s.total + sec } : s));
@@ -41,12 +68,8 @@ export function RestTimer() {
   useEffect(() => {
     if (!endsAt) return;
     const t = setInterval(() => {
-      const n = Date.now();
-      setNow(n);
-      if (n >= endsAt) {
-        navigator.vibrate?.([200, 100, 200]);
-        stopRest();
-      }
+      // The scheduler owns the end of rest (vibrate, alert, clear); this only redraws.
+      setNow(Date.now());
     }, 250);
     return () => clearInterval(t);
   }, [endsAt]);

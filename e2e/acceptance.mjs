@@ -19,6 +19,13 @@ page.on('pageerror', (e) => errors.push(`pageerror: ${e.message.split('\n')[0]}`
 page.on('console', (m) => m.type() === 'error' && errors.push(`console: ${m.text().split('\n')[0].slice(0, 160)}`));
 
 const results = [];
+process.on('unhandledRejection', async (e) => {
+  console.log('ERROR', e.message.split('\n')[0]);
+  await page.screenshot({ path: `${OUT}zz-failure.png` }).catch(() => {});
+  console.log(results.join('\n'));
+  await browser.close();
+  process.exit(1);
+});
 const check = (name, ok, detail = '') => results.push(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? ` | ${detail}` : ''}`);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const shot = (n) => page.screenshot({ path: `${OUT}${n}.png` });
@@ -101,6 +108,12 @@ await click('button::-p-text(Done)');
 await sleep(500);
 
 // Water: one tap per glass, persists
+if (await page.$('button::-p-text(Not now)')) {
+  await click('button::-p-text(Not now)');
+  check('Notification prompt can be dismissed', !(await text()).includes('Rest timer alerts'));
+}
+const waterCount = await page.$$eval('button[aria-label="Add a glass of water"]', (els) => els.length);
+console.log('DBG water buttons', waterCount);
 await click('button[aria-label="Add a glass of water"]');
 await click('button[aria-label="Add a glass of water"]');
 t = await text();

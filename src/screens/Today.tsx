@@ -22,6 +22,7 @@ import { act, useApp, useData } from '@/store/app';
 import { SplitChooser } from './SplitPicker';
 import { useProgressTab } from '@/lib/progressTab';
 import { GuideButton } from './Guide';
+import { NotifyPrompt } from '@/components/NotifyPrompt';
 
 const RING = { workouts: '#FF2D55', sets: '#34C759', water: '#007AFF' };
 
@@ -40,6 +41,7 @@ export function Today() {
       ) : (
         <>
           <UpNext data={data} />
+          <NotifyPrompt />
           <Water data={data} />
           <Week data={data} />
           <Recent data={data} />
