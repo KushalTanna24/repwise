@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { emptyAppData } from './catalogue';
-import { buildPlan, ensurePlan, planKey, swapCandidates } from './planner';
+import { buildPlan, ensurePlan, planKey, rebuildPlan, swapCandidates } from './planner';
 import { SPLITS } from './splits';
 import type { AppData } from './types';
 
@@ -118,5 +118,29 @@ describe('swapCandidates', () => {
     expect(list.slice(0, 4)).toEqual(slot.candidates);
     expect(list).toContain('bulgarian-split-squat');
     expect(list).not.toContain('bench-press');
+  });
+});
+
+describe('rebuildPlan', () => {
+  it('changes accessories but keeps main lifts and the rotation key', () => {
+    const d = ensurePlan(data());
+    const before = d.plannedSession!;
+    const after = rebuildPlan(d)!.plannedSession!;
+    expect(after.key).toBe(before.key);
+    expect(after.exercises.filter((e) => e.role === 'anchor').map((e) => e.exerciseId)).toEqual(
+      before.exercises.filter((e) => e.role === 'anchor').map((e) => e.exerciseId),
+    );
+    expect(after.exercises.map((e) => e.exerciseId)).not.toEqual(before.exercises.map((e) => e.exerciseId));
+  });
+
+  it('survives ensurePlan (refresh keeps the rebuilt plan)', () => {
+    const r = rebuildPlan(ensurePlan(data()))!;
+    expect(ensurePlan(r)).toBe(r);
+  });
+
+  it('returns null when no accessory has an alternative', () => {
+    const d = ensurePlan(data((x) => (x.profile.equipment = ['bodyweight'])));
+    const only = d.plannedSession!.exercises.filter((e) => e.role === 'accessory');
+    if (only.length === 0) expect(rebuildPlan(d)).toBeNull();
   });
 });

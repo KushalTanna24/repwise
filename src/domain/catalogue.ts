@@ -98,6 +98,7 @@ export function emptyAppData(now: string): AppData {
       sessionMinutes: 60,
       equipment: [...ALL_EQUIPMENT],
       excludedExerciseIds: [],
+      waterGoal: 8,
     },
     program: { splitId: null, rotation: { 'full-body-abc': { ...zero }, 'upper-lower': { ...zero }, ppl: { ...zero } } },
     customExercises: [],
@@ -107,6 +108,7 @@ export function emptyAppData(now: string): AppData {
     sessions: [],
     extras: [],
     bodyweights: [],
+    water: {},
     meta: { updatedAt: now },
   };
 }

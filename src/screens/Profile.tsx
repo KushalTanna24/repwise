@@ -158,15 +158,26 @@ function BodyGoals({ data }: { data: AppData }) {
       <FieldRow label={`Target weight (${p.units})`}>
         <TextInput inputMode="decimal" placeholder="Optional" value={target} onChange={(e) => setTarget(e.target.value)} onBlur={commitTarget} className="w-24" />
       </FieldRow>
-      <FieldRow label="Goal note">
-        <TextInput
-          placeholder="e.g. 100 kg bench by March"
+      <FieldRow label="Water goal" hint="Glasses of 250 ml a day">
+        <Select
+          label="Water goal"
+          value={p.waterGoal}
+          onChange={(waterGoal) => act((d) => ({ ...d, profile: { ...d.profile, waterGoal } }))}
+          options={[4, 5, 6, 7, 8, 9, 10, 12, 14, 16].map((n) => ({ value: n, label: `${n} glasses` }))}
+        />
+      </FieldRow>
+      <label className="block px-4 py-3">
+        <div className="text-body">Goal note</div>
+        <div className="text-footnote text-label-2">Shown each time you open the app</div>
+        <textarea
+          rows={3}
+          placeholder="e.g. 100 kg bench by March. Show up 3× a week."
           value={goal}
           onChange={(e) => setGoal(e.target.value)}
           onBlur={() => goal.trim() !== (p.goalNote ?? '') && act((d) => ({ ...d, profile: { ...d.profile, goalNote: goal.trim() || undefined } }))}
-          className="w-48"
+          className="mt-2 w-full resize-none rounded-[10px] bg-fill px-3 py-2 text-body outline-none placeholder:text-label-3 focus:ring-2 focus:ring-blue"
         />
-      </FieldRow>
+      </label>
     </List>
   );
 }

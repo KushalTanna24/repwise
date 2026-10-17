@@ -76,6 +76,8 @@ export interface PlannedSession {
   title: string;
   exercises: PlannedExercise[];
   createdAt: string;
+  /** Bumped by Rebuild to rotate accessories; anchors never change. */
+  variant?: number;
 }
 
 export interface SetRecord {
@@ -137,6 +139,8 @@ export interface Profile {
   excludedExerciseIds: string[];
   goalNote?: string;
   targetWeightKg?: number;
+  /** Daily water target in glasses. */
+  waterGoal: number;
 }
 
 export interface RotationState {
@@ -158,5 +162,7 @@ export interface AppData {
   sessions: WorkoutSession[];
   extras: ExtraSession[];
   bodyweights: BodyWeight[];
+  /** Glasses of water per local date (YYYY-MM-DD). */
+  water: Record<string, number>;
   meta: { updatedAt: string; migratedFrom?: 'repwise_v2'; migratedAt?: string };
 }

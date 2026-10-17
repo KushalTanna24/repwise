@@ -38,7 +38,7 @@ export function plannedExercise(data: AppData, slot: Slot, exerciseId: string): 
 }
 
 /** Deterministic: same data and rotation always give the same session. */
-export function buildPlan(data: AppData, splitId: SplitId): PlannedSession {
+export function buildPlan(data: AppData, splitId: SplitId, variant = 0): PlannedSession {
   const split = SPLITS[splitId];
   const { sessionIndex, cycle } = data.program.rotation[splitId];
   const tmpl = split.sessions[sessionIndex % split.sessions.length];
@@ -46,7 +46,7 @@ export function buildPlan(data: AppData, splitId: SplitId): PlannedSession {
   const chosen = new Set<string>();
   const picks = tmpl.slots.map((slot) => {
     const eligible = slot.candidates.filter((id) => !chosen.has(id) && isEligible(getExercise(id, data.customExercises), data));
-    const id = eligible.length === 0 ? '' : slot.role === 'anchor' ? eligible[0] : eligible[(cycle - 1) % eligible.length];
+    const id = eligible.length === 0 ? '' : slot.role === 'anchor' ? eligible[0] : eligible[(cycle - 1 + variant) % eligible.length];
     if (id) chosen.add(id);
     return { slot, id };
   });
@@ -63,7 +63,23 @@ export function buildPlan(data: AppData, splitId: SplitId): PlannedSession {
     title: tmpl.title,
     exercises: kept.map((p) => plannedExercise(data, p.slot, p.id)),
     createdAt: data.meta.updatedAt,
+    ...(variant ? { variant } : {}),
   };
+}
+
+/**
+ * Rebuild: same main lifts, next set of accessories. Same rotation key, so
+ * refresh keeps it. Null when no accessory has an alternative.
+ */
+export function rebuildPlan(data: AppData): AppData | null {
+  const cur = data.plannedSession;
+  if (!cur || data.activeSession) return null;
+  const ids = (p: PlannedSession) => p.exercises.map((e) => e.exerciseId).join();
+  for (let step = 1; step <= 6; step++) {
+    const next = buildPlan(data, cur.splitId, (cur.variant ?? 0) + step);
+    if (ids(next) !== ids(cur)) return { ...data, plannedSession: next };
+  }
+  return null;
 }
 
 /** Builds the next plan only when there is none or the rotation moved on. */

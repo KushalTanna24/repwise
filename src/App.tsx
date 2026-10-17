@@ -15,6 +15,8 @@ import { SessionSheet } from '@/screens/SessionDetail';
 import { SplitSheet } from '@/screens/SplitPicker';
 import { ExtraSheet } from '@/screens/LogExtra';
 import { LibrarySheet } from '@/screens/Library';
+import { GuideSheet } from '@/screens/Guide';
+import { Splash } from '@/components/Splash';
 
 const queryClient = new QueryClient();
 // Charts are the heaviest dependency; load them only when Progress opens.
@@ -43,22 +45,27 @@ function Shell() {
     void boot();
   }, []);
 
-  if (!hydrated) return <div className="min-h-dvh bg-bg" aria-busy="true" />;
-
   return (
     <>
-      {tab === 'today' && <Today />}
-      {tab === 'history' && <History />}
-      {tab === 'progress' && (
-        <Suspense fallback={<div className="min-h-dvh" />}>
-          <Progress />
-        </Suspense>
+      {hydrated && (
+        <>
+          {tab === 'today' && <Today />}
+          {tab === 'history' && <History />}
+          {tab === 'progress' && (
+            <Suspense fallback={<div className="min-h-dvh" />}>
+              <Progress />
+            </Suspense>
+          )}
+          {tab === 'profile' && <Profile />}
+          <TabBar />
+          <Sheets />
+          <GuideSheet />
+          <ConfirmHost />
+          <Toaster />
+        </>
       )}
-      {tab === 'profile' && <Profile />}
-      <TabBar />
-      <Sheets />
-      <ConfirmHost />
-      <Toaster />
+      {/* One mount for the whole launch so the reveal never replays. */}
+      <Splash />
     </>
   );
 }

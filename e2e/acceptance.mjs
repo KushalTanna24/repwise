@@ -28,9 +28,11 @@ const click = async (sel) => {
   await page.click(sel);
   await sleep(350);
 };
+const noSplash = () => page.waitForFunction(() => !document.querySelector('[data-splash]'), { timeout: 8000 });
 const reload = async () => {
   await page.reload({ waitUntil: 'networkidle0' });
-  await sleep(600);
+  await noSplash();
+  await sleep(300);
 };
 
 /** Fill empty load inputs with `kg` and tick every set, leaving the last `leave` exercises untouched. */
@@ -57,6 +59,7 @@ async function finish() {
 }
 
 await page.goto(APP, { waitUntil: 'networkidle0' });
+await noSplash();
 await page.evaluate(() => {
   localStorage.clear();
   indexedDB.deleteDatabase('keyval-store');
@@ -76,6 +79,34 @@ check('Split survives refresh', (await text()).includes('Full Body A'));
 await click('nav button::-p-text(History)');
 await click('nav button::-p-text(Today)');
 check('Split survives navigation', (await text()).includes('Full Body A'));
+
+// Rebuild keeps main lifts, changes accessories
+const planIds = () => page.$$eval('ol li .truncate.text-body', (els) => els.map((e) => e.textContent));
+const beforeRebuild = await planIds();
+await click('button[aria-label="Session options"]');
+await click('[role="menuitem"]::-p-text(Rebuild workout)');
+await sleep(400);
+const afterRebuild = await planIds();
+check('Rebuild workout changes accessories, keeps main lifts', afterRebuild.slice(0, 3).join() === beforeRebuild.slice(0, 3).join() && afterRebuild.join() !== beforeRebuild.join(), `${beforeRebuild.slice(3).join('/')} -> ${afterRebuild.slice(3).join('/')}`);
+await reload();
+check('Rebuilt plan survives refresh', (await planIds()).join() === afterRebuild.join());
+
+// Guide
+await click('ol li button[aria-label="How to do this exercise"]');
+await sleep(700);
+await shot('02b-guide');
+t = await text();
+check('Exercise guide opens with setup, steps and demo link', t.includes('Setup') && t.includes('Common mistakes') && t.includes('Watch a demo'));
+await click('button::-p-text(Done)');
+await sleep(500);
+
+// Water: one tap per glass, persists
+await click('button[aria-label="Add a glass of water"]');
+await click('button[aria-label="Add a glass of water"]');
+t = await text();
+check('Two taps log two glasses', t.includes('2 / 8 glasses') && t.includes('0.5 L'));
+await reload();
+check('Water survives refresh and shows in the ring stats', (await text()).includes('2/8'));
 
 // Workout A, refresh mid-way, finish with the last exercise untouched
 await click('button::-p-text(Start workout)');
@@ -177,7 +208,24 @@ await shot('11-body');
 
 await click('nav button::-p-text(Profile)');
 await sleep(400);
+await click('button[aria-label="Days per week"]');
+await sleep(300);
+await shot('12a-picker');
+await click('[role="menuitemradio"]::-p-text(4)');
+await sleep(300);
+check('iOS picker changes days per week', (await page.$eval('button[aria-label="Days per week"]', (e) => e.textContent)).includes('4'));
+const note = await page.$('textarea');
+await note.click();
+await note.type('Bench 100 kg by March');
+await page.keyboard.press('Tab');
+await sleep(300);
 await shot('12-profile');
+await page.reload({ waitUntil: 'networkidle0' });
+await sleep(900);
+check('Goal note shows on the launch splash', (await text()).includes('Bench 100 kg by March') && !!(await page.$('[data-splash]')));
+await shot('13-splash-note');
+await noSplash();
+check('Splash clears quickly', true);
 
 check('No runtime errors in console', errors.length === 0, errors.slice(0, 5).join(' / '));
 console.log(results.join('\n'));

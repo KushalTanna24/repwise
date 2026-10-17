@@ -2,6 +2,7 @@ import { useState } from 'react';
 import dayjs from 'dayjs';
 import { Ellipsis, Scale } from 'lucide-react';
 import { bmi, fromDisplay, parseNumber, toDisplay } from '@/domain/stats';
+import { waterWeek } from '@/domain/water';
 import type { BodyWeight } from '@/domain/types';
 import { Chart } from '@/components/Chart';
 import { Button } from '@/components/ui/button';
@@ -124,6 +125,9 @@ export function Body() {
 
       <BmiCard heightCm={data.profile.heightCm} latest={latest} units={units} />
 
+      <SectionHeader title="Water" />
+      <WaterWeek />
+
       <SectionHeader title="Weigh-ins" />
       {sorted.length === 0 ? (
         <Card>
@@ -204,5 +208,30 @@ function BmiCard({ heightCm, latest, units }: { heightCm?: number; latest?: Body
         )}
       </Card>
     </>
+  );
+}
+
+function WaterWeek() {
+  const data = useData();
+  const w = waterWeek(data, dayjs().format('YYYY-MM-DD'));
+  return (
+    <Card className="p-4">
+      <div className="flex items-baseline justify-between">
+        <div>
+          <div className="text-footnote font-semibold text-label-2">Daily average, last 7 days</div>
+          <div className="text-title2 font-bold tabular">
+            {w.avg} <span className="text-subhead font-normal text-label-2">glasses</span>
+          </div>
+        </div>
+        <div className="text-right text-footnote text-label-2">
+          Goal hit
+          <div className="text-headline font-semibold tabular text-label">{w.daysHit}/7 days</div>
+        </div>
+      </div>
+      <div className="mt-3">
+        <Chart points={w.days.map((d) => ({ date: d.date, value: d.glasses }))} color="#007AFF" unit="glasses" kind="bar" height={150} />
+      </div>
+      <p className="mt-1 text-caption text-label-2">Goal {data.profile.waterGoal} glasses a day. Log from Today with one tap.</p>
+    </Card>
   );
 }

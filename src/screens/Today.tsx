@@ -1,9 +1,10 @@
 import dayjs from 'dayjs';
 import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { Ellipsis, Play, Plus, RefreshCw, Repeat, SkipForward, Sparkles } from 'lucide-react';
+import { Ellipsis, GlassWater, Minus, Play, Plus, RefreshCw, Repeat, SkipForward, Sparkles } from 'lucide-react';
 import { getExercise } from '@/domain/catalogue';
-import { buildPlan } from '@/domain/planner';
+import { rebuildPlan } from '@/domain/planner';
+import { addWater, GLASS_ML } from '@/domain/water';
 import { skipPlannedSession, startSession } from '@/domain/session';
 import { SPLITS } from '@/domain/splits';
 import { latestWeight, sessionVolume, weekStats } from '@/domain/stats';
@@ -17,11 +18,12 @@ import { confirm } from '@/components/ui/alert';
 import { exName, fmtClock, fmtDay, fmtLoad, fmtRange, nowIso } from '@/lib/fmt';
 import { go, openSheet } from '@/lib/route';
 import { toast } from '@/lib/toast';
-import { act, useData } from '@/store/app';
+import { act, useApp, useData } from '@/store/app';
 import { SplitChooser } from './SplitPicker';
 import { useProgressTab } from '@/lib/progressTab';
+import { GuideButton } from './Guide';
 
-const RING = { workouts: '#FF2D55', sets: '#34C759', streak: '#007AFF' };
+const RING = { workouts: '#FF2D55', sets: '#34C759', water: '#007AFF' };
 
 export function Today() {
   const data = useData();
@@ -33,10 +35,12 @@ export function Today() {
         <>
           <p className="px-1 pb-4 pt-2 text-subhead text-label-2">Pick how you train. Repwise keeps your place in the rotation and builds every session from what you actually lift.</p>
           <SplitChooser />
+          <Water data={data} />
         </>
       ) : (
         <>
           <UpNext data={data} />
+          <Water data={data} />
           <Week data={data} />
           <Recent data={data} />
         </>
@@ -64,8 +68,10 @@ function UpNext({ data }: { data: AppData }) {
   }
 
   function rebuild() {
-    act((d) => ({ ...d, plannedSession: buildPlan(d, d.program.splitId!) }));
-    toast('Plan rebuilt from your latest data');
+    const next = rebuildPlan(useApp.getState().data);
+    if (!next) return toast('No other accessories fit your equipment');
+    act(() => next);
+    toast('New accessories. Main lifts stay the same');
   }
 
   function start() {
@@ -94,7 +100,7 @@ function UpNext({ data }: { data: AppData }) {
               </Button>
             }
             items={[
-              { label: 'Rebuild plan', icon: <RefreshCw className="size-4" />, onSelect: rebuild },
+              { label: 'Rebuild workout', icon: <RefreshCw className="size-4" />, onSelect: rebuild },
               { label: 'Skip this session', icon: <SkipForward className="size-4" />, onSelect: skip },
               { label: 'Change split', icon: <Repeat className="size-4" />, onSelect: () => openSheet('split') },
             ]}
@@ -145,6 +151,7 @@ function PlanLine({ data, e, index }: { data: AppData; e: PlannedExercise; index
           </div>
         </div>
         {load && <span className="shrink-0 text-subhead font-semibold tabular text-label-2">{load}</span>}
+        <GuideButton id={e.exerciseId} />
       </div>
     </motion.li>
   );
@@ -167,6 +174,8 @@ function Week({ data }: { data: AppData }) {
   const w = weekStats(data, nowIso());
   const target = data.profile.daysPerWeek;
   const setTarget = target * 15;
+  const glasses = data.water[dayjs().format('YYYY-MM-DD')] ?? 0;
+  const goal = data.profile.waterGoal;
   return (
     <>
       <SectionHeader title="This week" />
@@ -175,15 +184,18 @@ function Week({ data }: { data: AppData }) {
           rings={[
             { label: 'Workouts', value: w.sessions, max: target, color: RING.workouts },
             { label: 'Sets', value: w.sets, max: setTarget, color: RING.sets },
-            { label: 'Week streak', value: w.streakWeeks, max: 4, color: RING.streak },
+            { label: 'Water today', value: glasses, max: goal, color: RING.water },
           ]}
         />
         <dl className="grid flex-1 gap-2">
           <Stat color={RING.workouts} label="Workouts" value={`${w.sessions}/${target}`} />
           <Stat color={RING.sets} label="Sets" value={`${w.sets}/${setTarget}`} />
-          <Stat color={RING.streak} label="Streak" value={`${w.streakWeeks} wk`} />
+          <Stat color={RING.water} label="Water today" value={`${glasses}/${goal}`} />
         </dl>
       </Card>
+      <p className="px-4 pt-2 text-footnote text-label-2">
+        {w.streakWeeks > 0 ? `${w.streakWeeks}-week streak of hitting ${target} workouts. Keep it going.` : `Hit ${target} workouts this week to start a streak.`}
+      </p>
     </>
   );
 }
@@ -236,5 +248,50 @@ function Recent({ data }: { data: AppData }) {
         </Button>
       </div>
     </>
+  );
+}
+
+function Water({ data }: { data: AppData }) {
+  const today = dayjs().format('YYYY-MM-DD');
+  const glasses = data.water[today] ?? 0;
+  const goal = data.profile.waterGoal;
+  const done = glasses >= goal;
+
+  function add(delta: number) {
+    navigator.vibrate?.(10);
+    act((d) => addWater(d, today, delta));
+    if (delta > 0 && glasses + 1 === goal) toast('Water goal hit 💧');
+  }
+
+  return (
+    <Card className="mt-3 flex items-center gap-3 p-3 pl-4">
+      <span className="grid size-10 shrink-0 place-items-center rounded-full bg-blue/12 text-blue">
+        <GlassWater className="size-5" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="text-headline font-semibold tabular">
+          {glasses} <span className="font-normal text-label-2">/ {goal} glasses</span>
+        </div>
+        <div className="mt-1 flex gap-[3px]" aria-hidden>
+          {Array.from({ length: goal }, (_, i) => (
+            <motion.span
+              key={i}
+              initial={false}
+              animate={{ backgroundColor: i < glasses ? '#007AFF' : 'rgba(118,118,128,0.16)' }}
+              className="h-1.5 flex-1 rounded-full"
+            />
+          ))}
+        </div>
+        <div className="mt-1 text-caption text-label-2">{((glasses * GLASS_ML) / 1000).toFixed(2).replace(/0$/, '')} L{done ? ' · goal hit' : ''}</div>
+      </div>
+      {glasses > 0 && (
+        <Button variant="gray" size="icon" aria-label="Remove a glass" onClick={() => add(-1)}>
+          <Minus className="size-4" strokeWidth={2.5} />
+        </Button>
+      )}
+      <Button variant="primary" className="h-11 px-4" aria-label="Add a glass of water" onClick={() => add(1)}>
+        <Plus className="size-4" strokeWidth={3} /> Glass
+      </Button>
+    </Card>
   );
 }

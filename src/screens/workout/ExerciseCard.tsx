@@ -11,6 +11,7 @@ import { exName, fmtDay, fmtLoad, fmtRange } from '@/lib/fmt';
 import { toast } from '@/lib/toast';
 import { act, useApp } from '@/store/app';
 import { SetRow } from './SetRow';
+import { GuideButton } from '../Guide';
 import { startRest } from './RestTimer';
 
 const REC_STYLE: Record<Recommendation['kind'], { icon: typeof ArrowUp; cls: string }> = {
@@ -81,6 +82,7 @@ export function ExerciseCard({ data, entry, index, count, onSwap }: Props) {
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <h3 className="truncate text-headline font-semibold">{exName(data, entry.exerciseId)}</h3>
+            <GuideButton id={entry.exerciseId} className="-ml-1" />
             {allDone && !entry.skipped && <span className="rounded-full bg-green px-2 py-0.5 text-caption font-bold text-white">Done</span>}
           </div>
           <div className="text-footnote text-label-2">

@@ -1,6 +1,6 @@
 import type { InputHTMLAttributes, ReactNode } from 'react';
-import { ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/cn';
+import { Picker } from './menu';
 
 /** Label-left, control-right row for grouped forms. */
 export function FieldRow({ label, children, hint }: { label: string; children: ReactNode; hint?: string }) {
@@ -26,35 +26,8 @@ export function TextInput({ className, ...props }: InputHTMLAttributes<HTMLInput
   );
 }
 
-export function Select<T extends string | number>({
-  value,
-  options,
-  onChange,
-  label,
-}: {
-  value: T;
-  options: { value: T; label: string }[];
-  onChange: (v: T) => void;
-  label?: string;
-}) {
-  return (
-    <span className="relative inline-flex items-center gap-1 text-label-2">
-      <select
-        aria-label={label}
-        value={String(value)}
-        onChange={(e) => onChange(options.find((o) => String(o.value) === e.target.value)!.value)}
-        className="appearance-none bg-transparent pr-5 text-right text-body outline-none"
-      >
-        {options.map((o) => (
-          <option key={String(o.value)} value={String(o.value)}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-      <ChevronsUpDown className="pointer-events-none absolute right-0 size-4 text-label-3" />
-    </span>
-  );
-}
+/** Kept as the form-row name; renders the iOS pop-up picker. */
+export const Select = Picker;
 
 /** iOS switch. */
 export function Switch({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {

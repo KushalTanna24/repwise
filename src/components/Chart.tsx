@@ -38,7 +38,7 @@ export function Chart({ points, color, unit, kind = 'line', height = 200 }: Prop
   const lo = Math.min(...values);
   const hi = Math.max(...values);
   const pad = Math.max(1, (hi - lo) * 0.15);
-  const domain: [number, number] = kind === 'bar' ? [0, Math.ceil(hi * 1.1)] : [Math.floor(lo - pad), Math.ceil(hi + pad)];
+  const domain: [number, number] = kind === 'bar' ? [0, Math.max(1, Math.ceil(hi * 1.1))] : [Math.floor(lo - pad), Math.ceil(hi + pad)];
   const common = {
     data: points,
     margin: { top: 8, right: 8, bottom: 0, left: -12 },

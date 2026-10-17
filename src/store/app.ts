@@ -3,6 +3,7 @@ import { createJSONStorage, persist, type StateStorage } from 'zustand/middlewar
 import { del, get, set } from 'idb-keyval';
 import { emptyAppData } from '@/domain/catalogue';
 import { ensurePlan } from '@/domain/planner';
+import { normalize } from '@/domain/migrate';
 import type { AppData } from '@/domain/types';
 
 export const STORE_KEY = 'repwise_v4';
@@ -42,7 +43,9 @@ export const useApp = create<AppStore>()(
       partialize: (s) => ({ data: s.data }),
       merge: (persisted, current) => {
         const p = persisted as Partial<AppStore> | undefined;
-        return { ...current, data: ensurePlan(p?.data ?? current.data) };
+        // normalize fills fields added after the document was saved (e.g. water).
+        const saved = p?.data ? normalize(p.data, new Date().toISOString()) : null;
+        return { ...current, data: ensurePlan(saved ?? current.data) };
       },
       onRehydrateStorage: () => () => useApp.setState({ hydrated: true }),
     },
