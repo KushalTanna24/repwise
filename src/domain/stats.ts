@@ -19,7 +19,7 @@ export function bmi(kg: number | undefined, heightCm: number | undefined): numbe
   return +(kg / (m * m)).toFixed(1);
 }
 
-export const toDisplay = (kg: Kg, units: 'kg' | 'lb') => (units === 'lb' ? +(kg * LB_PER_KG).toFixed(1) : kg);
+export const toDisplay = (kg: Kg, units: 'kg' | 'lb') => (units === 'lb' ? +(kg * LB_PER_KG).toFixed(1) : +kg.toFixed(2));
 export const fromDisplay = (v: number, units: 'kg' | 'lb') => (units === 'lb' ? v / LB_PER_KG : v);
 
 export function latestWeight(data: AppData): BodyWeight | undefined {

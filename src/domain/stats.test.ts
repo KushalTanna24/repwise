@@ -50,6 +50,10 @@ describe('helpers', () => {
     expect(bmi(70, 0)).toBeNull();
   });
 
+  it('toDisplay strips float noise', () => {
+    expect(toDisplay(71.4 - 70, 'kg')).toBe(1.4);
+  });
+
   it('unit conversion round-trips', () => {
     expect(toDisplay(100, 'lb')).toBe(220.5);
     expect(toDisplay(100, 'kg')).toBe(100);

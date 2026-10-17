@@ -19,7 +19,7 @@ import { go, openSheet } from '@/lib/route';
 import { toast } from '@/lib/toast';
 import { act, useData } from '@/store/app';
 import { SplitChooser } from './SplitPicker';
-import { useProgressTab } from './Progress';
+import { useProgressTab } from '@/lib/progressTab';
 
 const RING = { workouts: '#FF2D55', sets: '#34C759', streak: '#007AFF' };
 

@@ -1,5 +1,5 @@
 import { cva, type VariantProps } from 'class-variance-authority';
-import type { ButtonHTMLAttributes } from 'react';
+import { forwardRef, type ButtonHTMLAttributes } from 'react';
 import { cn } from '@/lib/cn';
 
 const button = cva(
@@ -27,6 +27,7 @@ const button = cva(
 
 export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & VariantProps<typeof button>;
 
-export function Button({ className, variant, size, type = 'button', ...props }: ButtonProps) {
-  return <button type={type} className={cn(button({ variant, size }), className)} {...props} />;
-}
+// forwardRef so Radix triggers (asChild) can anchor menus to it.
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button({ className, variant, size, type = 'button', ...props }, ref) {
+  return <button ref={ref} type={type} className={cn(button({ variant, size }), className)} {...props} />;
+});

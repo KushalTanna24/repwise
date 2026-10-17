@@ -6,3 +6,4 @@ dev-dist
 !.env.example
 .superpowers
 *.log
+e2e/shots

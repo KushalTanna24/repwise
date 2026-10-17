@@ -66,7 +66,7 @@ export function RestTimer() {
           role="timer"
           aria-label="Rest timer"
         >
-          <div className="absolute inset-y-0 left-0 bg-orange/35" style={{ width: `${pct * 100}%` }} />
+          <div className="absolute inset-y-0 left-0 bg-white/12 transition-[width] duration-300 ease-linear" style={{ width: `${pct * 100}%` }} />
           <Timer className="relative size-5 text-orange" />
           <div className="relative flex-1">
             <div className="text-caption font-semibold uppercase tracking-wide text-white/60">Rest</div>

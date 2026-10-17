@@ -71,7 +71,7 @@ export function Switch({ checked, onChange, label }: { checked: boolean; onChang
     >
       <span
         className={cn(
-          'absolute top-[2px] size-[27px] rounded-full bg-white shadow-thumb transition-transform duration-200',
+          'absolute left-0 top-[2px] size-[27px] rounded-full bg-white shadow-thumb transition-transform duration-200',
           checked ? 'translate-x-[22px]' : 'translate-x-[2px]',
         )}
       />
