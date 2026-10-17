@@ -7,3 +7,5 @@ dev-dist
 .superpowers
 *.log
 e2e/shots
+.vercel
+.env*
