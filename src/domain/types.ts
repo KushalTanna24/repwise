@@ -125,6 +125,14 @@ export interface ExtraSession {
   note?: string;
 }
 
+export interface Supplement {
+  /** Stable slug; renaming keeps history. */
+  id: string;
+  name: string;
+  dose?: string;
+  archived?: boolean;
+}
+
 export interface BodyWeight {
   id: string;
   date: string;
@@ -167,5 +175,8 @@ export interface AppData {
   bodyweights: BodyWeight[];
   /** Glasses of water per local date (YYYY-MM-DD). */
   water: Record<string, number>;
+  supplements: Supplement[];
+  /** Supplement ids taken per local date. */
+  suppLog: Record<string, string[]>;
   meta: { updatedAt: string; migratedFrom?: 'repwise_v2'; migratedAt?: string };
 }

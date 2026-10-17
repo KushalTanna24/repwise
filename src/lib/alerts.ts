@@ -17,3 +17,10 @@ export function greeting(hour: number) {
   if (hour < 17) return 'Good afternoon';
   return 'Good evening';
 }
+
+/** Seconds held on a timed set (plank and friends). */
+export const heldSeconds = (startMs: number, nowMs: number) => Math.max(0, Math.floor((nowMs - startMs) / 1000));
+
+/** "What's new" shows once per version, and never on the very first install. */
+export const shouldAnnounce = (lastSeen: string | null, current: string, hasUsedBefore: boolean) =>
+  lastSeen !== current && (lastSeen != null || hasUsedBefore);

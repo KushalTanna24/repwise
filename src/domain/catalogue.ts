@@ -109,6 +109,8 @@ export function emptyAppData(now: string): AppData {
     extras: [],
     bodyweights: [],
     water: {},
+    supplements: [],
+    suppLog: {},
     meta: { updatedAt: now },
   };
 }
