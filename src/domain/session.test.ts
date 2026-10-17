@@ -16,6 +16,7 @@ import {
   skipSet,
   startSession,
   swapExercise,
+  updateProfile,
   updateSet,
 } from './session';
 import type { AppData } from './types';
@@ -117,6 +118,26 @@ describe('set logging', () => {
   });
 });
 
+describe('assisted bodyweight sets', () => {
+  it('keeps the assistance target on rec and only fills it in when the set is ticked', () => {
+    let d = fresh();
+    const plan = d.plannedSession!;
+    d = {
+      ...d,
+      plannedSession: {
+        ...plan,
+        exercises: [
+          { ...plan.exercises[0], exerciseId: 'pull-up', rec: { kind: 'assist', targetKg: 0, assistKg: 15, targetReps: [6, 6, 6], reason: 'r' } },
+        ],
+      },
+    };
+    d = startSession(d, T0, 'w1');
+    expect(d.activeSession!.exercises[0].sets[0].assistKg).toBeNull();
+    d = confirmSet(d, 0, 0);
+    expect(d.activeSession!.exercises[0].sets[0]).toMatchObject({ assistKg: 15, actualReps: 6, actualKg: 0, status: 'done' });
+  });
+});
+
 describe('finishing and rotation', () => {
   it('finishing A moves to B and clears the plan', () => {
     const d = complete(fresh(), 'w1');
@@ -200,5 +221,20 @@ describe('setSplit', () => {
   it('is refused during a workout', () => {
     const d = started();
     expect(setSplit(d, 'ppl')).toBe(d);
+  });
+});
+
+describe('updateProfile', () => {
+  it('rebuilds the upcoming plan but leaves rotation and split alone', () => {
+    const d = updateProfile(fresh(), { sessionMinutes: 45 });
+    expect(d.profile.sessionMinutes).toBe(45);
+    expect(d.plannedSession).toBeNull();
+    expect(ensurePlan(d).plannedSession?.exercises).toHaveLength(5);
+    expect(d.program).toEqual(fresh().program);
+  });
+
+  it('keeps an in-progress workout untouched', () => {
+    const d = updateProfile(started(), { objective: 'strength' });
+    expect(d.activeSession).toEqual(started().activeSession);
   });
 });

@@ -2,7 +2,7 @@ import { getExercise } from './catalogue';
 import { findSlot, planKey, plannedExercise, prescription } from './planner';
 import { recommend } from './progression';
 import { SPLITS } from './splits';
-import type { AppData, Recommendation, SessionExercise, SetRecord, SplitId, WorkoutSession } from './types';
+import type { AppData, Profile, Recommendation, SessionExercise, SetRecord, SplitId, WorkoutSession } from './types';
 
 function setsFrom(rec: Recommendation, count: number, repMin: number): SetRecord[] {
   return Array.from({ length: count }, (_, i) => ({
@@ -10,7 +10,8 @@ function setsFrom(rec: Recommendation, count: number, repMin: number): SetRecord
     targetKg: rec.targetKg,
     actualReps: null,
     actualKg: null,
-    ...(rec.assistKg != null ? { assistKg: rec.assistKg } : {}),
+    // Assistance target lives on rec; null here only switches the UI to the assistance column.
+    ...(rec.assistKg != null ? { assistKg: null } : {}),
     status: 'pending' as const,
   }));
 }
@@ -69,7 +70,8 @@ export function confirmSet(data: AppData, exIdx: number, setIdx: number): AppDat
     const reps = s.actualReps ?? s.targetReps;
     const kg = s.actualKg ?? s.targetKg ?? (ex.kind === 'weighted' ? null : 0);
     if (reps == null || (ex.kind === 'weighted' && kg == null)) return null;
-    return { ...s, actualReps: reps, actualKg: ex.kind === 'timed' ? null : kg, status: 'done' };
+    const assistKg = s.assistKg === null ? (e.rec?.assistKg ?? null) : s.assistKg;
+    return { ...s, actualReps: reps, actualKg: ex.kind === 'timed' ? null : kg, ...(assistKg !== undefined ? { assistKg } : {}), status: 'done' };
   });
 }
 
@@ -206,4 +208,9 @@ export function editHistorySet(data: AppData, sessionId: string, exIdx: number, 
 
 export function deleteHistorySession(data: AppData, sessionId: string): AppData {
   return { ...data, sessions: data.sessions.filter((s) => s.id !== sessionId) };
+}
+
+/** Profile edits apply from the next unstarted workout; the plan is rebuilt, rotation untouched. */
+export function updateProfile(data: AppData, patch: Partial<Profile>): AppData {
+  return { ...data, profile: { ...data.profile, ...patch }, plannedSession: null };
 }
