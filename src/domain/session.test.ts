@@ -16,6 +16,7 @@ import {
   skipSet,
   startSession,
   swapExercise,
+  applyProfileToActive,
   updateProfile,
   updateSet,
 } from './session';
@@ -236,5 +237,26 @@ describe('updateProfile', () => {
   it('keeps an in-progress workout untouched', () => {
     const d = updateProfile(started(), { objective: 'strength' });
     expect(d.activeSession).toEqual(started().activeSession);
+  });
+});
+
+describe('freestyle timing and applying profile changes', () => {
+  it('confirmSet records when the set was done', () => {
+    const d = confirmSet(updateSet(started(), 0, 0, { actualKg: 60, actualReps: 8 }), 0, 0, T1);
+    expect(d.activeSession!.exercises[0].sets[0].doneAt).toBe(T1);
+  });
+
+  it('applyProfileToActive rebuilds untouched exercises and never touches done sets', () => {
+    let d = confirmSet(updateSet(started(), 0, 0, { actualKg: 60, actualReps: 8 }), 0, 0, T1);
+    const doneBefore = d.activeSession!.exercises[0];
+    d = applyProfileToActive(updateProfile(d, { objective: 'strength' }));
+    expect(d.activeSession!.exercises[0]).toEqual(doneBefore);
+    expect(d.activeSession!.exercises[1].sets).toHaveLength(4);
+    expect(d.activeSession!.exercises[1].plan).toMatchObject({ repMin: 4, repMax: 6 });
+  });
+
+  it('applyProfileToActive is a no-op without a workout', () => {
+    const d = fresh();
+    expect(applyProfileToActive(d)).toBe(d);
   });
 });

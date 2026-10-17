@@ -47,9 +47,10 @@ export function startSession(data: AppData, now: string, id: string = crypto.ran
     title: plan.title,
     startedAt: now,
     finishedAt: null,
-    exercises: plan.exercises.map(({ rec, exerciseId, slotId, sets, repMin, repMax, restSec }) => ({
+    exercises: plan.exercises.map(({ rec, exerciseId, slotId, role, sets, repMin, repMax, restSec }) => ({
       exerciseId,
       slotId,
+      role,
       plan: { sets, repMin, repMax, restSec },
       rec,
       sets: setsFrom(rec, sets, repMin),
@@ -63,7 +64,7 @@ export function updateSet(data: AppData, exIdx: number, setIdx: number, patch: P
 }
 
 /** Tick a set. Empty fields take the target; a weighted set needs some load. */
-export function confirmSet(data: AppData, exIdx: number, setIdx: number): AppData {
+export function confirmSet(data: AppData, exIdx: number, setIdx: number, now?: string): AppData {
   return withSet(data, exIdx, setIdx, (s, e) => {
     const ex = getExercise(e.exerciseId, data.customExercises);
     if (!ex) return null;
@@ -71,7 +72,7 @@ export function confirmSet(data: AppData, exIdx: number, setIdx: number): AppDat
     const kg = s.actualKg ?? s.targetKg ?? (ex.kind === 'weighted' ? null : 0);
     if (reps == null || (ex.kind === 'weighted' && kg == null)) return null;
     const assistKg = s.assistKg === null ? (e.rec?.assistKg ?? null) : s.assistKg;
-    return { ...s, actualReps: reps, actualKg: ex.kind === 'timed' ? null : kg, ...(assistKg !== undefined ? { assistKg } : {}), status: 'done' };
+    return { ...s, actualReps: reps, actualKg: ex.kind === 'timed' ? null : kg, ...(assistKg !== undefined ? { assistKg } : {}), ...(now ? { doneAt: now } : {}), status: 'done' };
   });
 }
 
@@ -213,4 +214,21 @@ export function deleteHistorySession(data: AppData, sessionId: string): AppData 
 /** Profile edits apply from the next unstarted workout; the plan is rebuilt, rotation untouched. */
 export function updateProfile(data: AppData, patch: Partial<Profile>): AppData {
   return { ...data, profile: { ...data.profile, ...patch }, plannedSession: null };
+}
+
+/**
+ * "Apply now" for profile changes mid-workout: exercises with nothing done yet
+ * get the new prescription and targets. Anything with a done set is left alone.
+ */
+export function applyProfileToActive(data: AppData): AppData {
+  const s = data.activeSession;
+  if (!s) return data;
+  const exercises = s.exercises.map((e) => {
+    const slot = findSlot(s.splitId, e.slotId);
+    if (!slot || !e.exerciseId || e.sets.some((x) => x.status === 'done')) return e;
+    const p = plannedExercise(data, slot, e.exerciseId);
+    const rx = { sets: p.sets, repMin: p.repMin, repMax: p.repMax, restSec: p.restSec };
+    return { ...e, plan: rx, rec: p.rec, skipped: false, sets: setsFrom(p.rec, rx.sets, rx.repMin) };
+  });
+  return { ...data, activeSession: { ...s, exercises } };
 }

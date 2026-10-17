@@ -89,11 +89,14 @@ export interface SetRecord {
   addedKg?: Kg | null;
   status: 'pending' | 'done' | 'skipped';
   note?: string;
+  /** When the set was ticked; drives freestyle suggestions and recovery chips. */
+  doneAt?: string;
 }
 
 export interface SessionExercise {
   exerciseId: string;
   slotId: string | null;
+  role?: 'anchor' | 'accessory';
   plan: Prescription | null;
   rec: Recommendation | null;
   sets: SetRecord[];
