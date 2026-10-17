@@ -111,9 +111,14 @@ export function useSyncEngine() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [updatedAt, user, ready]);
 
+  // Latest handles in a ref so the published retry() never goes stale and is set once.
+  const handles = useRef({ ready, mutate: mutation.mutate, refetch: cloud.refetch });
+  handles.current = { ready, mutate: mutation.mutate, refetch: cloud.refetch };
   useEffect(() => {
-    useSyncState.setState({ retry: () => (ready ? mutation.mutate(useApp.getState().data) : void cloud.refetch()) });
-  }, [ready, mutation, cloud]);
+    useSyncState.setState({
+      retry: () => (handles.current.ready ? handles.current.mutate(useApp.getState().data) : void handles.current.refetch()),
+    });
+  }, []);
 }
 
 export async function signIn(email: string): Promise<string | null> {
