@@ -122,7 +122,7 @@ export function addExercise(data: AppData, exerciseId: string): AppData {
   const s = data.activeSession;
   const ex = getExercise(exerciseId, data.customExercises);
   if (!s || !ex) return data;
-  const rx = prescription(data.profile.objective, 'accessory', ex);
+  const rx = prescription(data.profile, 'accessory', ex);
   const rec = recommend(ex, rx, data.sessions);
   const entry: SessionExercise = { exerciseId, slotId: null, plan: rx, rec, sets: setsFrom(rec, rx.sets, rx.repMin) };
   return { ...data, activeSession: { ...s, exercises: [...s.exercises, entry] } };
@@ -136,7 +136,7 @@ export function swapExercise(data: AppData, exIdx: number, exerciseId: string): 
     const slot = findSlot(s!.splitId, e.slotId);
     const p = slot
       ? plannedExercise(data, slot, exerciseId)
-      : { ...prescription(data.profile.objective, 'accessory', getExercise(exerciseId, data.customExercises)), rec: null };
+      : { ...prescription(data.profile, 'accessory', getExercise(exerciseId, data.customExercises)), rec: null };
     const rx = { sets: p.sets, repMin: p.repMin, repMax: p.repMax, restSec: p.restSec };
     const rec = p.rec ?? recommend(getExercise(exerciseId, data.customExercises)!, rx, data.sessions);
     return { ...e, exerciseId, plan: rx, rec, skipped: false, sets: setsFrom(rec, rx.sets, rx.repMin) };

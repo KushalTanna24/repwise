@@ -144,3 +144,31 @@ describe('rebuildPlan', () => {
     if (only.length === 0) expect(rebuildPlan(d)).toBeNull();
   });
 });
+describe('session length and experience', () => {
+  it('75 min adds a calf finisher to Full Body A, 90 min adds arms too', () => {
+    const p75 = buildPlan(data((x) => (x.profile.sessionMinutes = 75)), 'full-body-abc').exercises.map((e) => e.exerciseId);
+    expect(p75).toHaveLength(7);
+    expect(p75).toContain('standing-calf-raise');
+    const p90 = buildPlan(data((x) => (x.profile.sessionMinutes = 90)), 'full-body-abc').exercises.map((e) => e.exerciseId);
+    expect(p90).toHaveLength(8);
+    expect(new Set(p90).size).toBe(p90.length);
+  });
+
+  it('finishers never repeat a pattern the session already trains', () => {
+    const b = buildPlan(at(1), 'full-body-abc');
+    const p90 = buildPlan(data((x) => { x.profile.sessionMinutes = 90; x.program.rotation['full-body-abc'].sessionIndex = 1; }), 'full-body-abc');
+    expect(p90.exercises.filter((e) => e.slotId.startsWith('f-')).map((e) => e.slotId)).toEqual(['f-core']);
+    expect(b.exercises.length).toBe(6);
+  });
+
+  it('beginners get machines first and one fewer main-lift set', () => {
+    const p = buildPlan(data((x) => (x.profile.experience = 'beginner')), 'full-body-abc').exercises;
+    expect(p[0]).toMatchObject({ exerciseId: 'hack-squat', sets: 2 });
+  });
+
+  it('advanced lifters get one more accessory set', () => {
+    const p = buildPlan(data((x) => (x.profile.experience = 'advanced')), 'full-body-abc').exercises;
+    expect(p.find((e) => e.role === 'accessory' && e.exerciseId !== 'plank')!.sets).toBe(4);
+    expect(p[0].sets).toBe(3);
+  });
+});

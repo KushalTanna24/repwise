@@ -134,7 +134,7 @@ export interface Profile {
   experience: 'beginner' | 'intermediate' | 'advanced';
   objective: Objective;
   daysPerWeek: number;
-  sessionMinutes: 45 | 60 | 75;
+  sessionMinutes: 45 | 60 | 75 | 90;
   equipment: EquipmentKind[];
   excludedExerciseIds: string[];
   goalNote?: string;
