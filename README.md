@@ -30,11 +30,13 @@ Recommendations are **rules-based**, not AI.
   - Permission is asked from a tap.
   - While rest runs and the app is in the background, you get alerts 10 s before the end and at the end. Tapping one reopens the workout.
   - An iOS-style banner greets you on the first open of each day.
-  - Closed-app reminders would need a push server and are not built.
+  - Water reminders arrive as Web Push, even with the app closed. Turn them on in Profile → Reminders → Water reminders and pick the window (From/To hours) and how often (every 1–4 h). They need sign-in, and work on Android or on an iPhone home-screen install (iOS 16.4+). See "Push deploy" below.
+  - Today also shows loud water-pace and supplement-overdue nudges.
 - **History**: workouts and extras grouped by week, with a filter by exercise. The detail view shows target vs actual for every set. You can edit actuals or delete a workout; neither changes the rotation.
 - **Progress → Strength**: per-exercise best set, last vs previous, a top-set or volume chart, and a session list. Only done sets count.
 - **Progress → Body**: weigh-ins (add, edit, delete; same date asks before replacing), a 1M–All chart, and BMI with the formula, the weigh-in it used, and a note on its limits.
-- **Profile**: split, goal, experience, days per week, session length, units (kg/lb), height, target weight, goal note, equipment, exercise library (exclude built-ins; add, rename or archive custom exercises), magic-link backup, JSON export and restore, and an explanation of how recommendations work.
+- **Supplements**: a built-in library with a pre-filled stack (creatine, whey protein, multivitamin).
+- **Profile**: a you-card plus seven rows that open sheets: split, goal, experience, days per week, session length, units (kg/lb), height, target weight, goal note, equipment, exercise library (exclude built-ins; add, rename or archive custom exercises), reminders, magic-link backup, and JSON export and restore.
 
 ## Stack
 
@@ -82,12 +84,15 @@ npm run e2e          # writes screenshots to e2e/shots/
 |---|---|
 | `VITE_SUPABASE_URL` | Supabase project URL. Falls back to the existing project. |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | Supabase **publishable** key. Falls back to the existing public key. Never put a service-role key here. |
+| `VITE_VAPID_PUBLIC_KEY` | Web Push public key (see "Push deploy"). Water reminders stay off without it. |
 
 See `.env.example`. `.env*` files are git-ignored.
 
 ## Authentication and Supabase
 
 - Email magic link (`signInWithOtp`, redirect to the app origin). Sessions persist and auto-refresh.
+- The app shows a "You're signed in" banner after a link works and "That link expired or was already used" when it doesn't. A sign-in made in a Chrome tab is picked up by the installed app.
+- iPhone: a home-screen install doesn't share storage with Safari, so a link opened in Safari can't sign the installed app in. Sign in from a Safari tab instead.
 - Table `public.repwise_user_data (user_id, workout_data jsonb, updated_at)`. One row per user, upserted on `user_id`. Row-level security limits each user to their own row (verified: an anonymous select returns `[]`). The client only ever uses the publishable key.
 - `workout_data` holds the whole `AppData` v4 document, so no schema migration was needed.
 
@@ -184,6 +189,19 @@ Pushes wait until a pull has succeeded. After that, local changes are pushed 1.5
 - `main` holds the recovered live baseline (tag `legacy-v2`). Work happens on `dev` and reaches `main` through a pull request.
 - The live project served static files. Before the first deploy of this branch, set the Vercel project's framework preset to **Vite** (build `npm run build`, output `dist`). The service worker is written to `/sw.js`, the same path as the legacy one, so installed clients update cleanly.
 - **Preview first**: connect the GitHub repo to the existing Vercel project (each branch then gets a preview URL), or deploy with the Vercel CLI. Production promotion needs explicit approval.
+
+### Push deploy
+
+Water reminders need these one-time steps:
+
+1. `npx web-push generate-vapid-keys`
+2. `supabase secrets set VAPID_PUBLIC_KEY=<public> VAPID_PRIVATE_KEY=<private> VAPID_SUBJECT=mailto:info@optin8.com`
+3. Supabase Dashboard → Vault: add a secret named `service_role_key` whose value is the legacy `service_role` JWT (the same value as the function's `SUPABASE_SERVICE_ROLE_KEY`, found under Project Settings → API Keys → Legacy). Not an `sb_secret_…` key: with a different key every cron run is rejected with 401.
+4. `supabase db push` (creates `push_subscriptions` and the hourly `water-nudge-hourly` cron job)
+5. `supabase functions deploy water-nudge --no-verify-jwt`
+6. Vercel → Project → Settings → Environment Variables: `VITE_VAPID_PUBLIC_KEY` = the public key from step 1, then redeploy.
+
+To check it, run `select * from cron.job_run_details order by start_time desc limit 5;` and `select * from net._http_response order by created desc limit 5;` in the SQL editor.
 
 ## Rollback
 

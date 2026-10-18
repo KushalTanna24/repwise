@@ -13,7 +13,7 @@ const VERSION_KEY = 'repwise_seen_version';
 const WHATS_NEW = {
   version: __APP_VERSION__,
   title: 'Repwise updated',
-  body: 'Freestyle Next-set guide, plank hold timer, supplements, water in History, calendar with goal dates.',
+  body: 'Sign-in now confirms itself, supplement library, tidier Profile, water reminders.',
 };
 
 function read(key: string) {
