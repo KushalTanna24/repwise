@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { emptyAppData } from './catalogue';
 import { normalize } from './migrate';
-import { activeSupplements, addSupplement, renameSupplement, setSupplementArchived, suppStreak, toggleSupplement } from './supplements';
+import { activeSupplements, addSupplement, renameSupplement, setSupplementArchived, suppOverdue, suppStreak, toggleSupplement } from './supplements';
 
 const NOW = '2026-10-17T08:00:00.000Z';
 const stack = () => {
@@ -58,5 +58,25 @@ describe('supplements', () => {
     const d = normalize(old, NOW)!;
     expect(d.supplements).toEqual([]);
     expect(d.suppLog).toEqual({});
+  });
+});
+
+
+describe('suppOverdue', () => {
+  const D = '2026-10-17';
+  const base = () => ({ ...emptyAppData(NOW), supplements: [
+    { id: 'm', name: 'M', timing: 'morning' as const },
+    { id: 'a', name: 'A', timing: 'any' as const },
+  ] });
+  it('lists a morning supplement from 11:00, not before', () => {
+    expect(suppOverdue(base(), D, 10 * 60 + 59)).toEqual([]);
+    expect(suppOverdue(base(), D, 11 * 60).map((s) => s.id)).toEqual(['m']);
+  });
+  it('lists any from 18:00', () => {
+    expect(suppOverdue(base(), D, 18 * 60).map((s) => s.id)).toEqual(['m', 'a']);
+  });
+  it('skips taken and archived', () => {
+    const d = { ...base(), suppLog: { [D]: ['m'] }, supplements: [...base().supplements.slice(0, 1), { ...base().supplements[1], archived: true }] };
+    expect(suppOverdue(d, D, 20 * 60)).toEqual([]);
   });
 });

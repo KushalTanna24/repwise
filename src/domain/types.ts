@@ -163,6 +163,8 @@ export interface Profile {
   targetWeightKg?: number;
   /** Daily water target in glasses. */
   waterGoal: number;
+  /** Water nudges; hours are local. Missing means the defaults (off). */
+  waterReminders?: { on: boolean; from: number; to: number; everyHours: number };
 }
 
 export interface RotationState {

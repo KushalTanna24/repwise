@@ -1,5 +1,5 @@
 import dayjs from 'dayjs';
-import type { AppData, Supplement } from './types';
+import type { AppData, Supplement, SuppTiming } from './types';
 
 const slug = (s: string) => s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
@@ -60,4 +60,13 @@ export function suppStreak(data: AppData, today: string): number {
     day = day.subtract(1, 'day');
   }
   return n;
+}
+
+/** Local minutes since midnight after which an untaken supplement counts as overdue. */
+export const TIMING_DUE_MINUTES: Record<SuppTiming, number> = { morning: 660, meal: 840, night: 1320, pre: 1080, post: 1080, any: 1080 };
+
+/** Active supplements not yet taken on `date` whose due time has passed. */
+export function suppOverdue(data: AppData, date: string, nowMinutes: number): Supplement[] {
+  const taken = data.suppLog[date] ?? [];
+  return activeSupplements(data).filter((s) => !taken.includes(s.id) && nowMinutes >= TIMING_DUE_MINUTES[s.timing ?? 'any']);
 }

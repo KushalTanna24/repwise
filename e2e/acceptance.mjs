@@ -290,6 +290,31 @@ t = await text();
 check('History shows the calendar and a daily habits row', t.includes('All supplements') && t.includes('daily habits'));
 await shot('15-history-calendar');
 
+// Loud water card: fresh context, clock pinned to 15:00 Asia/Kolkata, 0 glasses -> 4 expected, 4 behind
+{
+  const ctx = await browser.createBrowserContext();
+  const p2 = await ctx.newPage();
+  await p2.setViewport({ width: 412, height: 915, deviceScaleFactor: 2, isMobile: true, hasTouch: false });
+  p2.on('pageerror', (e) => errors.push(`pageerror: ${e.message.split('\n')[0]}`));
+  await p2.emulateTimezone('Asia/Kolkata');
+  const ist = new Date(Date.now() + 5.5 * 3600e3).toISOString().slice(0, 10);
+  const target = Date.parse(`${ist}T15:00:00+05:30`);
+  await p2.evaluateOnNewDocument((t) => {
+    const RealDate = Date;
+    const offset = t - RealDate.now();
+    class FakeDate extends RealDate {
+      constructor(...a) { a.length ? super(...a) : super(RealDate.now() + offset); }
+      static now() { return RealDate.now() + offset; }
+    }
+    globalThis.Date = FakeDate;
+  }, target);
+  await p2.goto(APP, { waitUntil: 'domcontentloaded' });
+  await sleep(1500);
+  const t2 = await p2.evaluate(() => document.body.textContent.replace(/\s+/g, ' '));
+  check('loud water card when behind', t2.includes("You're 4 behind"), t2.includes('behind') ? '' : 'copy missing');
+  await ctx.close();
+}
+
 check('No runtime errors in console', errors.length === 0, errors.slice(0, 5).join(' / '));
 console.log(results.join('\n'));
 await browser.close();

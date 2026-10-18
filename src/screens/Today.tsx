@@ -1,15 +1,15 @@
 import dayjs from 'dayjs';
 import { useEffect, useState } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Check, ChevronRight, Ellipsis, GlassWater, Minus, Pill, Play, Plus, RefreshCw, Repeat, SkipForward, Sparkles } from 'lucide-react';
 import { getExercise } from '@/domain/catalogue';
 import { rebuildPlan } from '@/domain/planner';
-import { addWater, GLASS_ML } from '@/domain/water';
+import { addWater, DEFAULT_WATER_REMINDERS, GLASS_ML, waterPace } from '@/domain/water';
 import { skipPlannedSession, startSession } from '@/domain/session';
 import { SPLITS } from '@/domain/splits';
 import { latestWeight, sessionVolume, weekStats } from '@/domain/stats';
 import type { AppData, PlannedExercise, WorkoutSession } from '@/domain/types';
-import { activeSupplements, toggleSupplement } from '@/domain/supplements';
+import { activeSupplements, suppOverdue, toggleSupplement } from '@/domain/supplements';
 import { TIMING_LABEL, TIMING_ORDER } from '@/domain/supplementCatalogue';
 import { cn } from '@/lib/cn';
 import { Screen } from '@/components/Screen';
@@ -32,6 +32,13 @@ const RING = { workouts: '#FF2D55', sets: '#34C759', water: '#007AFF' };
 export function Today() {
   const data = useData();
   const split = data.program.splitId;
+  // Re-render each minute so the pace and overdue nudges stay current.
+  const [now, setNow] = useState(() => dayjs());
+  useEffect(() => {
+    const id = setInterval(() => setNow(dayjs()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+  const nowMinutes = now.hour() * 60 + now.minute();
 
   return (
     <Screen title="Today" eyebrow={dayjs().format('dddd, D MMMM')}>
@@ -39,15 +46,15 @@ export function Today() {
         <>
           <p className="px-1 pb-4 pt-2 text-subhead text-label-2">Pick how you train. Repwise keeps your place in the rotation and builds every session from what you actually lift.</p>
           <SplitChooser />
-          <Water data={data} />
-          <Supplements data={data} />
+          <Water data={data} nowMinutes={nowMinutes} />
+          <Supplements data={data} nowMinutes={nowMinutes} />
         </>
       ) : (
         <>
           <UpNext data={data} />
           <NotifyPrompt />
-          <Water data={data} />
-          <Supplements data={data} />
+          <Water data={data} nowMinutes={nowMinutes} />
+          <Supplements data={data} nowMinutes={nowMinutes} />
           <Week data={data} />
           <Recent data={data} />
         </>
@@ -348,11 +355,14 @@ function Recent({ data }: { data: AppData }) {
   );
 }
 
-function Water({ data }: { data: AppData }) {
+function Water({ data, nowMinutes }: { data: AppData; nowMinutes: number }) {
   const today = dayjs().format('YYYY-MM-DD');
   const glasses = data.water[today] ?? 0;
   const goal = data.profile.waterGoal;
   const done = glasses >= goal;
+  const reduce = useReducedMotion();
+  const { behind } = waterPace(glasses, goal, nowMinutes, data.profile.waterReminders ?? DEFAULT_WATER_REMINDERS);
+  const loud = behind >= 1;
 
   function add(delta: number) {
     navigator.vibrate?.(10);
@@ -361,14 +371,17 @@ function Water({ data }: { data: AppData }) {
   }
 
   return (
-    <Card className="mt-3 flex items-center gap-3 p-3 pl-4">
+    <motion.div
+      layout={!reduce}
+      className={cn('mt-3 flex items-center gap-3 rounded-card p-3 pl-4 shadow-card', loud ? 'bg-blue/12 ring-1 ring-blue/30' : 'bg-card')}
+    >
       <span className="grid size-10 shrink-0 place-items-center rounded-full bg-blue/12 text-blue">
         <GlassWater className="size-5" />
       </span>
       <div className="min-w-0 flex-1">
-        <div className="text-headline font-semibold tabular">
-          {glasses} <span className="font-normal text-label-2">/ {goal} glasses</span>
-        </div>
+        <motion.div layout={!reduce ? 'position' : false} className={cn('font-semibold tabular', loud ? 'text-title2' : 'text-headline')}>
+          {glasses} <span className="font-normal text-label-2 text-headline">/ {goal} glasses</span>
+        </motion.div>
         <div className="mt-1 flex gap-[3px]" aria-hidden>
           {Array.from({ length: goal }, (_, i) => (
             <motion.span
@@ -380,6 +393,11 @@ function Water({ data }: { data: AppData }) {
           ))}
         </div>
         <div className="mt-1 text-caption text-label-2">{((glasses * GLASS_ML) / 1000).toFixed(2).replace(/0$/, '')} L{done ? ' · goal hit' : ''}</div>
+        {loud && (
+          <div className="mt-1 text-footnote font-medium text-blue">
+            {glasses} of {goal}. You're {behind} behind. Have one now.
+          </div>
+        )}
       </div>
       {glasses > 0 && (
         <Button variant="gray" size="icon" aria-label="Remove a glass" onClick={() => add(-1)}>
@@ -389,13 +407,14 @@ function Water({ data }: { data: AppData }) {
       <Button variant="primary" className="h-11 px-4" aria-label="Add a glass of water" onClick={() => add(1)}>
         <Plus className="size-4" strokeWidth={3} /> Glass
       </Button>
-    </Card>
+    </motion.div>
   );
 }
-function Supplements({ data }: { data: AppData }) {
+function Supplements({ data, nowMinutes }: { data: AppData; nowMinutes: number }) {
   const today = dayjs().format('YYYY-MM-DD');
   const stack = activeSupplements(data);
   const taken = data.suppLog[today] ?? [];
+  const overdue = suppOverdue(data, today, nowMinutes);
 
   if (!stack.length)
     return (
@@ -412,13 +431,16 @@ function Supplements({ data }: { data: AppData }) {
     );
 
   return (
-    <Card className="mt-3 p-3 pl-4">
+    <Card className={cn('mt-3 p-3 pl-4', overdue.length > 0 && 'ring-1 ring-orange/40')}>
       <div className="flex items-center gap-3">
         <span className="grid size-10 shrink-0 place-items-center rounded-full bg-purple/12 text-purple">
           <Pill className="size-5" />
         </span>
-        <div className="text-headline font-semibold tabular">
-          {taken.filter((id) => stack.some((s) => s.id === id)).length} <span className="font-normal text-label-2">/ {stack.length} taken</span>
+        <div className="min-w-0">
+          <div className="text-headline font-semibold tabular">
+            {taken.filter((id) => stack.some((s) => s.id === id)).length} <span className="font-normal text-label-2">/ {stack.length} taken</span>
+          </div>
+          {overdue.length > 0 && <div className="text-footnote font-medium text-orange">{overdue.map((s) => s.name).join(', ')} not taken yet</div>}
         </div>
       </div>
       {TIMING_ORDER.map((t) => {

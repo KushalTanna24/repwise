@@ -1,4 +1,5 @@
 import { seedStack } from './supplementCatalogue';
+import { DEFAULT_WATER_REMINDERS } from './water';
 import type { AppData, EquipmentKind, Exercise } from './types';
 
 type Row = [id: string, name: string, muscle: string, pattern: Exercise['pattern'], equipment: EquipmentKind, kind?: Exercise['kind'], aliases?: string[]];
@@ -100,6 +101,7 @@ export function emptyAppData(now: string): AppData {
       equipment: [...ALL_EQUIPMENT],
       excludedExerciseIds: [],
       waterGoal: 8,
+      waterReminders: { ...DEFAULT_WATER_REMINDERS },
     },
     program: { splitId: null, rotation: { 'full-body-abc': { ...zero }, 'upper-lower': { ...zero }, ppl: { ...zero } } },
     customExercises: [],

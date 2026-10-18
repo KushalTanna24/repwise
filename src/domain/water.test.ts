@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { emptyAppData } from './catalogue';
 import { normalize } from './migrate';
-import { addWater, waterWeek, GLASS_ML } from './water';
+import { addWater, waterWeek, waterPace, DEFAULT_WATER_REMINDERS, GLASS_ML } from './water';
 
 const NOW = '2026-10-17T08:00:00.000Z';
 
@@ -43,5 +43,29 @@ describe('water', () => {
     const d = normalize(old, NOW)!;
     expect(d.water).toEqual({});
     expect(d.profile.waterGoal).toBe(8);
+  });
+});
+
+
+describe('waterPace', () => {
+  const w = { from: 9, to: 21 };
+  it('is quiet before the window and starts at zero expected', () => {
+    expect(waterPace(0, 8, 8 * 60, w)).toEqual({ expected: 0, behind: 0, inWindow: false });
+    expect(waterPace(0, 8, 9 * 60, w)).toMatchObject({ expected: 0, inWindow: true });
+  });
+  it('expects goal spread across the window, rounded up', () => {
+    expect(waterPace(1, 8, 15 * 60, w)).toMatchObject({ expected: 4, behind: 3 });
+    expect(waterPace(9, 8, 15 * 60, w).behind).toBe(0);
+  });
+  it('is quiet after the window', () => {
+    expect(waterPace(0, 8, 22 * 60, w)).toMatchObject({ inWindow: false, behind: 0 });
+  });
+  it('handles a zero goal and an inverted window', () => {
+    expect(waterPace(0, 0, 15 * 60, w)).toMatchObject({ behind: 0 });
+    expect(waterPace(0, 8, 15 * 60, { from: 21, to: 9 })).toMatchObject({ inWindow: false, behind: 0 });
+  });
+  it('default reminders are off, 9 to 21 every 2 hours', () => {
+    expect(DEFAULT_WATER_REMINDERS).toEqual({ on: false, from: 9, to: 21, everyHours: 2 });
+    expect(emptyAppData(NOW).profile.waterReminders).toEqual(DEFAULT_WATER_REMINDERS);
   });
 });
