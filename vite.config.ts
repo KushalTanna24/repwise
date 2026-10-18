@@ -30,5 +30,5 @@ export default defineConfig({
     }),
   ],
   resolve: { alias: { '@': path.resolve(__dirname, 'src') } },
-  test: { environment: 'node', env: { TZ: 'Asia/Kolkata' } },
+  test: { include: ['src/**/*.test.ts', 'supabase/functions/**/*.test.ts'], environment: 'node', env: { TZ: 'Asia/Kolkata' } },
 });
