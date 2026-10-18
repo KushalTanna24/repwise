@@ -1,0 +1,45 @@
+{
+    "name":  "repwise",
+    "private":  true,
+    "version":  "4.2.0",
+    "type":  "module",
+    "scripts":  {
+                    "dev":  "vite",
+                    "build":  "tsc -b \u0026\u0026 vite build",
+                    "preview":  "vite preview",
+                    "test":  "vitest run",
+                    "typecheck":  "tsc -b --noEmit",
+                    "e2e":  "node e2e/acceptance.mjs"
+                },
+    "dependencies":  {
+                         "@radix-ui/react-alert-dialog":  "^1.2.1",
+                         "@radix-ui/react-dropdown-menu":  "^2.2.1",
+                         "@supabase/supabase-js":  "^2.118.0",
+                         "@tanstack/react-query":  "^5.104.3",
+                         "class-variance-authority":  "^0.7.1",
+                         "clsx":  "^2.1.1",
+                         "dayjs":  "^1.11.23",
+                         "idb-keyval":  "^6.3.0",
+                         "lucide-react":  "^1.59.0",
+                         "motion":  "^14.3.0",
+                         "react":  "^18.3.1",
+                         "react-dom":  "^18.3.1",
+                         "recharts":  "^3.10.1",
+                         "tailwind-merge":  "^3.7.0",
+                         "vaul":  "^1.1.2",
+                         "zustand":  "^5.0.15"
+                     },
+    "devDependencies":  {
+                            "@tailwindcss/vite":  "^4.3.3",
+                            "@types/node":  "^26.6.5",
+                            "@types/react":  "^18.3.31",
+                            "@types/react-dom":  "^18.3.7",
+                            "@vitejs/plugin-react":  "^6.1.2",
+                            "puppeteer-core":  "^23.11.1",
+                            "tailwindcss":  "^4.3.3",
+                            "typescript":  "^7.0.2",
+                            "vite":  "^8.3.4",
+                            "vite-plugin-pwa":  "^2.0.0",
+                            "vitest":  "^5.0.5"
+                        }
+}

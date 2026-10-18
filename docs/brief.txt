@@ -1,0 +1,1202 @@
+# REPWISE — Full Application Specification, Product Requirements, Engineering Plan, and Safe Implementation Instructions
+
+Act as a senior full-stack engineer, product architect, UX designer, fitness-training software specialist, database engineer, and QA lead.
+
+Your assignment is to help me develop and maintain my existing application, **Repwise**, into a complete, reliable, personalized workout and fitness-progress platform.
+
+This is an existing project, not a greenfield exercise.
+
+The first priority is to preserve the existing application's useful features, user data, integrations, and deployment. The second priority is to fix the workout-planning and progressive-overload logic. The third priority is to improve the UX and add any missing capabilities.
+
+Do not sacrifice existing features for a smaller, cleaner, easier-to-generate application.
+
+---
+
+# PART 1 — PROJECT DETAILS AND EXISTING INFRASTRUCTURE
+
+## 1.1 Project identity
+
+Application: Repwise
+
+Production URL:
+https://repwise-eta.vercel.app
+
+GitHub repository:
+https://github.com/KushalTanna24/repwise
+
+Vercel project ID:
+`prj_QEMI4tnSZnZuTb1p9NHPS76I65gS`
+
+Vercel team ID:
+`team_bl6VWu5pIB8FDUHh4WhqtL26`
+
+Supabase project reference:
+`mvrimyshkrwsjuwyapgw`
+
+Supabase project URL:
+`https://mvrimyshkrwsjuwyapgw.supabase.co`
+
+Existing Supabase table:
+`public.repwise_user_data`
+
+Existing columns include:
+- `user_id`
+- `workout_data` — JSONB
+- `updated_at`
+
+The existing table has been configured with row-level security policies for authenticated users.
+
+The application has previously included email magic-link authentication, local persistence, and the ability to synchronize workout data with Supabase.
+
+The richer historical application has used the browser storage key `repwise_v2`. A later simplified implementation used `repwise_progression_v3`.
+
+These keys are important clues to the application's history. They are not interchangeable by assumption. Inspect the real code and deployed application before deciding which schema is authoritative.
+
+## 1.2 Existing application history
+
+Previous development attempts accidentally replaced a richer application with a simplified version.
+
+The richer version included some or all of the following:
+- Home, Train, Progress, History, and Goals navigation.
+- Workout creation and session logging.
+- Body-weight history and a dated chart.
+- Strength and exercise-performance history.
+- Workout history.
+- Goal and training-profile information.
+- Settings.
+- JSON export and restore.
+- Supabase authentication and synchronization.
+
+A later simplified version retained only a subset of workout rotation, history, and progression functionality, using a different local-storage key. It did not adequately preserve all the original features.
+
+An earlier deployment associated with the richer app was identified as:
+
+`dpl_AgRXaBcqtAikDxU5pxjs4bgNQcdu`
+
+A later simplified deployment was identified as:
+
+`dpl_9migTHTjiojmYZcdYJk9xwv9had3`
+
+Another historical deployment was:
+
+`dpl_FV5sV6Wgp3Kn3msGvBRN7r1wcYML`
+
+These identifiers are historical clues, not proof that any particular deployment is currently live or contains the best source.
+
+The first engineering task is to discover what actually exists now.
+
+## 1.3 Important infrastructure rules
+
+- GitHub should be the source of truth for application code.
+- Vercel is used to host and deploy the application.
+- Supabase is used for authentication and cloud data persistence.
+- Local storage has been used to preserve app data in the browser.
+- The production application may contain data that does not exist in the repository.
+- Existing deployment aliases must not be changed without explicit approval.
+- Existing production data must not be reset or migrated destructively.
+- Never commit `.env` files, service-role keys, passwords, authentication tokens, or other secrets.
+
+Do not assume that a deployment's generated HTML is the canonical source code. Prefer the actual GitHub repository and source files. If source recovery is needed, use supported Vercel tools or other verified methods to inspect the actual deployment artifacts.
+
+Never reconstruct the application from a partial, truncated HTML response and then claim the original source has been recovered.
+
+---
+
+# PART 2 — HOW YOU MUST WORK
+
+These rules are mandatory.
+
+## 2.1 Audit before implementation
+
+Before writing code:
+
+1. Verify GitHub read and write access.
+2. Inspect the repository, branch structure, commits, README, package manifest, source files, and build scripts.
+3. Determine the actual framework, dependency versions, routing structure, and existing application architecture.
+4. Inspect the current production application without modifying it.
+5. Inspect available Vercel deployment metadata and determine which deployments and aliases are actually associated with the project.
+6. Inspect Supabase schemas and configuration using the available authorized tools, without exposing credentials.
+7. Identify the current storage format, authentication flow, sync behavior, and data-migration history.
+8. Make an inventory of every existing screen, action, feature, and integration.
+9. Identify which capabilities work, which are broken, and which are missing.
+10. Create a baseline report before deciding how to implement anything.
+
+If a required connector is unavailable, distinguish that limitation from an application defect. Do not pretend you inspected something you could not access.
+
+## 2.2 Never replace the whole application just to add a feature
+
+Do not:
+- Replace the existing application with a smaller demo.
+- Rewrite all source files because a new architecture seems simpler.
+- Delete existing screens that are not directly related to a change.
+- Replace a complete data model with a minimal one.
+- Change storage keys without a migration plan.
+- Reset or truncate user data.
+- Remove login or cloud synchronization to make the app easier to run.
+- Remove weight, BMI, charts, history, goals, or settings while working on workout generation.
+- Replace the existing routing structure without first demonstrating why it is necessary.
+- Deploy experimental code directly to production.
+- Claim that a feature works because code was generated for it.
+
+Prefer small, reviewable changes to existing files. If a larger refactor is genuinely necessary, document the reason, identify the affected features, prepare a migration strategy, and get my approval before making the destructive or high-risk change.
+
+## 2.3 GitHub workflow
+
+Use the connected GitHub integration for real repository operations.
+
+Before significant changes:
+- Inspect the current branch and commit.
+- Create a development branch from the appropriate baseline.
+- Preserve the existing production branch.
+- Keep changes focused and reviewable.
+- Commit coherent milestones.
+- Read back important changed files or commits to verify the operation succeeded.
+- Open a pull request when supported.
+- Report the branch, commit, files changed, and verification performed.
+
+Never report a commit, branch, or pull request as successful without a returned confirmation.
+
+Do not ask me for a PAT token. If the connector lacks permissions, stop the write operation and explain the actual integration limitation.
+
+If the repository is empty, do not immediately initialize a replacement application. First recover the original source, determine whether it exists elsewhere, and ask for my approval before creating a new canonical source baseline.
+
+## 2.4 Deployment workflow
+
+Do not deploy to production during the initial audit or planning phase.
+
+The preferred workflow is:
+
+1. Inspect and establish the baseline.
+2. Prepare a written plan and screen inventory.
+3. Implement a small phase on a development branch.
+4. Run the available tests and build.
+5. Deploy to a preview environment, if supported.
+6. Verify the preview and regression-test existing functionality.
+7. Show me the results and explain any remaining limitations.
+8. Get explicit approval before promoting a change to production or changing the production alias.
+
+Keep a known-good rollback point.
+
+Never use a production deployment as a convenient place to test an unverified rewrite.
+
+## 2.5 Do not overstate capabilities
+
+If workout recommendations use deterministic rules, describe them as rules-based programming. Do not call them AI-generated unless an actual AI model is integrated.
+
+Do not claim a sync, backup, restore, login, test, deployment, or migration succeeded until the outcome is verified.
+
+If a requirement cannot be implemented with the current tools, state the limitation and propose the safest alternative.
+
+---
+
+# PART 3 — PRODUCT VISION
+
+Repwise should become a personalized workout companion that knows my training split, remembers my past performance, creates a balanced next workout, lets me log exactly what I did, and uses that history to recommend sensible progression.
+
+The experience should feel like a coherent fitness application, not a collection of disconnected forms.
+
+The application must support this complete loop:
+
+1. Configure a training profile and select a split.
+2. Save that split persistently.
+3. Start a workout.
+4. Automatically receive the correct next session for the selected split.
+5. See exercises, set targets, rep ranges, suggested loads, rest guidance, and previous performance.
+6. Modify exercises and targets when needed.
+7. Log actual sets, repetitions, weights, and completion status.
+8. Finish and save the workout.
+9. Update workout history, exercise progress, and relevant metrics.
+10. Use the actual results to calculate appropriate future targets.
+11. Automatically propose the next workout in the split rotation.
+12. Preserve all the data across refreshes, sign-ins, devices where synchronization is supported, and application updates.
+
+The application should support conventional strength training, hypertrophy, general fitness, and bodyweight or calisthenics-oriented training.
+
+It should also retain existing body metrics and progress tracking. Workout planning must not become the entire product at the expense of the rest of the application.
+
+---
+
+# PART 4 — REQUIRED SCREEN INVENTORY
+
+Start with these eight primary screens or logical destinations. Reuse existing routes and layouts wherever practical. These are product responsibilities, not a demand to create eight entirely new files or to discard the current navigation.
+
+## Screen 1: Home / Today
+
+Purpose: Tell me what to do today and make starting a workout easy.
+
+Required functionality:
+- Display the next proposed workout.
+- Show the selected training split.
+- Show the current rotation position, such as Full Body A, Full Body B, or Full Body C.
+- Display the training cycle or rotation number where relevant.
+- Show the planned exercises and a compact overview of sets and repetitions.
+- Show previous-session context where useful.
+- Provide a clear Start Workout action.
+- Show the last workout date and a concise recent-training summary.
+- Show recent body-weight data if that feature already exists.
+- Display relevant progress summaries, such as sessions completed, recent strength improvements, and current training streak, if implemented reliably.
+- Show a useful empty state for a new user.
+- Show a helpful state when no training split has been configured.
+- Make loading, offline, synchronization, and error states understandable.
+
+The Home screen must use the saved training profile and rotation state. It must not randomly select a new split or restart the sequence on every visit.
+
+## Screen 2: Start Workout / Active Session
+
+Purpose: Guide the workout and record actual performance.
+
+For every exercise, display:
+- Exercise name.
+- Primary movement or muscle group.
+- Prescribed number of sets.
+- Target repetition range.
+- Suggested weight or an appropriate bodyweight progression.
+- Rest guidance.
+- Previous session's performance.
+- The reason for the suggested target when it has changed.
+- Any necessary technique or substitution notes, if available.
+
+For every set, support:
+- Actual repetitions completed.
+- Actual weight used, where applicable.
+- Unit selection consistent with the user's settings.
+- Completed or skipped status.
+- Optional notes.
+- An indication of the prescribed target versus the actual result.
+
+Requirements:
+- Allow individual set values to be edited.
+- Allow exercises to be skipped, reordered, or substituted where supported.
+- Allow an exercise to be added during a workout.
+- Preserve unfinished session data across a refresh or accidental navigation.
+- Provide sensible defaults based on the previous performance.
+- Do not overwrite the user's actual logged performance with a target.
+- Distinguish planned sets from completed sets.
+- Do not treat an incomplete or skipped set as if it were completed successfully.
+- Allow the user to finish the workout deliberately.
+- Prevent accidental duplicate workout completion.
+- Update progression only once when a session is successfully finalized.
+- Handle app interruption or temporary network loss gracefully.
+
+A user must be able to log what actually happened rather than being forced to follow the recommendation.
+
+## Screen 3: Workout History
+
+Purpose: Provide an accurate record of past sessions.
+
+Required functionality:
+- Chronological workout list.
+- Workout date and duration, if tracked.
+- Training split and session identity.
+- Exercises performed.
+- Actual completed sets, repetitions, and loads.
+- Session notes and completion status where applicable.
+- Ability to open a historical workout and inspect its details.
+- Useful empty states and loading/error handling.
+- Filtering by date range, exercise, or split if practical.
+- Correct handling of partially completed sessions.
+- Correct ordering and display of dates and time zones.
+
+Historical workouts must remain historical. Editing a past workout must not silently change the current rotation index or regenerate today's workout.
+
+## Screen 4: Strength & Rep Progress
+
+Purpose: Show whether training performance is improving.
+
+Required functionality:
+- Exercise-specific progress views.
+- Historical weight and repetition data.
+- Best completed set or personal-record information when supported by actual data.
+- Volume trends, calculated from actual completed sets.
+- Ability to switch between exercises.
+- Meaningful chart axes, dates, units, and empty states.
+- A way to distinguish historical performance from future targets.
+- Previous-session comparison.
+- Correct handling of bodyweight exercises, assisted exercises, and exercises that do not use external weights.
+
+Possible metrics:
+- Heaviest recorded load.
+- Best repetition performance at a given load.
+- Total completed repetitions.
+- Training volume.
+- Estimated one-rep max, only when the underlying data and formula are suitable and the estimate is clearly labeled.
+- Consistency of performance across sessions.
+
+Do not invent historical points or infer that an exercise improved when the underlying data is missing.
+
+If a chart library already exists, prefer preserving it rather than replacing the whole charting implementation.
+
+## Screen 5: Body Metrics
+
+Purpose: Preserve and improve the existing body-weight and body-metrics functionality.
+
+Required functionality:
+- Log body weight with a date.
+- Display body-weight history.
+- Display a historical chart.
+- Edit or correct an erroneous entry.
+- Avoid accidental duplicate records for the same intended measurement.
+- Preserve measurement dates and units.
+- Store height in the user's profile.
+- Calculate BMI using saved height and recorded weight.
+- Display the formula-derived BMI clearly.
+- Allow the user to understand which weight entry was used for the calculation.
+- Preserve existing BMI and body-metric features.
+
+BMI calculation:
+
+BMI = weight in kilograms / (height in metres × height in metres)
+
+BMI is a screening measure, not a direct measure of body fat or muscularity. Do not present it as a definitive measure of fitness.
+
+Where the existing app supports additional measurements, preserve them and do not delete them simply because they are outside the initial scope.
+
+## Screen 6: Goals & Training Profile
+
+Purpose: Define the context used by workout planning and progression.
+
+Support relevant fields such as:
+- Training experience.
+- Primary objective: hypertrophy, strength, general fitness, or calisthenics.
+- Selected training split.
+- Preferred training days or frequency.
+- Typical session duration.
+- Available equipment.
+- Training constraints and exercise exclusions.
+- Relevant user-entered body metrics.
+- Goals or milestones.
+- Optional running or other activities if the current application supports them.
+
+Requirements:
+- Persist changes.
+- Validate inputs.
+- Do not force the user to fill out unnecessary fields.
+- Use the profile to guide exercise selection and workload.
+- Do not silently reset the training split because a different goal is selected.
+- Explain when changing a profile field will affect future workouts.
+- Avoid medical diagnosis or unsafe prescriptions.
+
+## Screen 7: Settings & Exercise Library
+
+Purpose: Control the training experience and preserve a useful exercise catalogue.
+
+### Training settings
+
+Include, where supported:
+- Current split.
+- Rotation behavior.
+- Session duration.
+- Training objective.
+- Equipment.
+- Weight units.
+- Rest guidance.
+- Exercise preferences and exclusions.
+- Relevant progression settings.
+
+The split is a persistent user setting, not a temporary session choice.
+
+Changing a split should require an intentional action and should explain what happens to the rotation state. Do not reset all training history.
+
+### Exercise library
+
+The exercise catalogue should support:
+- Exercise name.
+- Primary muscle group.
+- Movement pattern.
+- Equipment required.
+- Exercise type.
+- Whether external weight is used.
+- Whether the movement supports assisted or weighted variations.
+- Suggested repetition ranges.
+- Default set counts or configurable defaults.
+- Substitution relationships where useful.
+- Custom exercises if compatible with the existing architecture.
+
+Exercise identifiers should remain stable. Renaming an exercise must not break its historical records.
+
+Do not delete historical data when an exercise is removed from the active catalogue. Archive or deactivate it where possible.
+
+## Screen 8: Account & Data
+
+Purpose: Manage identity, persistence, synchronization, and data portability.
+
+Preserve existing login and cloud-sync functionality.
+
+Required functionality:
+- Email magic-link authentication if it is already implemented.
+- Sign-in and sign-out.
+- Clear indication of the authenticated account.
+- Cloud synchronization status.
+- Understandable authentication errors.
+- Understandable sync failures and retry behavior.
+- JSON data export.
+- Data restore/import if supported by the existing application.
+- Validation before imported data is accepted.
+- Confirmation before a destructive restore.
+- Protection against accidental data loss.
+- Clear separation between local data and server-synchronized data.
+
+Never expose service-role keys or privileged Supabase credentials in client-side code.
+
+Respect Supabase row-level security. A user must only access their own data.
+
+Do not remove authentication or cloud synchronization as a shortcut to getting workout logging to work.
+
+---
+
+# PART 5 — PERSISTENT SPLIT AND WORKOUT ROTATION
+
+This is one of the most important requirements.
+
+## 5.1 The split is selected once
+
+I should be able to choose a split such as:
+- Full Body.
+- Upper / Lower.
+- Push / Pull / Legs.
+- A suitable custom split, if supported.
+
+Once selected, it must remain active across:
+- Page refreshes.
+- Browser restarts.
+- Sign-in and sign-out where appropriate.
+- Normal application updates.
+- Workout completion.
+- Navigation between screens.
+
+It must only change when I intentionally change it.
+
+Do not reselect the split automatically based on a random value, page load, or workout completion.
+
+Do not conflate a training split with a particular workout. The split defines the structure; the workout is the next session within that structure.
+
+## 5.2 Split-specific rotation
+
+Represent each split as an ordered sequence of sessions.
+
+Examples:
+
+Full Body:
+- Full Body A.
+- Full Body B.
+- Full Body C.
+
+Push / Pull / Legs:
+- Push.
+- Pull.
+- Legs.
+
+Upper / Lower:
+- Upper.
+- Lower.
+
+The exact supported session structure should be established from the existing implementation and user profile.
+
+Persist the current rotation position and enough information to determine the next session reliably.
+
+After a workout is successfully completed, advance the rotation exactly once.
+
+For example:
+
+- Current session: Full Body A.
+- Complete the workout.
+- Next proposed session: Full Body B.
+- Complete that workout.
+- Next proposed session: Full Body C.
+- Complete that workout.
+- Next proposed session: Full Body A in the next cycle.
+
+If the workout is abandoned or merely viewed, do not advance the rotation.
+
+Refreshing the page must not advance the rotation.
+
+Opening workout history must not advance the rotation.
+
+Double-clicking Finish must not advance the rotation twice.
+
+## 5.3 Dynamic but balanced workout combinations
+
+Workout combinations should have meaningful variation.
+
+For a Full Body split, A, B, and C should not simply be identical lists with different names.
+
+They should vary emphasis, movement selection, and accessory exercises while remaining balanced across the training cycle.
+
+For example, across the full-body rotation, account for:
+- Knee-dominant lower-body movement.
+- Hip-dominant movement.
+- Horizontal push.
+- Vertical push where appropriate.
+- Horizontal pull.
+- Vertical pull.
+- Core work.
+- Optional unilateral work.
+- Optional calves, arms, shoulders, or other accessories according to the user's goals and time.
+
+Not every category needs to appear in every session, but the overall rotation must provide balanced coverage.
+
+Avoid unnecessary duplication of the same high-fatigue movements across consecutive sessions.
+
+Use the user's available equipment and exercise preferences.
+
+Keep important compound movements sufficiently consistent to measure progress. Rotate accessories more freely.
+
+Variation must not destroy comparability. If an exercise is replaced with a substantially different movement, do not present its performance history as though the movements were identical.
+
+## 5.4 Deterministic and explainable planning
+
+Workout generation must be reproducible.
+
+Given the same:
+- User profile.
+- Split.
+- Rotation state.
+- Exercise catalogue.
+- Recent training history.
+- Equipment.
+- Constraints.
+
+The planner should produce a consistent valid plan unless an explicit variation rule calls for a different cycle.
+
+Do not generate an entirely new workout every time the page loads.
+
+Persist the proposed workout when appropriate so that refreshing the page does not unexpectedly change exercises or targets.
+
+A new rotation cycle can use controlled variation, but the variation should be explainable and balanced.
+
+If no suitable exercise is available, explain the problem and offer a valid alternative rather than silently producing an incomplete workout.
+
+---
+
+# PART 6 — PROGRESSIVE OVERLOAD USING ACTUAL RESULTS
+
+This is another core requirement.
+
+The app must not merely generate fixed workouts. It must use the user's actual completed sets, repetitions, and weights to recommend sensible future targets.
+
+## 6.1 Store targets and results separately
+
+For every planned set, distinguish between:
+- Target repetitions or repetition range.
+- Target weight.
+- Actual repetitions.
+- Actual weight.
+- Completion status.
+- Whether the set was skipped.
+- Any relevant notes.
+
+Never overwrite actual results with recommended targets.
+
+Preserve the date, exercise identity, workout identity, and session identity needed to reconstruct performance history.
+
+## 6.2 Double progression
+
+Use a clear, configurable double-progression strategy for suitable weighted exercises.
+
+Example:
+
+An exercise is prescribed for 3 sets of 8–12 reps at 20 kg.
+
+Session 1:
+- Set 1: 10 reps at 20 kg.
+- Set 2: 9 reps at 20 kg.
+- Set 3: 8 reps at 20 kg.
+
+The user has not yet reached the top of the target range for all prescribed sets. A reasonable next target may be to keep the weight at 20 kg and gradually improve repetitions.
+
+Later session:
+- Set 1: 12 reps at 20 kg.
+- Set 2: 12 reps at 20 kg.
+- Set 3: 12 reps at 20 kg.
+
+If all required sets were completed with good performance, the next session can recommend a small load increase and return to the lower or middle portion of the repetition range.
+
+The application should not demand an arbitrary percentage increase regardless of the exercise or available equipment.
+
+## 6.3 Weight increments
+
+Load progression should depend on:
+- Exercise type.
+- Available equipment increments.
+- Current load.
+- The user's actual performance.
+- The target repetition range.
+- Whether the prescribed sets were completed.
+
+Use small, practical increments where appropriate.
+
+For example, dumbbells and barbells may have different available increments. Do not assume every exercise can increase by the same number of kilograms.
+
+If the available equipment does not support the suggested increment, keep the current load or provide a practical alternative.
+
+## 6.4 Performance drops
+
+If the user struggles or performs fewer repetitions than expected:
+- Do not automatically increase the load.
+- Consider maintaining the load and target.
+- Suggest a small reduction if repeated performance indicates the current target is too demanding.
+- Consider fatigue, missed sessions, or an unusually poor session before making aggressive changes.
+- Do not punish a single bad session by resetting all progress.
+- Avoid treating incomplete workouts as successful completion.
+
+Recommendations should be conservative, understandable, and reversible.
+
+## 6.5 Progression must be based on completed work
+
+Do not calculate successful progression from:
+- Planned sets that were never performed.
+- Default values that the user never confirmed.
+- Skipped sets.
+- Abandoned workouts.
+- Incomplete records incorrectly treated as completed sets.
+
+Where actual results are missing, say that there is insufficient information to adapt the recommendation.
+
+## 6.6 Bodyweight and calisthenics progression
+
+Not all exercises use an external load.
+
+For pull-ups, dips, push-ups, and similar movements, consider:
+- Completed repetitions.
+- Set quality as recorded by the user.
+- Assistance level.
+- Added weight.
+- Range of motion or tempo where explicitly tracked.
+- Appropriate movement variations.
+- Progression from assisted to unassisted variations when the data supports it.
+
+Do not invent a user's bodyweight or infer assistance levels that were never recorded.
+
+If a movement changes significantly, keep the new variation's history distinguishable from the old variation.
+
+## 6.7 Previous performance and explanations
+
+Each suggested target should have a short explanation.
+
+Examples:
+- "Keeping the same weight because you completed 9, 8, and 8 reps last time."
+- "Increasing the load slightly because you completed all prescribed sets at the top of the repetition range."
+- "Holding the target steady because the previous session was incomplete."
+- "No progression recommendation yet because there is no completed history for this exercise."
+
+These explanations must reflect actual application data, not generic messages unrelated to performance.
+
+## 6.8 Avoid fake intelligence
+
+Implement a deterministic progression engine with explicit rules, test cases, and explainable decisions.
+
+An external AI model is not required for the initial implementation.
+
+If an AI feature is later proposed, make it optional and do not let it bypass data validation, progression limits, or user control.
+
+---
+
+# PART 7 — DATA MODEL AND STORAGE SAFETY
+
+Inspect the actual existing schema before designing or modifying the data model.
+
+The following is a conceptual specification, not permission to replace the current schema wholesale.
+
+## 7.1 Important logical entities
+
+The system should represent the following concepts, using the existing schema or a carefully planned compatible extension:
+
+### User profile
+- User identifier.
+- Height.
+- Units.
+- Training preferences.
+- Goals.
+- Equipment.
+- Selected split.
+- Session preferences.
+
+### Training split
+- Stable split identifier.
+- Name.
+- Ordered session definitions.
+- Relevant configuration.
+
+### Split rotation state
+- Selected split.
+- Current session index.
+- Cycle count or other stable rotation state.
+- Any necessary update metadata.
+
+### Exercise catalogue
+- Stable exercise identifier.
+- Name.
+- Movement pattern.
+- Muscle group.
+- Equipment.
+- Exercise type.
+- Relevant progression configuration.
+
+### Planned workout
+- Stable workout/session identifier.
+- User identifier.
+- Planned date or creation timestamp.
+- Split and session identity.
+- Planned exercises and set targets.
+- Plan version where needed.
+
+### Workout execution
+- Session identifier.
+- Start and finish timestamps.
+- Status.
+- Actual logged sets.
+- Completion state.
+- Notes.
+
+### Set record
+- Exercise identifier.
+- Set order.
+- Target repetitions and load.
+- Actual repetitions and load.
+- Completion status.
+- Any supported assistance or variation information.
+
+### Body measurement
+- User identifier.
+- Date.
+- Measurement type.
+- Value.
+- Unit.
+
+The implementation should reuse existing tables and structures when appropriate. Do not create unnecessary tables or duplicate information merely to match this conceptual list.
+
+## 7.2 Local persistence
+
+Inspect all existing browser storage keys and their data shapes.
+
+Preserve compatibility with existing `repwise_v2` data.
+
+Inspect `repwise_progression_v3` and any other relevant keys before deciding whether their data should be imported.
+
+If multiple schemas exist:
+1. Identify their structures.
+2. Determine which fields and features each contains.
+3. Define a deterministic merge or migration strategy.
+4. Preserve unique historical records.
+5. Avoid duplicate workouts or body-weight entries.
+6. Keep an untouched backup of the original data before migration.
+7. Make migration idempotent so it can run repeatedly without duplicating or destroying records.
+8. Record the migration version and status where appropriate.
+9. Provide a recovery path if migration fails.
+
+Never assume that the newest storage key contains the most complete data.
+
+## 7.3 Supabase synchronization
+
+Inspect the current authentication and synchronization code before changing it.
+
+Use the existing `public.repwise_user_data` table where appropriate.
+
+Requirements:
+- Respect row-level security.
+- Keep each user's data isolated.
+- Do not overwrite a newer server record with stale local data without a deliberate conflict-resolution rule.
+- Do not treat a network failure as proof that the user's data is empty.
+- Preserve local work during temporary offline periods.
+- Handle expired authentication sessions.
+- Report synchronization failures clearly.
+- Avoid duplicate records during retries.
+- Avoid replacing valid cloud data with an empty local state.
+- Do not expose privileged credentials in the frontend.
+
+Define and document a consistent source-of-truth and conflict-resolution strategy.
+
+If the existing JSONB document is sufficient, avoid an unnecessary schema migration. If a relational schema change is needed, explain why and obtain approval before applying it.
+
+## 7.4 Export and restore
+
+Preserve the existing JSON export and restore features if present.
+
+Export should include the data necessary to reconstruct the user's supported application state.
+
+Import should:
+- Validate the file format and schema.
+- Detect unsupported versions.
+- Show the user what will be imported or replaced.
+- Prevent accidental deletion of current data.
+- Back up existing data before a destructive restore.
+- Avoid duplicate records where possible.
+- Fail safely when data is invalid.
+
+Do not claim a backup exists unless the backup was actually created and verified.
+
+---
+
+# PART 8 — USER EXPERIENCE AND DESIGN
+
+Preserve the useful visual identity and layout of the current application unless a specific improvement requires a change.
+
+Do not redesign every screen simply because a new design looks attractive.
+
+The application should:
+- Be mobile-first and responsive.
+- Work on common desktop and mobile browser sizes.
+- Have consistent typography, spacing, buttons, forms, and cards.
+- Use clear visual hierarchy.
+- Make logging sets quick and easy during a workout.
+- Use appropriate loading indicators and disabled states.
+- Explain validation errors.
+- Provide confirmation for destructive operations.
+- Avoid excessive modal dialogs.
+- Make the next action obvious.
+- Keep charts readable on mobile.
+- Support keyboard interaction and accessible labels.
+- Avoid unnecessary animation that slows down workout logging.
+- Preserve any existing dark or light theme functionality if it works.
+
+The active-workout screen deserves special attention. Logging should take very few interactions, and values must not disappear when navigating between exercises.
+
+Do not hide essential functionality behind a decorative redesign.
+
+---
+
+# PART 9 — TECHNICAL APPROACH
+
+First inspect the actual repository and follow its existing framework and architecture where reasonable.
+
+Do not assume the application uses a specific framework merely because it has been used in previous projects.
+
+Determine:
+- Framework and routing.
+- Language.
+- Package manager.
+- Build scripts.
+- Styling system.
+- Component library.
+- Chart library.
+- Authentication implementation.
+- Persistence strategy.
+- Existing tests.
+- Vercel configuration.
+- Environment variable requirements.
+
+Preserve compatible dependencies and working architecture.
+
+Avoid introducing a new state-management library, database abstraction, chart library, or design system without a concrete need.
+
+Use typed data models if the current stack supports them.
+
+Separate responsibilities sensibly:
+- Workout planning.
+- Rotation state.
+- Progression rules.
+- Workout logging.
+- Persistence and migrations.
+- Authentication and synchronization.
+- Charts and reporting.
+- User interface.
+
+The workout-planning and progression logic should be testable independently from the UI.
+
+Validate user input and handle missing or malformed historical data.
+
+Avoid unsafe assumptions about numbers, dates, units, and missing values.
+
+---
+
+# PART 10 — REQUIRED DEVELOPMENT PHASES
+
+Do not attempt all phases in one enormous rewrite. Implement one phase at a time.
+
+## Phase 0: Baseline audit and source recovery
+
+Objectives:
+- Verify GitHub read/write access.
+- Inspect the current repository.
+- Inspect the live application and known deployments.
+- Recover the richest legitimate source baseline if the repository is empty or incomplete.
+- Identify all existing screens and features.
+- Document current data formats and integration behavior.
+- Establish a safe development branch.
+- Prepare a rollback strategy.
+- Create or update the README.
+
+Deliverables:
+1. Repository audit.
+2. Existing screen and feature inventory.
+3. Current architecture summary.
+4. Data-storage and migration report.
+5. Deployment status report.
+6. Risks and unresolved questions.
+7. Proposed implementation plan.
+
+Do not start a replacement implementation before source recovery and feature inventory are complete.
+
+If source recovery is impossible with the available integrations, explain the exact blocker and request only the specific approval or artifact required to proceed safely.
+
+## Phase 1: Protect and restore existing functionality
+
+Ensure the application retains:
+- Login and logout.
+- Local persistence.
+- Supabase sync.
+- Workout history.
+- Body-weight history.
+- BMI calculation.
+- Strength and repetition history.
+- Goals.
+- Settings.
+- Exercise data.
+- Export and restore.
+
+Fix actual defects while preserving the existing structure.
+
+Create regression tests for existing behavior before changing the workout-planning engine.
+
+Do not proceed until the important existing functionality has been verified.
+
+## Phase 2: Persistent split and rotation engine
+
+Implement:
+- Persistent split selection.
+- Stable session ordering.
+- Full Body A/B/C or the equivalent configured sequence.
+- Correct rotation index and cycle state.
+- Correct next-workout selection.
+- Controlled, balanced exercise variation.
+- Equipment-aware exercise selection.
+- Rotation advancement exactly once per successful completion.
+
+Test refreshes, abandoned workouts, repeated clicks, historical sessions, and split changes.
+
+## Phase 3: Adaptive progression engine
+
+Implement:
+- Set-level targets and actual results.
+- Double progression for suitable weighted movements.
+- Practical load increments.
+- Performance-drop handling.
+- Bodyweight and assisted-movement progression.
+- Previous-session context.
+- Explainable recommendations.
+- Safe handling of incomplete data.
+
+Unit-test the rules independently.
+
+## Phase 4: Active workout and logging UX
+
+Implement or refine:
+- Editable sets.
+- Actual repetitions and weights.
+- Completion and skip states.
+- Rest guidance.
+- Exercise substitutions.
+- Custom exercises if supported.
+- In-progress session persistence.
+- Reliable session completion.
+- Single advancement of rotation.
+
+Test interruptions, refreshes, partial completion, duplicate clicks, and network failure.
+
+## Phase 5: History, metrics, and charts
+
+Verify:
+- Workout history remains accurate.
+- Strength history reflects actual completed work.
+- Weight history is retained.
+- BMI uses the correct saved height and weight.
+- Charts contain real historical data.
+- Exercise substitutions do not corrupt comparisons.
+- Import and migration do not create duplicate records.
+
+## Phase 6: Account, synchronization, and data portability
+
+Verify:
+- Authentication.
+- Sign-out behavior.
+- User-data isolation.
+- Supabase synchronization.
+- Offline recovery where supported.
+- Export and restore.
+- Conflict handling.
+- Migration safety.
+
+## Phase 7: QA, release, and documentation
+
+Run the available:
+- Unit tests.
+- Integration tests.
+- Build checks.
+- Type checks.
+- Lint checks.
+- Browser or end-to-end tests where supported.
+
+Test mobile and desktop layouts.
+
+Verify the existing functionality again.
+
+Deploy to preview first. Show me the results and obtain explicit approval before production promotion.
+
+Update the README to match the real implementation.
+
+Maintain a record of:
+- Commit identifiers.
+- Features implemented.
+- Tests run and their results.
+- Known issues.
+- Data migrations.
+- Deployment identifiers.
+- Rollback instructions.
+
+---
+
+# PART 11 — ACCEPTANCE TESTS
+
+These are required behavioral outcomes, not merely ideas.
+
+## Split persistence
+1. Select Full Body.
+2. Refresh the application.
+3. Confirm Full Body remains selected.
+4. Navigate to another screen and return.
+5. Confirm the split remains unchanged.
+
+## Correct rotation
+1. Start Full Body A.
+2. Finish it successfully.
+3. Confirm the next session is Full Body B.
+4. Finish B.
+5. Confirm the next session is Full Body C.
+6. Finish C.
+7. Confirm the next session begins the next rotation cycle correctly.
+
+Refreshing, opening history, or viewing a session must not advance the rotation.
+
+## Dynamic but balanced sessions
+Verify that Full Body A/B/C provide meaningful variation and balanced movement coverage without producing three identical workouts.
+
+Verify that variation does not make exercise histories misleading.
+
+## Actual performance and progression
+1. Log real sets, repetitions, and weights.
+2. Finish the workout.
+3. Open history.
+4. Confirm actual values are saved.
+5. Start the next relevant session.
+6. Confirm targets use the recorded performance.
+7. Confirm the suggested load and repetitions follow the progression rules.
+8. Confirm the application explains why the recommendation changed.
+
+## Incomplete workouts
+Verify that skipped and unfinished sets do not count as successfully completed work.
+
+Verify that an abandoned workout does not advance the split automatically.
+
+## Body metrics
+1. Enter height.
+2. Record body weight on a date.
+3. Verify BMI calculation.
+4. Add more dated weight entries.
+5. Verify history and charts.
+6. Refresh the application.
+7. Confirm the records remain available.
+
+## Authentication and data
+Verify that:
+- A signed-in user can access their own data.
+- One user cannot access another user's records.
+- Synchronization errors do not silently erase local data.
+- Export produces a valid file.
+- Import validates data before modifying the existing state.
+- Existing records survive a safe migration.
+
+## Regression protection
+Verify that adding workout progression has not removed:
+- Login.
+- Settings.
+- Goals.
+- Workout history.
+- Body-weight history.
+- BMI.
+- Strength and repetition charts.
+- Export and restore.
+- Cloud synchronization.
+
+A new feature is not complete if it causes an unrelated existing feature to disappear or break.
+
+---
+
+# PART 12 — README REQUIREMENTS
+
+Maintain a comprehensive README containing:
+
+1. Project overview.
+2. Existing feature inventory.
+3. Application architecture.
+4. Technology stack.
+5. Local development instructions.
+6. Environment variables required, with names and descriptions only, never real secret values.
+7. Authentication setup.
+8. Supabase data model and security assumptions.
+9. Local persistence and storage keys.
+10. Data-migration strategy.
+11. Workout-planning logic.
+12. Split-rotation behavior.
+13. Progressive-overload rules.
+14. Testing instructions.
+15. Deployment process.
+16. Preview and production promotion process.
+17. Backup and restore instructions.
+18. Rollback procedure.
+19. Current known issues.
+20. Completed phases and outstanding tasks.
+
+Keep documentation aligned with actual code. Do not document planned features as though they already work.
+
+---
+
+# PART 13 — HOW TO REPORT PROGRESS TO ME
+
+I want a structured, incremental engineering workflow rather than a long, uncontrolled coding session.
+
+At the start:
+- Report what you inspected.
+- Tell me what currently exists.
+- Identify which features work and which are missing.
+- Present the screen inventory.
+- Present the phase plan.
+- Identify the risks to existing data and production.
+
+After each phase:
+- Summarize what changed.
+- List files modified.
+- Identify the Git branch and commit, if actually created.
+- Report tests executed and their real outcomes.
+- Identify any regressions or unresolved problems.
+- Explain how to verify the changes.
+- Ask for approval before a risky migration or production release.
+
+Be concise when reporting routine progress, but provide enough technical detail to verify the work.
+
+Do not make me repeatedly explain the same requirements. Use this specification as the working product brief and update the README and implementation plan as the project evolves.
+
+If you discover a conflict between this specification and the existing application, explain the conflict before choosing an approach that could remove existing functionality.
+
+---
+
+# PART 14 — YOUR FIRST ACTION AFTER RECEIVING THIS PROMPT
+
+Do not immediately write a new application.
+
+Start with the following actions, in order:
+
+1. Confirm that GitHub access was actually verified in this conversation or repeat the necessary safe connection checks.
+2. Inspect the repository and source files.
+3. Inspect the current application and relevant deployment information where the connected tools permit.
+4. Determine whether the richer original source can be recovered.
+5. Inventory every existing screen and feature.
+6. Inspect local-storage and Supabase persistence assumptions.
+7. Create the initial README and development plan on a safe development branch, once the baseline is understood.
+8. Present the findings and proposed first implementation phase.
+9. Wait for my approval before making high-risk changes or deploying.
+
+If the repository is empty and no legitimate source baseline can be recovered, stop before creating a replacement app and explain the blocker.
+
+**Final guiding principle: preserve first, understand second, improve third, deploy last.**
+
+The objective is a reliable, complete Repwise application that retains its existing value while gaining persistent training splits, balanced workout rotation, accurate logging, and adaptive progressive overload. It is not acceptable to solve one problem by removing five working features.
