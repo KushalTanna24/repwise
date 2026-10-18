@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { reminderToggle, urlBase64ToUint8Array, withTimeout } from './pushUtil';
+import { reminderToggle, sameServerKey, urlBase64ToUint8Array, withTimeout } from './pushUtil';
 
 // A real-shaped VAPID public key: 65 bytes, uncompressed point, first byte 0x04.
 const KEY = 'BEl62iUYgUivxIkv69yViEuiBIa-ib37J8xQmh7PJhkUCGqJWMfI0IuLZtv3WzgbVJj1fcvS_8VtGYuDQKp0AGE';
@@ -36,4 +36,12 @@ describe('withTimeout', () => {
     vi.advanceTimersByTime(8000);
     await expect(p).rejects.toThrow('timed out');
   });
+});
+
+describe('sameServerKey', () => {
+  const key = new Uint8Array([4, 1, 2, 3]);
+  it('matches the same bytes', () => expect(sameServerKey(new Uint8Array([4, 1, 2, 3]).buffer, key)).toBe(true));
+  it('rejects a subscription made with another key', () => expect(sameServerKey(new Uint8Array([4, 9, 2, 3]).buffer, key)).toBe(false));
+  it('rejects a different length', () => expect(sameServerKey(new Uint8Array([4, 1, 2]).buffer, key)).toBe(false));
+  it('treats an unknown key as different', () => expect(sameServerKey(null, key)).toBe(false));
 });

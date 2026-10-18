@@ -31,3 +31,10 @@ export function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
   });
   return Promise.race([p, timeout]).finally(() => clearTimeout(t));
 }
+
+/** True when a subscription's applicationServerKey is `key`. A rotated VAPID key makes old subscriptions unusable. */
+export function sameServerKey(subKey: ArrayBuffer | null, key: Uint8Array): boolean {
+  if (!subKey) return false;
+  const a = new Uint8Array(subKey);
+  return a.length === key.length && a.every((b, i) => b === key[i]);
+}
