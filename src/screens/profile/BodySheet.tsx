@@ -26,7 +26,7 @@ export function BodySheet({ open, onClose }: { open: boolean; onClose: () => voi
   }
 
   return (
-    <Sheet open={open} onClose={onClose} tall title="Body" right={<Done onClose={onClose} />}>
+    <Sheet open={open} onClose={onClose} tall title="Body & water" right={<Done onClose={onClose} />}>
       <List>
         <FieldRow label="Height (cm)" hint="Used for BMI">
           <TextInput inputMode="decimal" placeholder="175" value={height} onChange={(e) => setHeight(e.target.value)} onBlur={commitHeight} className="w-20" />

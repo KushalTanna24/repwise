@@ -13,7 +13,7 @@ export function TrainingSheet({ open, onClose }: { open: boolean; onClose: () =>
   const data = useData();
   const p = data.profile;
   return (
-    <Sheet open={open} onClose={onClose} tall title="Training" right={<Done onClose={onClose} />}>
+    <Sheet open={open} onClose={onClose} tall title="Training plan" right={<Done onClose={onClose} />}>
       <List>
         <Row title="Split" value={data.program.splitId ? SPLITS[data.program.splitId].name : 'Not set'} onClick={() => openSheet('split')} chevron />
         <FieldRow label="Goal">

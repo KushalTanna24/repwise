@@ -20,7 +20,7 @@ export function EquipmentSheet({ open, onClose }: { open: boolean; onClose: () =
   const data = useData();
   const p = data.profile;
   return (
-    <Sheet open={open} onClose={onClose} tall title="Equipment" right={<Done onClose={onClose} />}>
+    <Sheet open={open} onClose={onClose} tall title="Equipment & exercises" right={<Done onClose={onClose} />}>
       <List>
         {ALL_EQUIPMENT.map((k) => (
           <FieldRow key={k} label={EQUIPMENT_LABEL[k]}>

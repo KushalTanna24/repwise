@@ -256,7 +256,7 @@ await shot('11-body');
 
 await click('nav button::-p-text(Profile)');
 await sleep(400);
-await openRow('Training');
+await openRow('Training plan');
 await click('button[aria-label="Days per week"]');
 await sleep(300);
 await shot('12a-picker');
@@ -265,7 +265,7 @@ await sleep(300);
 check('iOS picker changes days per week', (await page.$eval('button[aria-label="Days per week"]', (e) => e.textContent)).includes('4'));
 await click('[data-vaul-drawer] button::-p-text(Done)');
 await page.waitForFunction(() => !document.querySelector('[data-vaul-drawer]'), { timeout: 5000 });
-await openRow('Body');
+await openRow('Body & water');
 const note = await page.$('textarea');
 await note.click();
 await note.type('Bench 100 kg by March');
@@ -276,7 +276,7 @@ await click('[data-vaul-drawer] button::-p-text(Done)');
 await page.waitForFunction(() => !document.querySelector('[data-vaul-drawer]'), { timeout: 5000 });
 // Every Profile row opens its sheet
 {
-  const rows = [['Training', 'Training'], ['Goals', 'Goals'], ['Body', 'Body'], ['Supplements', 'Supplements'], ['Equipment', 'Equipment'], ['Reminders', 'Reminders'], ['Your data', 'Your data']];
+  const rows = [['Training plan', 'Training plan'], ['Goals', 'Goals'], ['Body & water', 'Body & water'], ['Supplements', 'Supplements'], ['Equipment & exercises', 'Equipment & exercises'], ['Reminders', 'Reminders'], ['Your data', 'Your data']];
   let ok = true;
   for (const [row, title] of rows) {
     await openRow(row);

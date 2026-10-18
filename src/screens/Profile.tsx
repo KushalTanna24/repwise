@@ -11,11 +11,11 @@ import { SignInCard } from './profile/SignInCard';
 import { profileSummaries, type ProfileRow } from './profile/summaries';
 
 const ROWS: { id: ProfileRow; title: string; icon: LucideIcon }[] = [
-  { id: 'training', title: 'Training', icon: SlidersHorizontal },
+  { id: 'training', title: 'Training plan', icon: SlidersHorizontal },
   { id: 'goals', title: 'Goals', icon: Target },
-  { id: 'body', title: 'Body', icon: HeartPulse },
+  { id: 'body', title: 'Body & water', icon: HeartPulse },
   { id: 'supps', title: 'Supplements', icon: Pill },
-  { id: 'equipment', title: 'Equipment', icon: Dumbbell },
+  { id: 'equipment', title: 'Equipment & exercises', icon: Dumbbell },
   { id: 'reminders', title: 'Reminders', icon: Bell },
   { id: 'data', title: 'Your data', icon: Database },
 ];
