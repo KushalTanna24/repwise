@@ -269,17 +269,20 @@ await shot('13-splash-note');
 await noSplash();
 check('Splash clears quickly', true);
 
-// Supplements: add in Profile, tick on Today, see in History
-await click('nav button::-p-text(Profile)');
-await sleep(400);
-await typeInto('input[placeholder="e.g. Creatine"]', 'Creatine');
-await typeInto('input[placeholder="Optional, e.g. 5 g"]', '5 g');
-await click('button::-p-text(Add supplement)');
+// Supplements: default stack on Today, add zinc from the library, tick on Today, see in History
+await page.evaluate(() => { location.hash = '#/profile/supps'; });
+await sleep(600);
+await typeInto('input[aria-label="Search supplements"]', 'zinc');
+await sleep(200);
+await click('button[aria-label="Add Zinc"]');
+await page.evaluate(() => { location.hash = '#/profile'; });
+await sleep(500);
 await click('nav button::-p-text(Today)');
 await sleep(400);
+check('supplement library adds zinc', !!(await page.$('button[aria-label="Zinc"]')));
 await click('button[aria-label="Creatine"]');
 await sleep(300);
-check('Supplement pill ticks with one tap', (await text()).includes('1 / 1 taken'));
+check('Supplement pill ticks with one tap', (await text()).includes('1 / 4 taken'));
 await shot('14-today-supplements');
 await click('nav button::-p-text(History)');
 await sleep(500);

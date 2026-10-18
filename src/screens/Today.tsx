@@ -10,6 +10,7 @@ import { SPLITS } from '@/domain/splits';
 import { latestWeight, sessionVolume, weekStats } from '@/domain/stats';
 import type { AppData, PlannedExercise, WorkoutSession } from '@/domain/types';
 import { activeSupplements, toggleSupplement } from '@/domain/supplements';
+import { TIMING_LABEL, TIMING_ORDER } from '@/domain/supplementCatalogue';
 import { cn } from '@/lib/cn';
 import { Screen } from '@/components/Screen';
 import { Rings } from '@/components/Rings';
@@ -398,13 +399,13 @@ function Supplements({ data }: { data: AppData }) {
 
   if (!stack.length)
     return (
-      <button onClick={() => go('profile')} className="press mt-3 flex w-full items-center gap-3 rounded-card bg-card p-3 pl-4 text-left shadow-card">
+      <button onClick={() => openSheet('supps')} className="press mt-3 flex w-full items-center gap-3 rounded-card bg-card p-3 pl-4 text-left shadow-card">
         <span className="grid size-10 shrink-0 place-items-center rounded-full bg-purple/12 text-purple">
           <Pill className="size-5" />
         </span>
         <div className="flex-1">
           <div className="text-headline font-semibold">Supplements</div>
-          <div className="text-footnote text-label-2">Add your stack in Profile to tick it off daily</div>
+          <div className="text-footnote text-label-2">Pick your stack to tick it off daily</div>
         </div>
         <ChevronRight className="size-4 text-label-3" />
       </button>
@@ -420,28 +421,37 @@ function Supplements({ data }: { data: AppData }) {
           {taken.filter((id) => stack.some((s) => s.id === id)).length} <span className="font-normal text-label-2">/ {stack.length} taken</span>
         </div>
       </div>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {stack.map((s) => {
-          const on = taken.includes(s.id);
-          return (
-            <motion.button
-              key={s.id}
-              whileTap={{ scale: 0.94 }}
-              aria-pressed={on}
-              aria-label={`${s.name}${on ? ' taken' : ''}`}
-              onClick={() => {
-                navigator.vibrate?.(10);
-                act((d) => toggleSupplement(d, today, s.id));
-              }}
-              className={cn('flex h-9 items-center gap-1.5 rounded-full px-3.5 text-subhead font-semibold transition-colors', on ? 'bg-purple text-white' : 'bg-fill text-label')}
-            >
-              {on && <Check className="size-4" strokeWidth={3} />}
-              {s.name}
-              {s.dose && <span className={on ? 'font-normal text-white/80' : 'font-normal text-label-2'}>{s.dose}</span>}
-            </motion.button>
-          );
-        })}
-      </div>
+      {TIMING_ORDER.map((t) => {
+        const group = stack.filter((s) => (s.timing ?? 'any') === t);
+        if (!group.length) return null;
+        return (
+          <div key={t} className="mt-3">
+            <div className="mb-1.5 text-caption uppercase text-label-2">{TIMING_LABEL[t]}</div>
+            <div className="flex flex-wrap gap-2">
+              {group.map((s) => {
+                const on = taken.includes(s.id);
+                return (
+                  <motion.button
+                    key={s.id}
+                    whileTap={{ scale: 0.94 }}
+                    aria-pressed={on}
+                    aria-label={`${s.name}${on ? ' taken' : ''}`}
+                    onClick={() => {
+                      navigator.vibrate?.(10);
+                      act((d) => toggleSupplement(d, today, s.id));
+                    }}
+                    className={cn('flex h-9 items-center gap-1.5 rounded-full px-3.5 text-subhead font-semibold transition-colors', on ? 'bg-purple text-white' : 'bg-fill text-label')}
+                  >
+                    {on && <Check className="size-4" strokeWidth={3} />}
+                    {s.name}
+                    {s.dose && <span className={on ? 'font-normal text-white/80' : 'font-normal text-label-2'}>{s.dose}</span>}
+                  </motion.button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
     </Card>
   );
 }

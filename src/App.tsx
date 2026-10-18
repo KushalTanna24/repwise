@@ -15,6 +15,7 @@ import { SessionSheet } from '@/screens/SessionDetail';
 import { SplitSheet } from '@/screens/SplitPicker';
 import { ExtraSheet } from '@/screens/LogExtra';
 import { LibrarySheet } from '@/screens/Library';
+import { SupplementSheet } from '@/screens/SupplementLibrary';
 import { GuideSheet } from '@/screens/Guide';
 import { Splash } from '@/components/Splash';
 import { DailyBanner } from '@/components/DailyBanner';
@@ -34,6 +35,7 @@ function Sheets() {
       <SplitSheet open={kind === 'split'} onClose={closeSheet} />
       <ExtraSheet open={kind === 'extra'} onClose={closeSheet} />
       <LibrarySheet open={kind === 'library'} onClose={closeSheet} />
+      <SupplementSheet open={kind === 'supps'} onClose={closeSheet} />
     </>
   );
 }
