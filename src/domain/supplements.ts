@@ -11,7 +11,24 @@ export function addSupplement(data: AppData, name: string, dose?: string): AppDa
   const root = slug(clean) || 'supplement';
   let id = root;
   for (let n = 2; data.supplements.some((s) => s.id === id); n++) id = `${root}-${n}`;
-  return { ...data, supplements: [...data.supplements, { id, name: clean, ...(dose?.trim() ? { dose: dose.trim() } : {}) }] };
+  return { ...data, supplements: [...data.supplements, { id, name: clean, ...(dose?.trim() ? { dose: dose.trim() } : {}), timing: 'any' }] };
+}
+
+export function updateSupplement(data: AppData, id: string, patch: Partial<Pick<Supplement, 'name' | 'dose' | 'timing'>>): AppData {
+  const name = patch.name === undefined ? undefined : patch.name.trim();
+  return {
+    ...data,
+    supplements: data.supplements.map((s) =>
+      s.id === id
+        ? {
+            ...s,
+            ...(name ? { name } : {}),
+            ...(patch.dose !== undefined ? { dose: patch.dose.trim() } : {}),
+            ...(patch.timing ? { timing: patch.timing } : {}),
+          }
+        : s,
+    ),
+  };
 }
 
 export function renameSupplement(data: AppData, id: string, name: string): AppData {

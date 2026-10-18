@@ -132,11 +132,15 @@ export interface Goal {
   date: string;
 }
 
+export type SuppTiming = 'morning' | 'pre' | 'post' | 'meal' | 'night' | 'any';
+
 export interface Supplement {
   /** Stable slug; renaming keeps history. */
   id: string;
   name: string;
   dose?: string;
+  /** When in the day it is taken. Missing means any time. */
+  timing?: SuppTiming;
   archived?: boolean;
 }
 
@@ -186,5 +190,5 @@ export interface AppData {
   goals: Goal[];
   /** Supplement ids taken per local date. */
   suppLog: Record<string, string[]>;
-  meta: { updatedAt: string; migratedFrom?: 'repwise_v2'; migratedAt?: string };
+  meta: { updatedAt: string; migratedFrom?: 'repwise_v2'; migratedAt?: string; suppSeeded?: boolean };
 }

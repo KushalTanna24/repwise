@@ -1,4 +1,5 @@
 import { ALL_EQUIPMENT, BUILTIN_EXERCISES, emptyAppData } from './catalogue';
+import { seedStack } from './supplementCatalogue';
 import type { AppData, EquipmentKind, Exercise, Objective, Profile, SessionExercise, WorkoutSession } from './types';
 
 /* Shapes written by the legacy single-file app (localStorage key repwise_v2). */
@@ -125,7 +126,7 @@ export function migrateV2(raw: unknown, now: string): AppData {
     bodyweights: (v2.weights ?? [])
       .filter((w) => w && typeof w.weight === 'number' && /^\d{4}-\d{2}-\d{2}$/.test(w.date))
       .map((w) => ({ id: `w-${w.date}`, date: w.date, kg: w.weight })),
-    meta: { updatedAt: now, migratedFrom: 'repwise_v2', migratedAt: now },
+    meta: { ...base.meta, updatedAt: now, migratedFrom: 'repwise_v2', migratedAt: now },
   };
 }
 
@@ -133,12 +134,14 @@ export function migrateV2(raw: unknown, now: string): AppData {
 export function normalize(doc: unknown, now: string): AppData | null {
   if (isV4(doc)) {
     const base = emptyAppData(now);
-    return {
+    // The seeded stack in base must not leak into a doc that has none; seedStack decides that once.
+    return seedStack({
       ...base,
       ...doc,
+      supplements: doc.supplements ?? [],
       profile: { ...base.profile, ...doc.profile },
       program: { ...base.program, ...doc.program, rotation: { ...base.program.rotation, ...doc.program.rotation } },
-    };
+    });
   }
   const wrapped = doc as { version?: number; state?: unknown };
   if (wrapped && typeof wrapped === 'object' && wrapped.state !== undefined && isV2(wrapped.state)) return migrateV2(wrapped.state, now);

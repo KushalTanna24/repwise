@@ -5,7 +5,7 @@ import { activeSupplements, addSupplement, renameSupplement, setSupplementArchiv
 
 const NOW = '2026-10-17T08:00:00.000Z';
 const stack = () => {
-  let d = addSupplement(emptyAppData(NOW), 'Creatine', '5 g');
+  let d = addSupplement({ ...emptyAppData(NOW), supplements: [] }, 'Creatine', '5 g');
   d = addSupplement(d, 'Whey', '1 scoop');
   return d;
 };
@@ -48,7 +48,7 @@ describe('supplements', () => {
   });
 
   it('streak is 0 without any active supplements', () => {
-    expect(suppStreak(emptyAppData(NOW), '2026-10-17')).toBe(0);
+    expect(suppStreak({ ...emptyAppData(NOW), supplements: [] }, '2026-10-17')).toBe(0);
   });
 
   it('older documents load with an empty stack and log', () => {

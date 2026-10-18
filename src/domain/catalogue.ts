@@ -1,3 +1,4 @@
+import { seedStack } from './supplementCatalogue';
 import type { AppData, EquipmentKind, Exercise } from './types';
 
 type Row = [id: string, name: string, muscle: string, pattern: Exercise['pattern'], equipment: EquipmentKind, kind?: Exercise['kind'], aliases?: string[]];
@@ -88,7 +89,7 @@ export const ALL_EQUIPMENT: EquipmentKind[] = ['barbell', 'dumbbell', 'machine',
 
 export function emptyAppData(now: string): AppData {
   const zero = { sessionIndex: 0, cycle: 1 };
-  return {
+  return seedStack({
     schemaVersion: 4,
     profile: {
       units: 'kg',
@@ -113,5 +114,5 @@ export function emptyAppData(now: string): AppData {
     goals: [],
     suppLog: {},
     meta: { updatedAt: now },
-  };
+  });
 }

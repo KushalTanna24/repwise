@@ -46,7 +46,7 @@ describe('calendar', () => {
   });
 
   it('marks workouts, water goal, full supplements and goals', () => {
-    let d: AppData = emptyAppData(NOW);
+    let d: AppData = { ...emptyAppData(NOW), supplements: [] };
     d.profile.waterGoal = 2;
     d = addWater(addWater(d, '2026-10-16', 1), '2026-10-16', 1);
     d = addSupplement(d, 'Creatine');
