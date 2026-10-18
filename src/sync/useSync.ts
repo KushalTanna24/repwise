@@ -8,7 +8,7 @@ import { useApp } from '@/store/app';
 import { resolveSync } from './resolve';
 import { parseHash } from '@/lib/routeParse';
 import { useRoute } from '@/lib/route';
-import { refreshSubscription } from '@/lib/push';
+import { refreshSubscription, removeDeviceRow } from '@/lib/push';
 import { supabase, TABLE } from './client';
 import { isNetworkError, launchAuth, onAuthEvent, stripAuthParams } from './authUrl';
 
@@ -182,6 +182,8 @@ export async function signIn(email: string): Promise<{ message: string; network:
 }
 
 export async function signOut() {
+  // Needs the session for RLS, so before signing out; bounded, so it never holds sign-out up.
+  await removeDeviceRow();
   await supabase.auth.signOut();
   useSyncState.setState({ user: null, status: 'local', ready: false, message: null });
 }

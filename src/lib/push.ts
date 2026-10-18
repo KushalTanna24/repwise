@@ -1,8 +1,12 @@
 import { supabase } from '@/sync/client';
 import { requestNotifications } from './notify';
-import { urlBase64ToUint8Array, type EnableResult } from './pushUtil';
+import { urlBase64ToUint8Array, withTimeout, type EnableResult } from './pushUtil';
 
 const TABLE = 'push_subscriptions';
+/** Long enough for a cold worker install; short enough that the switch or sign-out never sticks. */
+const SW_WAIT_MS = 8000;
+
+const registration = () => withTimeout(navigator.serviceWorker.ready, SW_WAIT_MS);
 
 const pushSupported = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 
@@ -28,7 +32,7 @@ export async function enableReminders(userId: string | null): Promise<EnableResu
   }
   try {
     if ((await requestNotifications()) !== 'granted') return 'denied';
-    const reg = await navigator.serviceWorker.ready;
+    const reg = await registration();
     const sub =
       (await reg.pushManager.getSubscription()) ??
       (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(key) as BufferSource }));
@@ -43,7 +47,7 @@ export async function enableReminders(userId: string | null): Promise<EnableResu
 export async function disableReminders(): Promise<void> {
   if (!pushSupported()) return;
   try {
-    const reg = await navigator.serviceWorker.ready;
+    const reg = await registration();
     const sub = await reg.pushManager.getSubscription();
     if (!sub) return;
     await supabase.from(TABLE).delete().eq('endpoint', sub.endpoint);
@@ -57,11 +61,32 @@ export async function disableReminders(): Promise<void> {
 export async function refreshSubscription(userId: string): Promise<void> {
   if (!pushSupported()) return;
   try {
-    const reg = await navigator.serviceWorker.ready;
+    const reg = await registration();
     const sub = await reg.pushManager.getSubscription();
     if (!sub) return;
     await supabase.from(TABLE).upsert(rowFor(userId, sub), { onConflict: 'endpoint' });
   } catch {
     /* best effort */
+  }
+}
+
+/**
+ * Drops this device's row before sign-out, while the session still passes RLS, so the old account stops
+ * getting nudges and the next account can claim the endpoint. The browser subscription stays for the next sign-in.
+ */
+export async function removeDeviceRow(): Promise<void> {
+  if (!pushSupported()) return;
+  try {
+    await withTimeout(
+      (async () => {
+        const sub = await (await navigator.serviceWorker.ready).pushManager.getSubscription();
+        if (!sub) return;
+        const { error } = await supabase.from(TABLE).delete().eq('endpoint', sub.endpoint);
+        if (error) throw error;
+      })(),
+      SW_WAIT_MS,
+    );
+  } catch (e) {
+    console.warn('Could not remove this device from water reminders', e);
   }
 }

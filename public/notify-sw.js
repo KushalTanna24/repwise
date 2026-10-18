@@ -20,7 +20,8 @@ self.addEventListener('notificationclick', (event) => {
 self.addEventListener('push', (event) => {
   let payload = {};
   try {
-    payload = event.data ? event.data.json() : {};
+    // A JSON null body parses to null, so fall back to the defaults inside the try.
+    payload = (event.data && event.data.json()) || {};
   } catch {
     /* malformed payload: show the defaults */
   }
@@ -29,6 +30,7 @@ self.addEventListener('push', (event) => {
     self.registration.showNotification(title, {
       body,
       tag: 'water',
+      renotify: true,
       icon: '/icon.svg',
       badge: '/icon.svg',
       data: { url },

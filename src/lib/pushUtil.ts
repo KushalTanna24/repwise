@@ -22,3 +22,12 @@ export function reminderToggle(result: EnableResult): { on: boolean; message: st
       return { on: false, message: "Couldn't turn on reminders. Try again" };
   }
 }
+
+/** Rejects if `p` hasn't settled in `ms`. navigator.serviceWorker.ready never settles without a worker. */
+export function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  let t: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    t = setTimeout(() => reject(new Error(`timed out after ${ms} ms`)), ms);
+  });
+  return Promise.race([p, timeout]).finally(() => clearTimeout(t));
+}
