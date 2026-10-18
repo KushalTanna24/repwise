@@ -16,6 +16,12 @@ import { SplitSheet } from '@/screens/SplitPicker';
 import { ExtraSheet } from '@/screens/LogExtra';
 import { LibrarySheet } from '@/screens/Library';
 import { SupplementSheet } from '@/screens/SupplementLibrary';
+import { TrainingSheet } from '@/screens/profile/TrainingSheet';
+import { GoalsSheet } from '@/screens/profile/GoalsSheet';
+import { BodySheet } from '@/screens/profile/BodySheet';
+import { EquipmentSheet } from '@/screens/profile/EquipmentSheet';
+import { RemindersSheet } from '@/screens/profile/RemindersSheet';
+import { DataSheet } from '@/screens/profile/DataSheet';
 import { GuideSheet } from '@/screens/Guide';
 import { Splash } from '@/components/Splash';
 import { DailyBanner } from '@/components/DailyBanner';
@@ -36,6 +42,12 @@ function Sheets() {
       <ExtraSheet open={kind === 'extra'} onClose={closeSheet} />
       <LibrarySheet open={kind === 'library'} onClose={closeSheet} />
       <SupplementSheet open={kind === 'supps'} onClose={closeSheet} />
+      <TrainingSheet open={kind === 'profile' && arg === 'training'} onClose={closeSheet} />
+      <GoalsSheet open={kind === 'profile' && arg === 'goals'} onClose={closeSheet} />
+      <BodySheet open={kind === 'profile' && arg === 'body'} onClose={closeSheet} />
+      <EquipmentSheet open={kind === 'profile' && arg === 'equipment'} onClose={closeSheet} />
+      <RemindersSheet open={kind === 'profile' && arg === 'reminders'} onClose={closeSheet} />
+      <DataSheet open={kind === 'profile' && arg === 'data'} onClose={closeSheet} />
     </>
   );
 }

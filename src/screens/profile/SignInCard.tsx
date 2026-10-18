@@ -3,11 +3,10 @@ import dayjs from 'dayjs';
 import { Cloud, CloudOff, LoaderCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, List, Row } from '@/components/ui/card';
-import { confirm } from '@/components/ui/alert';
 import { cn } from '@/lib/cn';
 import { toast } from '@/lib/toast';
 import { LAST_EMAIL_KEY } from '@/sync/authUrl';
-import { signIn, signOut, useSyncState } from '@/sync/useSync';
+import { signIn, useSyncState } from '@/sync/useSync';
 
 const RESEND_SECONDS = 60;
 
@@ -49,11 +48,6 @@ export function SignInCard() {
     writeEmail(to);
     setSent(true);
     setWait(RESEND_SECONDS);
-  }
-
-  async function out() {
-    const ok = await confirm({ title: 'Sign out?', message: 'Your data stays on this phone. Backups pause until you sign in again.', confirmLabel: 'Sign out' });
-    if (ok) await signOut();
   }
 
   if (!user)
@@ -103,7 +97,6 @@ export function SignInCard() {
         value={status === 'syncing' ? <LoaderCircle className="size-4 animate-spin" /> : undefined}
       />
       {status === 'error' && <Row title="Retry backup" onClick={retry} className="text-blue" />}
-      <Row title="Sign out" onClick={out} destructive />
     </List>
   );
 }

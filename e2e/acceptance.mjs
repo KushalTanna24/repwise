@@ -55,6 +55,12 @@ const typeInto = async (sel, value) => {
   await page.click(sel);
   await page.type(sel, value);
 };
+// Profile rows carry their summary as text ("Full Body A/B/C"), so match on the title div only.
+const openRow = async (title) => {
+  await page.waitForFunction((t) => [...document.querySelectorAll('main button, button')].some((b) => b.firstElementChild?.nextElementSibling?.firstElementChild?.firstElementChild?.textContent === t), { timeout: 5000 }, title);
+  await page.evaluate((t) => [...document.querySelectorAll('button')].find((b) => b.firstElementChild?.nextElementSibling?.firstElementChild?.firstElementChild?.textContent === t)?.click(), title);
+  await sleep(500);
+};
 const noSplash = () => page.waitForFunction(() => !document.querySelector('[data-splash]'), { timeout: 8000 });
 const reload = async () => {
   await page.reload({ waitUntil: 'networkidle0' });
@@ -250,18 +256,37 @@ await shot('11-body');
 
 await click('nav button::-p-text(Profile)');
 await sleep(400);
+await openRow('Training');
 await click('button[aria-label="Days per week"]');
 await sleep(300);
 await shot('12a-picker');
 await click('[role="menuitemradio"]::-p-text(4)');
 await sleep(300);
 check('iOS picker changes days per week', (await page.$eval('button[aria-label="Days per week"]', (e) => e.textContent)).includes('4'));
+await click('[data-vaul-drawer] button::-p-text(Done)');
+await page.waitForFunction(() => !document.querySelector('[data-vaul-drawer]'), { timeout: 5000 });
+await openRow('Body');
 const note = await page.$('textarea');
 await note.click();
 await note.type('Bench 100 kg by March');
 await page.keyboard.press('Tab');
 await sleep(300);
 await shot('12-profile');
+await click('[data-vaul-drawer] button::-p-text(Done)');
+await page.waitForFunction(() => !document.querySelector('[data-vaul-drawer]'), { timeout: 5000 });
+// Every Profile row opens its sheet
+{
+  const rows = [['Training', 'Training'], ['Goals', 'Goals'], ['Body', 'Body'], ['Supplements', 'Supplements'], ['Equipment', 'Equipment'], ['Reminders', 'Reminders'], ['Your data', 'Your data']];
+  let ok = true;
+  for (const [row, title] of rows) {
+    await openRow(row);
+    const shown = await page.evaluate((t) => [...document.querySelectorAll('[role="dialog"] h2, [role="dialog"] [data-vaul-drawer] h2, [role="dialog"]')].some((e) => e.textContent.includes(t) && e.getBoundingClientRect().height > 0), title);
+    if (!shown) { ok = false; console.log('row sheet missing', row); }
+    await click('[data-vaul-drawer] button::-p-text(Done)');
+    await page.waitForFunction(() => !document.querySelector('[data-vaul-drawer]'), { timeout: 5000 });
+  }
+  check('profile rows open sheets', ok);
+}
 await page.reload({ waitUntil: 'networkidle0' });
 await sleep(900);
 check('Goal note shows on the launch splash', (await text()).includes('Bench 100 kg by March') && !!(await page.$('[data-splash]')));
