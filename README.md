@@ -30,7 +30,7 @@ Recommendations are **rules-based**, not AI.
   - Permission is asked from a tap.
   - While rest runs and the app is in the background, you get alerts 10 s before the end and at the end. Tapping one reopens the workout.
   - An iOS-style banner greets you on the first open of each day.
-  - Water reminders arrive as Web Push, even with the app closed. Turn them on in Profile → Reminders → Water reminders and pick the window (From/To hours) and how often (every 1–4 h). They need sign-in, and work on Android or on an iPhone home-screen install (iOS 16.4+). See "Push deploy" below.
+  - Water reminders arrive as Web Push, even with the app closed. Turn them on in Profile → Reminders → Water reminders and pick the window (From/To hours) and how often (every 1–4 h). They need sign-in, and work on Android (the home-screen install, or Chrome). Not on iPhone yet: iOS only delivers push to a home-screen install, and that install can't be signed in with a magic link. In-app sign-in is planned. See "Push deploy" below.
   - Today also shows loud water-pace and supplement-overdue nudges.
 - **History**: workouts and extras grouped by week, with a filter by exercise. The detail view shows target vs actual for every set. You can edit actuals or delete a workout; neither changes the rotation.
 - **Progress → Strength**: per-exercise best set, last vs previous, a top-set or volume chart, and a session list. Only done sets count.

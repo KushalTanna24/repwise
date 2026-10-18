@@ -186,6 +186,7 @@ One row per device, so an Android phone and an iPhone both get reminders.
 
 - Water logged offline reaches the server only after the next sync, so a reminder can arrive just after logging offline.
 - A reminder can be up to an hour late, because the job runs hourly.
+- iPhone reminders are not reachable in 4.2. Push on iOS needs the home-screen install, and with magic-link-only sign-in that install can't be signed in. Android home-screen installs work; iPhone needs in-app sign-in, planned.
 
 ## Error and empty states
 
