@@ -195,8 +195,8 @@ Pushes wait until a pull has succeeded. After that, local changes are pushed 1.5
 Water reminders need these one-time steps:
 
 1. `npx web-push generate-vapid-keys`
-2. `supabase secrets set VAPID_PUBLIC_KEY=<public> VAPID_PRIVATE_KEY=<private> VAPID_SUBJECT=mailto:info@optin8.com`
-3. Supabase Dashboard → Vault: add a secret named `service_role_key` whose value is the legacy `service_role` JWT (the same value as the function's `SUPABASE_SERVICE_ROLE_KEY`, found under Project Settings → API Keys → Legacy). Not an `sb_secret_…` key: with a different key every cron run is rejected with 401.
+2. `supabase secrets set VAPID_PUBLIC_KEY=<public> VAPID_PRIVATE_KEY=<private> VAPID_SUBJECT=mailto:info@optin8.com CRON_SECRET=<random>`, where `<random>` comes from `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
+3. SQL editor: `select vault.create_secret('<random>', 'cron_secret');` with the same `<random>` value. The hourly job sends it and the function rejects anything else with 401.
 4. `supabase db push` (creates `push_subscriptions` and the hourly `water-nudge-hourly` cron job)
 5. `supabase functions deploy water-nudge --no-verify-jwt`
 6. Vercel → Project → Settings → Environment Variables: `VITE_VAPID_PUBLIC_KEY` = the public key from step 1, then redeploy.

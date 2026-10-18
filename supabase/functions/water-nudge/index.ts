@@ -9,11 +9,11 @@ const SEND_OPTIONS = { TTL: 1800, urgency: 'normal', topic: 'water' } as const;
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
 Deno.serve(async (req) => {
-  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  if (!authorized(req.headers.get('Authorization'), serviceKey)) return json({ error: 'unauthorized' }, 401);
+  // The cron job proves itself with a dedicated secret, so the gate never depends on which API key flavour the project hands the function.
+  if (!authorized(req.headers.get('Authorization'), Deno.env.get('CRON_SECRET'))) return json({ error: 'unauthorized' }, 401);
 
   webpush.setVapidDetails(Deno.env.get('VAPID_SUBJECT')!, Deno.env.get('VAPID_PUBLIC_KEY')!, Deno.env.get('VAPID_PRIVATE_KEY')!);
-  const db = createClient(Deno.env.get('SUPABASE_URL')!, serviceKey!, { auth: { persistSession: false } });
+  const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
 
   try {
     const result = await runNudges(
