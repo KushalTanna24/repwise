@@ -38,5 +38,23 @@ export function stripAuthParams(href: string): string {
 export function signInNotice(prev: User | null, next: User | null, event: AuthChangeEvent, viaLink: boolean, viaRecheck: boolean): 'signed-in' | null {
   if (!next || next.id === prev?.id) return null;
   if (viaRecheck) return 'signed-in';
-  return event === 'SIGNED_IN' && viaLink ? 'signed-in' : null;
+  // The URL session can surface as INITIAL_SESSION or as a later SIGNED_IN, depending on timing.
+  return viaLink && !prev && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') ? 'signed-in' : null;
+}
+
+/**
+ * Decides one auth event. A SIGNED_IN for a signed-out app after startup finished means the
+ * sign-in happened elsewhere (another tab, Supabase's own focus recovery), so it counts as a re-check.
+ */
+export function onAuthEvent(i: { prev: User | null; next: User | null; event: AuthChangeEvent; viaLink: boolean; initialHandled: boolean }) {
+  const viaRecheck = i.event === 'SIGNED_IN' && !i.prev && i.initialHandled;
+  return {
+    notice: signInNotice(i.prev, i.next, i.event, i.viaLink, viaRecheck) === 'signed-in',
+    initialHandled: i.initialHandled || i.event === 'INITIAL_SESSION',
+  };
+}
+
+/** True when a sign-in request failed because the device could not reach the server. */
+export function isNetworkError(err: { name?: string; status?: number; message: string }, online: boolean): boolean {
+  return err.name === 'AuthRetryableFetchError' || err.status === 0 || !online || /fetch|network|load failed/i.test(err.message);
 }

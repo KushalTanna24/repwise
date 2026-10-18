@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { create } from 'zustand';
-import type { AuthChangeEvent, User } from '@supabase/supabase-js';
+import type { User } from '@supabase/supabase-js';
 import { isEmpty } from '@/domain/migrate';
 import type { AppData } from '@/domain/types';
 import { useApp } from '@/store/app';
@@ -9,7 +9,7 @@ import { resolveSync } from './resolve';
 import { parseHash } from '@/lib/routeParse';
 import { useRoute } from '@/lib/route';
 import { supabase, TABLE } from './client';
-import { launchAuth, signInNotice, stripAuthParams } from './authUrl';
+import { isNetworkError, launchAuth, onAuthEvent, stripAuthParams } from './authUrl';
 
 export type SyncStatus = 'local' | 'syncing' | 'synced' | 'error';
 
@@ -68,22 +68,32 @@ export function useSyncEngine() {
     }
 
     // Adopt a user and, when it is news, tell them.
-    const adopt = (next: User | null, event: AuthChangeEvent | null, viaRecheck: boolean) => {
-      const prev = useSyncState.getState().user;
-      if (next?.id === prev?.id) return;
-      const notice = next && signInNotice(prev, next, event ?? 'SIGNED_IN', viaLink, viaRecheck) ? { kind: 'signed-in' as const, email: next.email ?? '' } : null;
-      useSyncState.setState({ user: next, ready: false, status: next ? 'syncing' : 'local', message: null, ...(notice && { notice }) });
+    const adopt = (next: User | null, notice: boolean) => {
+      useSyncState.setState({
+        user: next,
+        ready: false,
+        status: next ? 'syncing' : 'local',
+        message: null,
+        ...(notice && next && { notice: { kind: 'signed-in' as const, email: next.email ?? '' } }),
+      });
     };
 
-    supabase.auth.getSession().then(({ data }) => useSyncState.setState({ user: data.session?.user ?? null }));
-    const { data } = supabase.auth.onAuthStateChange((event, session) => adopt(session?.user ?? null, event, false));
+    // INITIAL_SESSION replaces a separate getSession() read, so the link's own SIGNED_IN stays news.
+    let initialHandled = false;
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      const prev = useSyncState.getState().user;
+      const next = session?.user ?? null;
+      const r = onAuthEvent({ prev, next, event, viaLink, initialHandled });
+      initialHandled = r.initialHandled;
+      if (next?.id !== prev?.id) adopt(next, r.notice);
+    });
 
     // A sign-in finished in another tab (e.g. Chrome while this is the installed app) shows up in storage.
     const recheck = () => {
       if (useSyncState.getState().user) return;
       void supabase.auth.getSession().then(({ data: d }) => {
         const found = d.session?.user ?? null;
-        if (found && !useSyncState.getState().user) adopt(found, null, true);
+        if (found && !useSyncState.getState().user) adopt(found, true);
       });
     };
     const onVisible = () => document.visibilityState === 'visible' && recheck();
@@ -164,9 +174,9 @@ export function useSyncEngine() {
   }, []);
 }
 
-export async function signIn(email: string): Promise<string | null> {
+export async function signIn(email: string): Promise<{ message: string; network: boolean } | null> {
   const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin } });
-  return error ? error.message : null;
+  return error ? { message: error.message, network: isNetworkError(error, navigator.onLine) } : null;
 }
 
 export async function signOut() {

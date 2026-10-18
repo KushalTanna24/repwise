@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { go } from '@/lib/route';
 import { useSyncState } from '@/sync/useSync';
 
@@ -9,6 +9,8 @@ const SHOW_MS = 6000;
 export function AuthBanner() {
   const notice = useSyncState((s) => s.notice);
   const clearNotice = useSyncState((s) => s.clearNotice);
+  const reduce = useReducedMotion();
+  const y = reduce ? 0 : -120;
 
   useEffect(() => {
     if (notice?.kind !== 'signed-in') return;
@@ -23,10 +25,10 @@ export function AuthBanner() {
           key={notice.kind}
           role="status"
           data-banner
-          initial={{ y: -120, opacity: 0 }}
+          initial={{ y, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          exit={{ y: -120, opacity: 0 }}
-          transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+          exit={{ y, opacity: 0 }}
+          transition={reduce ? { duration: 0.15 } : { type: 'spring', stiffness: 380, damping: 32 }}
           drag="y"
           dragConstraints={{ top: 0, bottom: 0 }}
           dragElastic={{ top: 0.6, bottom: 0.1 }}

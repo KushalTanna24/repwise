@@ -45,7 +45,7 @@ export function SignInCard() {
     setSending(true);
     const err = await signIn(to);
     setSending(false);
-    if (err) return toast(/fetch|network/i.test(err) ? "Couldn't send the link. Check your connection" : `Couldn't send the link: ${err}`);
+    if (err) return toast(err.network ? "Couldn't send the link. Check your connection" : `Couldn't send the link: ${err.message}`);
     writeEmail(to);
     setSent(true);
     setWait(RESEND_SECONDS);
