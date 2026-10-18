@@ -1,12 +1,15 @@
 import { useEffect, useRef } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { create } from 'zustand';
-import type { User } from '@supabase/supabase-js';
+import type { AuthChangeEvent, User } from '@supabase/supabase-js';
 import { isEmpty } from '@/domain/migrate';
 import type { AppData } from '@/domain/types';
 import { useApp } from '@/store/app';
 import { resolveSync } from './resolve';
+import { parseHash } from '@/lib/routeParse';
+import { useRoute } from '@/lib/route';
 import { supabase, TABLE } from './client';
+import { launchAuth, signInNotice, stripAuthParams } from './authUrl';
 
 export type SyncStatus = 'local' | 'syncing' | 'synced' | 'error';
 
@@ -18,9 +21,21 @@ interface SyncState {
   /** True after the first successful pull; pushes wait for it so a stale device never overwrites the cloud blind. */
   ready: boolean;
   retry: () => void;
+  /** One-off message for the top banner. */
+  notice: { kind: 'signed-in'; email: string } | { kind: 'link-error'; message: string } | null;
+  clearNotice: () => void;
 }
 
-export const useSyncState = create<SyncState>(() => ({ user: null, status: 'local', message: null, lastSyncedAt: null, ready: false, retry: () => {} }));
+export const useSyncState = create<SyncState>(() => ({
+  user: null,
+  status: 'local',
+  message: null,
+  lastSyncedAt: null,
+  ready: false,
+  retry: () => {},
+  notice: null,
+  clearNotice: () => useSyncState.setState({ notice: null }),
+}));
 
 const PUSH_DELAY_MS = 1500;
 
@@ -45,13 +60,41 @@ export function useSyncEngine() {
   const updatedAt = useApp((s) => s.data.meta.updatedAt);
 
   useEffect(() => {
+    const viaLink = launchAuth?.kind === 'session';
+    if (launchAuth?.kind === 'error') {
+      useSyncState.setState({ notice: { kind: 'link-error', message: launchAuth.message } });
+      history.replaceState(null, '', stripAuthParams(location.href));
+      useRoute.setState(parseHash(location.hash));
+    }
+
+    // Adopt a user and, when it is news, tell them.
+    const adopt = (next: User | null, event: AuthChangeEvent | null, viaRecheck: boolean) => {
+      const prev = useSyncState.getState().user;
+      if (next?.id === prev?.id) return;
+      const notice = next && signInNotice(prev, next, event ?? 'SIGNED_IN', viaLink, viaRecheck) ? { kind: 'signed-in' as const, email: next.email ?? '' } : null;
+      useSyncState.setState({ user: next, ready: false, status: next ? 'syncing' : 'local', message: null, ...(notice && { notice }) });
+    };
+
     supabase.auth.getSession().then(({ data }) => useSyncState.setState({ user: data.session?.user ?? null }));
-    const { data } = supabase.auth.onAuthStateChange((_e, session) => {
-      const next = session?.user ?? null;
-      if (next?.id !== useSyncState.getState().user?.id)
-        useSyncState.setState({ user: next, ready: false, status: next ? 'syncing' : 'local', message: null });
-    });
-    return () => data.subscription.unsubscribe();
+    const { data } = supabase.auth.onAuthStateChange((event, session) => adopt(session?.user ?? null, event, false));
+
+    // A sign-in finished in another tab (e.g. Chrome while this is the installed app) shows up in storage.
+    const recheck = () => {
+      if (useSyncState.getState().user) return;
+      void supabase.auth.getSession().then(({ data: d }) => {
+        const found = d.session?.user ?? null;
+        if (found && !useSyncState.getState().user) adopt(found, null, true);
+      });
+    };
+    const onVisible = () => document.visibilityState === 'visible' && recheck();
+    const onStorage = (e: StorageEvent) => e.key?.startsWith('sb-') && recheck();
+    document.addEventListener('visibilitychange', onVisible);
+    addEventListener('storage', onStorage);
+    return () => {
+      data.subscription.unsubscribe();
+      document.removeEventListener('visibilitychange', onVisible);
+      removeEventListener('storage', onStorage);
+    };
   }, []);
 
   const cloud = useQuery({

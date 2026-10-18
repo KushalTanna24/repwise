@@ -1,18 +1,9 @@
 import { create } from 'zustand';
+import { parseHash, type Route, type Tab } from './routeParse';
 
-export type Tab = 'today' | 'history' | 'progress' | 'profile';
-const TABS: Tab[] = ['today', 'history', 'progress', 'profile'];
+export type { Tab };
 
-interface Route {
-  tab: Tab;
-  /** Open sheet, e.g. "workout", "session:<id>", "split". */
-  sheet: string | null;
-}
-
-function parse(): Route {
-  const [tab, ...rest] = location.hash.replace(/^#\/?/, '').split('/');
-  return { tab: TABS.includes(tab as Tab) ? (tab as Tab) : 'today', sheet: rest.length ? decodeURIComponent(rest.join('/')) : null };
-}
+const parse = () => parseHash(location.hash);
 const href = (r: Route) => `#/${r.tab}${r.sheet ? `/${encodeURIComponent(r.sheet)}` : ''}`;
 
 export const useRoute = create<Route>(() => parse());
@@ -36,7 +27,8 @@ export function openSheet(sheet: string) {
   useRoute.setState(next);
 }
 
-/** eplace closes without history.back(), for sheets restored by a reload where back could leave the app. */
+/** 
+eplace closes without history.back(), for sheets restored by a reload where back could leave the app. */
 export function closeSheet(opts?: { replace?: boolean }) {
   if (!useRoute.getState().sheet) return;
   if (history.state?.sheet && !opts?.replace) history.back();

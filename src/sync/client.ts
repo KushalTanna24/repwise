@@ -1,4 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
+// Imported first so the sign-in URL is captured before Supabase clears it.
+import './authUrl';
 
 // Publishable key only. Row-level security limits each user to their own row.
 const url = import.meta.env.VITE_SUPABASE_URL || 'https://mvrimyshkrwsjuwyapgw.supabase.co';

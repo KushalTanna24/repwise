@@ -18,6 +18,7 @@ import { LibrarySheet } from '@/screens/Library';
 import { GuideSheet } from '@/screens/Guide';
 import { Splash } from '@/components/Splash';
 import { DailyBanner } from '@/components/DailyBanner';
+import { AuthBanner } from '@/components/AuthBanner';
 
 const queryClient = new QueryClient();
 // Charts are the heaviest dependency; load them only when Progress opens.
@@ -64,6 +65,7 @@ function Shell() {
           <ConfirmHost />
           <Toaster />
           <DailyBanner />
+          <AuthBanner />
         </>
       )}
       {/* One mount for the whole launch so the reveal never replays. */}

@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import dayjs from 'dayjs';
-import { Cloud, CloudOff, Download, LoaderCircle, Upload } from 'lucide-react';
+import { Download, Upload } from 'lucide-react';
 import { ALL_EQUIPMENT } from '@/domain/catalogue';
 import { parseImport } from '@/domain/migrate';
 import { applyProfileToActive, updateProfile } from '@/domain/session';
@@ -15,12 +15,11 @@ import { Button } from '@/components/ui/button';
 import { Card, List, Row, SectionHeader } from '@/components/ui/card';
 import { FieldRow, Select, Switch, TextInput } from '@/components/ui/field';
 import { confirm } from '@/components/ui/alert';
-import { cn } from '@/lib/cn';
 import { fmtDay, nowIso } from '@/lib/fmt';
 import { openSheet } from '@/lib/route';
 import { toast } from '@/lib/toast';
 import { act, useApp, useData } from '@/store/app';
-import { signIn, signOut, useSyncState } from '@/sync/useSync';
+import { SignInCard } from './profile/SignInCard';
 import { requestNotifications, useNotifyPermission } from '@/lib/notify';
 
 const EQUIPMENT_LABEL: Record<EquipmentKind, string> = {
@@ -143,7 +142,7 @@ export function Profile() {
       <NotificationsRow />
 
       <SectionHeader title="Backup & sync" />
-      <Account />
+      <SignInCard />
 
       <SectionHeader title="Your data" />
       <DataTools data={data} />
@@ -208,68 +207,6 @@ function BodyGoals({ data }: { data: AppData }) {
           className="mt-2 w-full resize-none rounded-[10px] bg-fill px-3 py-2 text-body outline-none placeholder:text-label-3 focus:ring-2 focus:ring-blue"
         />
       </label>
-    </List>
-  );
-}
-
-function Account() {
-  const { user, status, message, lastSyncedAt, retry } = useSyncState();
-  const [email, setEmail] = useState('');
-  const [sending, setSending] = useState(false);
-  const [sent, setSent] = useState(false);
-
-  async function send() {
-    if (!/^\S+@\S+\.\S+$/.test(email.trim())) return toast('Enter a valid email');
-    setSending(true);
-    const err = await signIn(email.trim());
-    setSending(false);
-    if (err) toast(`Couldn't send the link: ${err}`);
-    else setSent(true);
-  }
-
-  async function out() {
-    const ok = await confirm({ title: 'Sign out?', message: 'Your data stays on this phone. Backups pause until you sign in again.', confirmLabel: 'Sign out' });
-    if (ok) await signOut();
-  }
-
-  if (!user)
-    return (
-      <Card className="p-4">
-        <div className="flex items-center gap-2 text-headline font-semibold">
-          <CloudOff className="size-5 text-label-2" /> Saved on this phone only
-        </div>
-        <p className="mt-1 text-subhead text-label-2">Sign in with a magic link to back up to the cloud and restore on a new phone.</p>
-        {sent ? (
-          <p className="mt-3 rounded-[12px] bg-green/12 px-3 py-2 text-subhead text-[#248A3D]">Check {email} and open the link on this phone.</p>
-        ) : (
-          <div className="mt-3 flex gap-2">
-            <input
-              type="email"
-              autoComplete="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="h-10 min-w-0 flex-1 rounded-[10px] bg-fill px-3 text-body outline-none focus:ring-2 focus:ring-blue"
-            />
-            <Button onClick={send} disabled={sending}>
-              {sending ? <LoaderCircle className="size-4 animate-spin" /> : 'Send link'}
-            </Button>
-          </div>
-        )}
-      </Card>
-    );
-
-  const label = status === 'synced' ? `Backed up${lastSyncedAt ? ` · ${dayjs(lastSyncedAt).format('HH:mm')}` : ''}` : status === 'syncing' ? 'Backing up…' : status === 'error' ? 'Not backed up' : 'Waiting';
-  return (
-    <List>
-      <Row
-        leading={<Cloud className={cn('size-5', status === 'error' ? 'text-red' : 'text-blue')} />}
-        title={user.email ?? 'Signed in'}
-        subtitle={message ?? label}
-        value={status === 'syncing' ? <LoaderCircle className="size-4 animate-spin" /> : undefined}
-      />
-      {status === 'error' && <Row title="Retry backup" onClick={retry} className="text-blue" />}
-      <Row title="Sign out" onClick={out} destructive />
     </List>
   );
 }
