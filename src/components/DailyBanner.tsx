@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { greeting, shouldAnnounce, shouldGreet } from '@/lib/alerts';
 import { notify } from '@/lib/notify';
 import { useData } from '@/store/app';
+import { useSyncState } from '@/sync/useSync';
 import { useLaunch } from './Splash';
 
 const KEY = 'repwise_last_greet';
@@ -40,10 +41,12 @@ function lastGreet() {
   }
 }
 
-/** iOS-style notification banner, once per day on first open. Swipe up or tap to dismiss. */
+/** iOS-style notification banner, once per day on first open. Swipe up or tap to dismiss. Waits out a sign-in banner. */
 export function DailyBanner() {
   const data = useData();
   const splashDone = useLaunch((s) => s.splashDone);
+  const authNotice = useSyncState((s) => s.notice != null);
+  const [due, setDue] = useState(false);
   const [open, setOpen] = useState(false);
   const [news, setNews] = useState(false);
   const today = dayjs().format('YYYY-MM-DD');
@@ -58,14 +61,28 @@ export function DailyBanner() {
       setNews(true);
       void notify(WHATS_NEW.title, WHATS_NEW.body, 'update', '/');
     }
+    setDue(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [splashDone]);
+
+  const dismiss = () => {
+    setOpen(false);
+    setDue(false);
+  };
+
+  // Decided above once per launch; shown here, and held (then restarted) while the sign-in banner is up.
+  useEffect(() => {
+    if (!due || authNotice) return;
     const show = setTimeout(() => setOpen(true), 250);
-    const hide = setTimeout(() => setOpen(false), 250 + (announce ? SHOW_MS * 1.6 : SHOW_MS));
+    const hide = setTimeout(() => {
+      setOpen(false);
+      setDue(false);
+    }, 250 + (news ? SHOW_MS * 1.6 : SHOW_MS));
     return () => {
       clearTimeout(show);
       clearTimeout(hide);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [splashDone]);
+  }, [due, authNotice, news]);
 
   const plan = data.plannedSession;
   const glasses = data.water[today] ?? 0;
@@ -80,7 +97,7 @@ export function DailyBanner() {
 
   return (
     <AnimatePresence>
-      {open && (
+      {open && !authNotice && (
         <motion.div
           role="status"
           data-banner
@@ -91,8 +108,8 @@ export function DailyBanner() {
           drag="y"
           dragConstraints={{ top: 0, bottom: 0 }}
           dragElastic={{ top: 0.6, bottom: 0.1 }}
-          onDragEnd={(_, i) => i.offset.y < -30 && setOpen(false)}
-          onClick={() => setOpen(false)}
+          onDragEnd={(_, i) => i.offset.y < -30 && dismiss()}
+          onClick={dismiss}
           className="fixed inset-x-2 top-[calc(env(safe-area-inset-top)+8px)] z-[90] mx-auto flex max-w-[620px] cursor-grab items-start gap-3 rounded-[22px] bg-[rgb(250_250_250/0.85)] p-3 shadow-[0_8px_30px_rgb(0_0_0/0.18)] backdrop-blur-2xl backdrop-saturate-150"
         >
           <img src="/icon.svg" alt="" className="size-[38px] shrink-0 rounded-[9px]" />

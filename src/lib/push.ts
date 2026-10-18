@@ -8,7 +8,7 @@ const SW_WAIT_MS = 8000;
 
 const registration = () => withTimeout(navigator.serviceWorker.ready, SW_WAIT_MS);
 
-const pushSupported = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+export const pushSupported = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 
 function rowFor(userId: string, sub: PushSubscription) {
   const json = sub.toJSON();

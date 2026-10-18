@@ -3,7 +3,7 @@ import { Sheet } from '@/components/ui/sheet';
 import { List, Row } from '@/components/ui/card';
 import { FieldRow, Select, Switch } from '@/components/ui/field';
 import { DEFAULT_WATER_REMINDERS } from '@/domain/water';
-import { disableReminders, enableReminders } from '@/lib/push';
+import { disableReminders, enableReminders, pushSupported } from '@/lib/push';
 import { reminderToggle } from '@/lib/pushUtil';
 import { act, useData } from '@/store/app';
 import { useSyncState } from '@/sync/useSync';
@@ -41,6 +41,12 @@ function WaterReminders() {
   const wr = useData().profile.waterReminders ?? DEFAULT_WATER_REMINDERS;
   const user = useSyncState((s) => s.user);
   const [busy, setBusy] = useState(false);
+  // Say up front why it won't turn on (e.g. iPhone Safari outside a home-screen install), not only after a tap.
+  const hint = !pushSupported()
+    ? 'Install Repwise to your home screen to get reminders'
+    : user
+      ? 'A nudge when you are behind on water'
+      : 'Sign in to get water reminders';
   const set = (patch: Partial<typeof wr>) =>
     act((d) => ({ ...d, profile: { ...d.profile, waterReminders: { ...(d.profile.waterReminders ?? DEFAULT_WATER_REMINDERS), ...patch } } }));
 
@@ -60,7 +66,7 @@ function WaterReminders() {
 
   return (
     <List>
-      <FieldRow label="Water reminders" hint={user ? 'A nudge when you are behind on water' : 'Sign in to get water reminders'}>
+      <FieldRow label="Water reminders" hint={hint}>
         <div className={!user && !wr.on ? 'pointer-events-none opacity-40' : undefined} aria-disabled={!user && !wr.on}>
           <Switch label="Water reminders" checked={wr.on} onChange={(v) => void toggle(v)} />
         </div>

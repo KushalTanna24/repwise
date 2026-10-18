@@ -2,25 +2,27 @@ import { useEffect } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { go } from '@/lib/route';
 import { useSyncState } from '@/sync/useSync';
+import { useLaunch } from './Splash';
 
 const SHOW_MS = 6000;
 
-/** Top banner for sign-in results. Success fades on its own; a link error stays until dismissed. */
+/** Top banner for sign-in results, after the splash. Success fades on its own; a link error stays until dismissed. */
 export function AuthBanner() {
   const notice = useSyncState((s) => s.notice);
   const clearNotice = useSyncState((s) => s.clearNotice);
+  const splashDone = useLaunch((s) => s.splashDone);
   const reduce = useReducedMotion();
   const y = reduce ? 0 : -120;
 
   useEffect(() => {
-    if (notice?.kind !== 'signed-in') return;
+    if (!splashDone || notice?.kind !== 'signed-in') return;
     const t = setTimeout(clearNotice, SHOW_MS);
     return () => clearTimeout(t);
-  }, [notice, clearNotice]);
+  }, [splashDone, notice, clearNotice]);
 
   return (
     <AnimatePresence>
-      {notice && (
+      {splashDone && notice && (
         <motion.div
           key={notice.kind}
           role="status"

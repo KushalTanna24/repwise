@@ -27,8 +27,7 @@ export function openSheet(sheet: string) {
   useRoute.setState(next);
 }
 
-/** 
-eplace closes without history.back(), for sheets restored by a reload where back could leave the app. */
+/** `replace` closes without history.back(), for sheets restored by a reload where back could leave the app. */
 export function closeSheet(opts?: { replace?: boolean }) {
   if (!useRoute.getState().sheet) return;
   if (history.state?.sheet && !opts?.replace) history.back();
