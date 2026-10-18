@@ -60,6 +60,8 @@ describe('profileSummaries', () => {
     expect(profileSummaries(d, { ...ctx, permission: 'denied' }).reminders).toBe('Blocked');
     expect(profileSummaries(d, { ...ctx, permission: 'default' }).reminders).toBe('Off');
     expect(profileSummaries(d, { ...ctx, permission: 'unsupported' }).reminders).toBe('Off');
+    d.profile.waterReminders = { on: true, from: 9, to: 21, everyHours: 2 };
+    expect(profileSummaries(d, { ...ctx, permission: 'denied' }).reminders).toBe('Water on');
   });
 
   it('data shows workout count and no value is empty', () => {

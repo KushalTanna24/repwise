@@ -15,3 +15,23 @@ self.addEventListener('notificationclick', (event) => {
     }),
   );
 });
+
+// Server-sent water reminders (Web Push). Payload: { title, body, url }.
+self.addEventListener('push', (event) => {
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch {
+    /* malformed payload: show the defaults */
+  }
+  const { title = 'Repwise', body = '', url = '/#/today' } = payload;
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      tag: 'water',
+      icon: '/icon.svg',
+      badge: '/icon.svg',
+      data: { url },
+    }),
+  );
+});

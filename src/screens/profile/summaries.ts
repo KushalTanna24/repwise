@@ -19,7 +19,7 @@ export function profileSummaries(data: AppData, ctx: { permission: Permission; s
     body: `${p.waterGoal} glasses`,
     supps: stack ? `${stack} in stack` : 'Empty',
     equipment: on === ALL_EQUIPMENT.length ? 'All equipment' : `${on} of ${ALL_EQUIPMENT.length}`,
-    reminders: ctx.permission === 'granted' ? 'On' : ctx.permission === 'denied' ? 'Blocked' : 'Off',
+    reminders: p.waterReminders?.on ? 'Water on' : ctx.permission === 'granted' ? 'On' : ctx.permission === 'denied' ? 'Blocked' : 'Off',
     data: `${data.sessions.length} workouts`,
   };
 }

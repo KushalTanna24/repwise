@@ -8,6 +8,7 @@ import { useApp } from '@/store/app';
 import { resolveSync } from './resolve';
 import { parseHash } from '@/lib/routeParse';
 import { useRoute } from '@/lib/route';
+import { refreshSubscription } from '@/lib/push';
 import { supabase, TABLE } from './client';
 import { isNetworkError, launchAuth, onAuthEvent, stripAuthParams } from './authUrl';
 
@@ -151,6 +152,7 @@ export function useSyncEngine() {
       useApp.getState().replace(r.data);
     }
     useSyncState.setState({ ready: true });
+    if (useApp.getState().data.profile.waterReminders?.on) void refreshSubscription(user.id);
     if (r.action === 'push') mutation.mutate(r.data);
     else useSyncState.setState({ status: 'synced', lastSyncedAt: new Date().toISOString() });
     // eslint-disable-next-line react-hooks/exhaustive-deps
