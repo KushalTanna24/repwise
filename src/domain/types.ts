@@ -78,6 +78,8 @@ export interface PlannedSession {
   createdAt: string;
   /** Bumped by Rebuild to rotate accessories; anchors never change. */
   variant?: number;
+  /** Set when built after a long break; loads and sets are eased. */
+  returnTier?: 1 | 2 | 3;
 }
 
 export interface SetRecord {

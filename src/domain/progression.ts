@@ -1,3 +1,4 @@
+import dayjs from 'dayjs';
 import type { EquipmentKind, Exercise, Kg, Recommendation, SetRecord, WorkoutSession } from './types';
 
 /** Smallest practical load jump per equipment type. */
@@ -39,11 +40,29 @@ function referenceKg(sets: SetRecord[]): Kg {
   return best;
 }
 
+/** Calendar days from the last finished session to `now`; null with no history. */
+export function daysOff(history: WorkoutSession[], now: string): number | null {
+  const last = history.reduce<string | null>((m, s) => (s.finishedAt && (!m || s.finishedAt > m) ? s.finishedAt : m), null);
+  return last ? dayjs(now).startOf('day').diff(dayjs(last).startOf('day'), 'day') : null;
+}
+
+/** 0 normal, 1 hold load (10+ days off), 2 ease 15% (21+), 3 ease 30% (43+). */
+export type ReturnTier = 0 | 1 | 2 | 3;
+export function returnTier(days: number | null): ReturnTier {
+  if (days == null || days < 10) return 0;
+  return days < 21 ? 1 : days < 43 ? 2 : 3;
+}
+const EASE: Record<ReturnTier, number> = { 0: 0, 1: 0, 2: 0.15, 3: 0.3 };
+
+/** From three weeks off, one set fewer, never below two. */
+export const easedSets = (sets: number, tier: ReturnTier) => (tier >= 2 ? Math.max(2, sets - 1) : sets);
+
 /**
  * Rules-based double progression. Only finished sessions and sets the user
- * marked done count; everything else is invisible to the engine.
+ * marked done count; everything else is invisible to the engine. With `now`,
+ * a long break overrides progression and eases the load back in.
  */
-export function recommend(ex: Exercise, rx: Rx, history: WorkoutSession[]): Recommendation {
+export function recommend(ex: Exercise, rx: Rx, history: WorkoutSession[], now?: string): Recommendation {
   const relevant = history
     .filter((s) => s.finishedAt)
     .map((s) => ({ s, sets: doneSets(s, ex.id) }))
@@ -71,7 +90,34 @@ export function recommend(ex: Exercise, rx: Rx, history: WorkoutSession[]): Reco
   const loadLabel = kg == null ? 'the same hold' : ex.kind === 'bodyweight' && kg === 0 ? 'bodyweight' : fmtKg(kg);
   const clamp = (r: number) => Math.min(rx.repMax, Math.max(rx.repMin, r));
 
-  if (last.sets.length < rx.sets) {
+  const off = now ? daysOff(history, now) : null;
+  const tier = returnTier(off);
+  if (tier > 0) {
+    const base = { targetReps: fill(rx.sets, rx.repMin) };
+    if (timed) return { kind: 'hold', targetKg: null, ...base, reason: `Back after ${off} days. Start at ${rx.repMin}s holds.` };
+    const assist = Math.max(0, ...last.sets.map((x) => x.assistKg ?? 0));
+    if (tier === 1)
+      return {
+        kind: 'hold',
+        targetKg: kg,
+        ...(assist > 0 ? { assistKg: assist } : {}),
+        ...base,
+        reason: `Back after ${off} days. Same ${loadLabel} as last time, no jump yet.`,
+      };
+    if (assist > 0)
+      return { kind: 'assist', targetKg: kg, assistKg: assist + ASSIST_STEP, ...base, reason: `Back after ${off} days. Use ${fmtKg(assist + ASSIST_STEP)} assistance.` };
+    const eased = Math.max(0, roundTo(kg! * (1 - EASE[tier]), inc));
+    return {
+      kind: 'deload',
+      targetKg: eased,
+      ...base,
+      reason: kg ? `Back after ${off} days. Eased ${EASE[tier] * 100}% to ${fmtKg(eased)}.` : `Back after ${off} days. Ease in with ${loadLabel}.`,
+    };
+  }
+
+  // A set dropped by plan (easing back in) is not a missed set.
+  const plannedLast = last.s.exercises.find((e) => e.exerciseId === ex.id)?.plan?.sets ?? rx.sets;
+  if (last.sets.length < Math.min(rx.sets, plannedLast)) {
     return {
       kind: 'hold',
       targetKg: kg,

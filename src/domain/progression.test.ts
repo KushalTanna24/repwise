@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { recommend } from './progression';
+import { daysOff, easedSets, recommend, returnTier } from './progression';
 import type { Exercise, SetRecord, WorkoutSession } from './types';
 
 const bench: Exercise = { id: 'bench-press', name: 'Bench press', muscle: 'Chest', pattern: 'hpush', equipment: 'barbell', kind: 'weighted' };
@@ -130,5 +130,64 @@ describe('recommend', () => {
   it('timed holds add five seconds', () => {
     const r = recommend(plank, { sets: 3, repMin: 30, repMax: 60 }, [sess('plank', '2026-10-01', [[null, 60], [null, 60], [null, 60]])]);
     expect(r.targetReps).toEqual([65, 65, 65]);
+  });
+});
+
+describe('return after a gap', () => {
+  const top = (date: string) => sess('bench-press', date, [[100, 12], [100, 12], [100, 12]]);
+  const at = (date: string) => `${date}T09:00:00.000Z`;
+
+  it('daysOff counts whole days since the last finished session', () => {
+    expect(daysOff([], at('2026-10-20'))).toBeNull();
+    expect(daysOff([top('2026-10-01'), sess('bench-press', '2026-10-10', [[100, 8]], false)], at('2026-10-20'))).toBe(19);
+  });
+
+  it('tiers switch at 10, 21 and 43 days', () => {
+    expect([null, 0, 9, 10, 20, 21, 42, 43, 200].map(returnTier)).toEqual([0, 0, 0, 1, 1, 2, 2, 3, 3]);
+  });
+
+  it('without a date, or under 10 days off, progression is unchanged', () => {
+    expect(recommend(bench, rx, [top('2026-10-01')]).kind).toBe('increase');
+    expect(recommend(bench, rx, [top('2026-10-01')], at('2026-10-10')).kind).toBe('increase');
+  });
+
+  it('10 to 20 days off: same load as last time, no increase', () => {
+    const r = recommend(bench, rx, [top('2026-10-01')], at('2026-10-15'));
+    expect(r.kind).toBe('hold');
+    expect(r.targetKg).toBe(100);
+    expect(r.targetReps).toEqual([8, 8, 8]);
+    expect(r.reason).toBe('Back after 14 days. Same 100 kg as last time, no jump yet.');
+  });
+
+  it('21 to 42 days off: load eased 15%, rounded to the plate step', () => {
+    const r = recommend(bench, rx, [top('2026-10-01')], at('2026-10-25'));
+    expect(r.kind).toBe('deload');
+    expect(r.targetKg).toBe(85);
+    expect(r.reason).toBe('Back after 24 days. Eased 15% to 85 kg.');
+  });
+
+  it('43+ days off: load eased 30%', () => {
+    expect(recommend(bench, rx, [top('2026-08-01')], at('2026-10-25')).targetKg).toBe(70);
+  });
+
+  it('timed holds restart at the bottom of the range', () => {
+    const r = recommend(plank, { sets: 3, repMin: 30, repMax: 60 }, [sess('plank', '2026-10-01', [[null, 60], [null, 60], [null, 60]])], at('2026-10-25'));
+    expect(r.targetKg).toBeNull();
+    expect(r.targetReps).toEqual([30, 30, 30]);
+  });
+
+  it('assisted moves get more assistance', () => {
+    const r = recommend(pullup, rx, [sess('pull-up', '2026-10-01', [[0, 12, 'done', 20], [0, 12, 'done', 20], [0, 12, 'done', 20]])], at('2026-10-25'));
+    expect(r.assistKg).toBe(25);
+  });
+
+  it('a session done with one set fewer by plan is not read as missed sets', () => {
+    const last = sess('bench-press', '2026-10-01', [[85, 10], [85, 10]]);
+    last.exercises[0].plan = { sets: 2, repMin: 8, repMax: 12, restSec: 150 };
+    expect(recommend(bench, rx, [last], at('2026-10-03')).kind).toBe('reps');
+  });
+
+  it('easedSets drops one set from 21 days off, never below 2', () => {
+    expect([easedSets(3, 1), easedSets(3, 2), easedSets(4, 3), easedSets(2, 2)]).toEqual([3, 2, 3, 2]);
   });
 });

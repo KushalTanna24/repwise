@@ -172,3 +172,50 @@ describe('session length and experience', () => {
     expect(p[0].sets).toBe(3);
   });
 });
+describe('return after a gap', () => {
+  const anchor = SPLITS['full-body-abc'].sessions[0].slots[0].candidates[0];
+  const back = (date: string, idx = 1): AppData =>
+    data((d) => {
+      d.program.rotation['full-body-abc'] = { sessionIndex: idx, cycle: 2 };
+      d.sessions = [
+        {
+          id: 'old',
+          planKey: null,
+          splitId: 'full-body-abc',
+          sessionIndex: 0,
+          cycle: 2,
+          title: 'Full Body A',
+          startedAt: `${date}T10:00:00.000Z`,
+          finishedAt: `${date}T11:00:00.000Z`,
+          exercises: [{ exerciseId: anchor, slotId: null, plan: null, rec: null, sets: [0, 1, 2].map(() => ({ targetKg: null, targetReps: null, actualKg: 100, actualReps: 6, status: 'done' as const })) }],
+        },
+      ];
+    });
+
+  it('three weeks off drops a set and tags the plan', () => {
+    const p = buildPlan(back('2026-10-01'), 'full-body-abc', 0, '2026-10-25T09:00:00.000Z');
+    expect(p.returnTier).toBe(2);
+    expect(buildPlan(back('2026-10-01'), 'full-body-abc', 0, '2026-10-03T09:00:00.000Z').returnTier).toBeUndefined();
+  });
+
+  it('rebuilds the cached plan when the tier changes', () => {
+    const d = ensurePlan(back('2026-10-20', 1), '2026-10-22T09:00:00.000Z');
+    expect(d.plannedSession!.returnTier).toBeUndefined();
+    const later = ensurePlan(d, '2026-11-02T09:00:00.000Z');
+    expect(later.plannedSession!.returnTier).toBe(1);
+    expect(later.plannedSession!.title).toBe('Full Body B');
+  });
+
+  it('21+ days off restarts the split at its first session, next cycle', () => {
+    const d = ensurePlan(back('2026-10-01', 1), '2026-10-25T09:00:00.000Z');
+    expect(d.program.rotation['full-body-abc']).toEqual({ sessionIndex: 0, cycle: 3 });
+    expect(d.plannedSession!.title).toBe('Full Body A');
+    expect(d.plannedSession!.exercises.find((e) => e.exerciseId === anchor)!.rec.targetKg).toBe(85);
+  });
+
+  it('does not touch the rotation mid-workout', () => {
+    const d = back('2026-10-01', 1);
+    d.activeSession = { ...d.sessions[0], id: 'live', finishedAt: null };
+    expect(ensurePlan(d, '2026-10-25T09:00:00.000Z').program.rotation['full-body-abc'].sessionIndex).toBe(1);
+  });
+});

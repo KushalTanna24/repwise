@@ -1,5 +1,5 @@
 import { allExercises, getExercise } from './catalogue';
-import { recommend } from './progression';
+import { daysOff, easedSets, recommend, returnTier, type ReturnTier } from './progression';
 import { SPLITS } from './splits';
 import type { AppData, EquipmentKind, Exercise, PlannedExercise, PlannedSession, Prescription, Profile, Slot, SplitId } from './types';
 
@@ -42,17 +42,21 @@ export function isEligible(ex: Exercise | undefined, data: AppData): ex is Exerc
   );
 }
 
-export function plannedExercise(data: AppData, slot: Slot, exerciseId: string): PlannedExercise {
+const tierAt = (data: AppData, now?: string): ReturnTier => (now ? returnTier(daysOff(data.sessions, now)) : 0);
+
+/** `now` dates the break since the last workout; omitted, no easing applies. */
+export function plannedExercise(data: AppData, slot: Slot, exerciseId: string, now?: string): PlannedExercise {
   const ex = getExercise(exerciseId, data.customExercises);
-  const rx = prescription(data.profile, slot.role, ex);
+  const base = prescription(data.profile, slot.role, ex);
+  const rx = { ...base, sets: easedSets(base.sets, tierAt(data, now)) };
   const rec = ex
-    ? recommend(ex, rx, data.sessions)
+    ? recommend(ex, rx, data.sessions, now)
     : { kind: 'first' as const, targetKg: null, targetReps: Array(rx.sets).fill(rx.repMin), reason: 'No option for your equipment. Pick one.' };
   return { exerciseId: ex ? exerciseId : '', slotId: slot.id, role: slot.role, ...rx, rec };
 }
 
-/** Deterministic: same data and rotation always give the same session. */
-export function buildPlan(data: AppData, splitId: SplitId, variant = 0): PlannedSession {
+/** Deterministic: same data, rotation and `now` always give the same session. */
+export function buildPlan(data: AppData, splitId: SplitId, variant = 0, now?: string): PlannedSession {
   const split = SPLITS[splitId];
   const { sessionIndex, cycle } = data.program.rotation[splitId];
   const tmpl = split.sessions[sessionIndex % split.sessions.length];
@@ -81,9 +85,10 @@ export function buildPlan(data: AppData, splitId: SplitId, variant = 0): Planned
     sessionIndex,
     cycle,
     title: tmpl.title,
-    exercises: kept.map((p) => plannedExercise(data, p.slot, p.id)),
+    exercises: kept.map((p) => plannedExercise(data, p.slot, p.id, now)),
     createdAt: data.meta.updatedAt,
     ...(variant ? { variant } : {}),
+    ...(tierAt(data, now) ? { returnTier: tierAt(data, now) as 1 | 2 | 3 } : {}),
   };
 }
 
@@ -91,24 +96,32 @@ export function buildPlan(data: AppData, splitId: SplitId, variant = 0): Planned
  * Rebuild: same main lifts, next set of accessories. Same rotation key, so
  * refresh keeps it. Null when no accessory has an alternative.
  */
-export function rebuildPlan(data: AppData): AppData | null {
+export function rebuildPlan(data: AppData, now = new Date().toISOString()): AppData | null {
   const cur = data.plannedSession;
   if (!cur || data.activeSession) return null;
   const ids = (p: PlannedSession) => p.exercises.map((e) => e.exerciseId).join();
   for (let step = 1; step <= 6; step++) {
-    const next = buildPlan(data, cur.splitId, (cur.variant ?? 0) + step);
+    const next = buildPlan(data, cur.splitId, (cur.variant ?? 0) + step, now);
     if (ids(next) !== ids(cur)) return { ...data, plannedSession: next };
   }
   return null;
 }
 
-/** Builds the next plan only when there is none or the rotation moved on. */
-export function ensurePlan(data: AppData): AppData {
+/**
+ * Builds the next plan only when there is none, the rotation moved on, or a
+ * break changed how much to ease back in. Three weeks off restarts the split.
+ */
+export function ensurePlan(data: AppData, now = new Date().toISOString()): AppData {
   const splitId = data.program.splitId;
   if (!splitId) return data.plannedSession ? { ...data, plannedSession: null } : data;
+  const tier = tierAt(data, now);
+  const rot = data.program.rotation[splitId];
+  if (tier >= 2 && rot.sessionIndex !== 0 && !data.activeSession)
+    data = { ...data, program: { ...data.program, rotation: { ...data.program.rotation, [splitId]: { sessionIndex: 0, cycle: rot.cycle + 1 } } } };
   const { sessionIndex, cycle } = data.program.rotation[splitId];
-  if (data.plannedSession?.key === planKey(splitId, sessionIndex, cycle)) return data;
-  return { ...data, plannedSession: buildPlan(data, splitId) };
+  const cur = data.plannedSession;
+  if (cur?.key === planKey(splitId, sessionIndex, cycle) && (cur.returnTier ?? 0) === tier) return data;
+  return { ...data, plannedSession: buildPlan(data, splitId, 0, now) };
 }
 
 /** Same movement pattern, slot candidates first; for swapping during a workout. */

@@ -163,18 +163,21 @@ await click('[data-vaul-drawer] button::-p-text(Done)');
 await sleep(600);
 check('Rotation advanced to B after finishing A', (await text()).includes('Full Body B'));
 t = await text();
-check('Done-today card and Next time label after finishing', t.includes('Done today') && t.includes('Next time'));
-const listCount = () => page.$$eval('ol li', (els) => els.length);
-const collapsed = await listCount();
-await click('button[aria-expanded]');
-await sleep(500);
-check('Up Next collapses after training and expands on tap', collapsed === 0 && (await listCount()) > 0);
+check('Done-today card and Next line after finishing', t.includes('Done today') && t.includes('Next:') && !t.includes('Start workout'));
 await shot('05b-today-done');
+/** After today's workout the start button lives in the session menu as Train again. */
+async function startAgain() {
+  if (await page.$('button[aria-label="Start workout"]')) return click('button[aria-label="Start workout"]');
+  await click('button[aria-label="Session options"]');
+  await sleep(300);
+  await click('[role="menuitem"]::-p-text(Train again)');
+}
+
 await reload();
 check('Refresh does not advance rotation', (await text()).includes('Full Body B'));
 
 // Discard does not advance
-await click('button[aria-label="Start workout"]');
+await startAgain();
 await sleep(700);
 await click('button::-p-text(Discard workout)');
 await click('[role="alertdialog"] button::-p-text(Discard)');
@@ -197,7 +200,7 @@ check('Viewing history does not advance rotation', (await text()).includes('Full
 
 // Finish B and C, expect A of cycle 2 with progression from the logged sets
 for (let k = 0; k < 2; k++) {
-  await click('button[aria-label="Start workout"]');
+  await startAgain();
   await sleep(700);
   await logAll(30);
   await finish();
@@ -205,9 +208,9 @@ for (let k = 0; k < 2; k++) {
   await sleep(1200);
 }
 t = await text();
-check('C completes the cycle: Full Body A, Cycle 2', t.includes('Full Body A') && t.includes('Cycle 2'));
+check('C completes the cycle: next is Full Body A', t.includes('Next: Full Body A'));
 await shot('08-today-cycle2');
-await click('button[aria-label="Start workout"]');
+await startAgain();
 await sleep(900);
 t = await text();
 check('Targets explain themselves from last session', t.includes('Keeping 40 kg. Beat 6 \u00b7 6 \u00b7 6.'));

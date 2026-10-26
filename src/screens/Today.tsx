@@ -4,6 +4,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Check, ChevronRight, Ellipsis, GlassWater, Minus, Pill, Play, Plus, RefreshCw, Repeat, SkipForward, Sparkles } from 'lucide-react';
 import { getExercise } from '@/domain/catalogue';
 import { rebuildPlan } from '@/domain/planner';
+import { daysOff } from '@/domain/progression';
 import { addWater, DEFAULT_WATER_REMINDERS, GLASS_ML, waterPace } from '@/domain/water';
 import { skipPlannedSession, startSession } from '@/domain/session';
 import { SPLITS } from '@/domain/splits';
@@ -95,11 +96,35 @@ function UpNext({ data }: { data: AppData }) {
 
   const today = dayjs().format('YYYY-MM-DD');
   const doneToday = !active ? [...data.sessions].reverse().find((s) => s.finishedAt && dayjs(s.startedAt).format('YYYY-MM-DD') === today) : undefined;
-  const [open, setOpen] = useUpNextOpen(today, !doneToday);
+  const [open, setOpen] = useUpNextOpen(today);
+
+  // Today's work is done: celebrate it, show what's next, keep a second session one tap away.
+  if (doneToday)
+    return (
+      <>
+        <DoneToday s={doneToday} />
+        <div className="mt-2 flex items-center justify-between gap-3 pl-1">
+          <span className="truncate text-subhead text-label-2">
+            Next: <span className="font-semibold text-label">{plan.title}</span>
+          </span>
+          <Menu
+            label="Session options"
+            trigger={
+              <Button variant="gray" size="icon" aria-label="Session options">
+                <Ellipsis className="size-5" />
+              </Button>
+            }
+            items={[
+              { label: 'Train again', icon: <Play className="size-4" />, onSelect: start },
+              { label: 'Change split', icon: <Repeat className="size-4" />, onSelect: () => openSheet('split') },
+            ]}
+          />
+        </div>
+      </>
+    );
 
   return (
     <>
-      {doneToday && <DoneToday s={doneToday} />}
       <Card className="mt-4 overflow-hidden">
       <div className="flex items-start justify-between gap-3 px-4 pt-4">
         <button
@@ -107,7 +132,7 @@ function UpNext({ data }: { data: AppData }) {
           aria-expanded={active ? true : open}
           onClick={() => !active && setOpen(!open)}
         >
-          <div className="text-footnote font-semibold uppercase tracking-wide text-pink">{active ? 'In progress' : doneToday ? 'Next time' : 'Up next'}</div>
+          <div className="text-footnote font-semibold uppercase tracking-wide text-pink">{active ? 'In progress' : 'Up next'}</div>
           <div className="mt-0.5 flex items-center gap-1.5 text-title2 font-bold">
             <span className="truncate">{active ? active.title : plan.title}</span>
             {!active && (
@@ -135,6 +160,8 @@ function UpNext({ data }: { data: AppData }) {
         )}
       </div>
 
+      {!active && plan.returnTier && <ReturnNote tier={plan.returnTier} days={daysOff(data.sessions, nowIso())} />}
+
       <AnimatePresence initial={false}>
         {!active && open && (
           <motion.ol
@@ -156,9 +183,9 @@ function UpNext({ data }: { data: AppData }) {
         {active ? (
           <ResumeButton startedAt={active.startedAt} done={active.exercises.reduce((n, e) => n + e.sets.filter((s) => s.status === 'done').length, 0)} />
         ) : (
-          <Button size="lg" aria-label="Start workout" variant={doneToday ? 'tinted' : 'primary'} onClick={start} disabled={plan.exercises.every((e) => !e.exerciseId)}>
+          <Button size="lg" aria-label="Start workout" onClick={start} disabled={plan.exercises.every((e) => !e.exerciseId)}>
             <Play className="size-5 fill-current" />
-            {doneToday ? `Start ${plan.title} anyway` : 'Start workout'}
+            Start workout
           </Button>
         )}
       </div>
@@ -167,10 +194,25 @@ function UpNext({ data }: { data: AppData }) {
   );
 }
 
+const RETURN_COPY: Record<1 | 2 | 3, string> = {
+  1: 'Same loads as last time, no jumps yet.',
+  2: 'Loads eased 15%, one set fewer.',
+  3: 'Loads eased 30%, one set fewer.',
+};
+
+/** Shown on a plan built after a long break, so lighter targets read as intended. */
+function ReturnNote({ tier, days }: { tier: 1 | 2 | 3; days: number | null }) {
+  return (
+    <div className="mx-4 mt-3 rounded-xl bg-orange/15 px-3 py-2 text-subhead">
+      <span className="font-semibold">Welcome back{days != null && ` after ${days} days`}.</span> {RETURN_COPY[tier]}
+    </div>
+  );
+}
+
 const OPEN_KEY = 'repwise_upnext';
 
-/** Open by default before today's workout, closed after; a manual toggle sticks for the day. */
-function useUpNextOpen(today: string, fallback: boolean): [boolean, (v: boolean) => void] {
+/** Open by default; a manual toggle sticks for the day. */
+function useUpNextOpen(today: string, fallback = true): [boolean, (v: boolean) => void] {
   const read = () => {
     try {
       const v = JSON.parse(localStorage.getItem(OPEN_KEY) ?? 'null') as { date: string; open: boolean } | null;
