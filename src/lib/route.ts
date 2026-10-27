@@ -20,10 +20,11 @@ export function go(tab: Tab) {
   scrollTo({ top: 0 });
 }
 
-/** Sheets push a history entry so Android's back button closes them. */
-export function openSheet(sheet: string) {
+/** Sheets push a history entry so Android's back button closes them. `replace` swaps the open sheet for another. */
+export function openSheet(sheet: string, opts?: { replace?: boolean }) {
   const next = { tab: useRoute.getState().tab, sheet };
-  history.pushState({ sheet: true }, '', href(next));
+  if (opts?.replace && history.state?.sheet) history.replaceState({ sheet: true }, '', href(next));
+  else history.pushState({ sheet: true }, '', href(next));
   useRoute.setState(next);
 }
 

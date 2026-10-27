@@ -1,5 +1,5 @@
 import dayjs from 'dayjs';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Check, ChevronRight, Ellipsis, Plane, GlassWater, Minus, Pill, Play, Plus, RefreshCw, Repeat, SkipForward, Sparkles } from 'lucide-react';
 import { getExercise } from '@/domain/catalogue';
@@ -29,6 +29,8 @@ import { GuideButton } from './Guide';
 import { NotifyPrompt } from '@/components/NotifyPrompt';
 import { StreakChip } from '@/components/StreakChip';
 import { LeaveCard } from './today/LeaveCard';
+import { AddChallengeRow, ChallengeCard } from './today/ChallengeCard';
+import { ackChallengeFail, activeRuns, restartChallenge } from '@/domain/challenges';
 
 const RING = { workouts: '#FF2D55', sets: '#34C759', water: '#007AFF' };
 
@@ -56,6 +58,7 @@ export function Today() {
         <>
           <LeaveCard data={data} today={now.format('YYYY-MM-DD')} />
           <UpNext data={data} />
+          <Challenges data={data} today={now.format('YYYY-MM-DD')} nowMinutes={nowMinutes} />
           <NotifyPrompt />
           <Water data={data} nowMinutes={nowMinutes} />
           <Supplements data={data} nowMinutes={nowMinutes} />
@@ -64,6 +67,30 @@ export function Today() {
         </>
       )}
     </Screen>
+  );
+}
+
+function Challenges({ data, today, nowMinutes }: { data: AppData; today: string; nowMinutes: number }) {
+  const asked = useRef(new Set<string>());
+  // A strict run that failed overnight asks once whether to start again.
+  useEffect(() => {
+    const failed = data.challenges.find((r) => r.status === 'failed' && !r.failAck && !asked.current.has(r.id));
+    if (!failed) return;
+    asked.current.add(failed.id);
+    void confirm({ title: `Day ${failed.failedDay} missed`, message: `Restart ${failed.title} from day 1?`, confirmLabel: 'Restart', cancelLabel: 'Not now' }).then((yes) => {
+      act((d) => (yes ? restartChallenge(d, failed.id, today) : ackChallengeFail(d, failed.id)));
+      if (yes) toast(`${failed.title} restarted. Day 1`);
+    });
+  }, [data.challenges, today]);
+
+  const runs = activeRuns(data);
+  if (!runs.length) return <AddChallengeRow />;
+  return (
+    <>
+      {runs.map((r) => (
+        <ChallengeCard key={r.id} data={data} run={r} today={today} nowMinutes={nowMinutes} />
+      ))}
+    </>
   );
 }
 

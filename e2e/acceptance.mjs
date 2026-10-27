@@ -320,6 +320,31 @@ t = await text();
 check('History shows the streak header and the day card', t.includes('Best') && t.includes('day streak') && !!(await page.$('button[aria-label="Water details"]')));
 await shot('15-history-calendar');
 
+// Challenges: start a habit stack, tick it on Today, see it in History
+await click('nav button::-p-text(Today)');
+await sleep(400);
+await click('button::-p-text(Add a challenge)');
+await sleep(600);
+await click('button::-p-text(Habit stack)');
+await sleep(600);
+await page.type('input[aria-label="Anchor habit"]', 'have my coffee');
+await page.type('input[aria-label="New habit 1"]', 'Stretch');
+await click('button::-p-text(Start challenge)');
+await sleep(800);
+check('Starting opens the run, and Back returns to the list', (await text()).includes('0 of 1 days complete'));
+await page.keyboard.press('Escape');
+await sleep(600);
+await page.keyboard.press('Escape');
+await sleep(600);
+check('Habit stack shows on Today as day 1', (await text()).includes('Day 1 of 30'));
+await click('button[role="checkbox"][aria-label="Stretch"]');
+await sleep(300);
+check('Ticking a challenge task marks it done', (await page.$eval('button[role="checkbox"][aria-label="Stretch"]', (b) => b.getAttribute('aria-checked'))) === 'true');
+await click('nav button::-p-text(History)');
+await sleep(500);
+check('History day card lists the challenge', !!(await page.$('button[aria-label="Habit stack details"]')));
+await shot('16-history-challenge');
+
 // Loud water card: fresh context, clock pinned to 15:00 Asia/Kolkata, 0 glasses -> 4 expected, 4 behind
 {
   const ctx = await browser.createBrowserContext();
