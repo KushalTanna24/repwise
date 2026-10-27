@@ -11,6 +11,8 @@ const lastDay = (run: ChallengeRun) => fmt(dayjs(run.startDate).add(run.days - 1
 const lockedBefore = (today: string) => fmt(dayjs(today).subtract(1, 'day'));
 
 export const activeRuns = (data: AppData) => data.challenges.filter((r) => r.status === 'active');
+/** Runs to show on Today: running today or starting soon. A run whose last day was yesterday waits to settle off-screen. */
+export const runsForToday = (data: AppData, today: string) => activeRuns(data).filter((r) => r.startDate > today || runCoversDate(r, today));
 export const canStart = (data: AppData) => activeRuns(data).length < MAX_ACTIVE;
 
 export function startChallenge(data: AppData, draft: ChallengeDraft, startDate: string, id: string = crypto.randomUUID()): AppData {
@@ -26,14 +28,29 @@ export function runCoversDate(run: ChallengeRun, date: string): boolean {
   return date >= run.startDate && date <= lastDay(run) && (!run.endedOn || date <= run.endedOn);
 }
 
+/** Dates with a workout, built once per document; taskDone runs for every day of every run. */
+const workoutDays = new WeakMap<AppData, { any: Set<string>; run: Set<string> }>();
+function workoutsOf(data: AppData) {
+  let w = workoutDays.get(data);
+  if (!w) {
+    w = { any: new Set(data.extras.map((x) => x.date)), run: new Set(data.extras.filter((x) => x.type === 'run').map((x) => x.date)) };
+    for (const s of data.sessions) if (s.finishedAt) w.any.add(dayjs(s.startedAt).format('YYYY-MM-DD'));
+    workoutDays.set(data, w);
+  }
+  return w;
+}
+
+/** Auto tasks tick themselves; the outdoor one can also be ticked for a ride, hike or anything not logged as a run. */
+export const canTickByHand = (task: ChallengeTask) => !task.auto || task.auto === 'workout-outdoor';
+
 export function taskDone(data: AppData, run: ChallengeRun, task: ChallengeTask, date: string): boolean {
   if (run.ticks[date]?.includes(task.id)) return true;
   if (task.kind === 'photo' && photoFor(data, run.id, date)) return true;
   switch (task.auto) {
     case 'workout':
-      return data.extras.some((x) => x.date === date) || data.sessions.some((s) => s.finishedAt && dayjs(s.startedAt).format('YYYY-MM-DD') === date);
+      return workoutsOf(data).any.has(date);
     case 'workout-outdoor':
-      return data.extras.some((x) => x.date === date && x.type === 'run');
+      return workoutsOf(data).run.has(date);
     case 'water':
       return (data.water[date] ?? 0) >= (task.target ?? data.profile.waterGoal);
     default:
@@ -55,7 +72,7 @@ export function toggleTask(data: AppData, runId: string, taskId: string, date: s
   if (!canTick(date, today)) return data;
   return updateRun(data, runId, (r) => {
     const task = r.tasks.find((t) => t.id === taskId);
-    if (!task || task.auto || r.status !== 'active' || !runCoversDate(r, date)) return null;
+    if (!task || !canTickByHand(task) || r.status !== 'active' || !runCoversDate(r, date)) return null;
     const cur = r.ticks[date] ?? [];
     const ticks = cur.includes(taskId) ? cur.filter((x) => x !== taskId) : [...cur, taskId];
     return { ...r, ticks: { ...r.ticks, [date]: ticks } };

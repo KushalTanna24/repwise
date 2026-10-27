@@ -33,7 +33,7 @@ import { FastCard } from './today/FastCard';
 import { activeFast, elapsedHours } from '@/domain/fasting';
 import type { MenuItem } from '@/components/ui/menu';
 import { AddChallengeRow, ChallengeCard } from './today/ChallengeCard';
-import { ackChallengeFail, activeRuns, restartChallenge } from '@/domain/challenges';
+import { ackChallengeFail, activeRuns, restartChallenge, runsForToday } from '@/domain/challenges';
 
 const RING = { workouts: '#FF2D55', sets: '#34C759', water: '#007AFF' };
 
@@ -95,8 +95,8 @@ function Challenges({ data, today, nowMinutes }: { data: AppData; today: string;
     });
   }, [data.challenges, today]);
 
-  const runs = activeRuns(data);
-  if (!runs.length) return <AddChallengeRow />;
+  if (!activeRuns(data).length) return <AddChallengeRow />;
+  const runs = runsForToday(data, today);
   return (
     <>
       {runs.map((r) => (

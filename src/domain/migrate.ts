@@ -180,5 +180,7 @@ export function parseImport(json: string, now: string): ImportResult {
 }
 
 export function isEmpty(data: AppData): boolean {
-  return data.sessions.length === 0 && data.bodyweights.length === 0 && data.extras.length === 0;
+  // Anything a user built up counts, or sync would let an empty device overwrite it.
+  const lists = [data.sessions, data.bodyweights, data.extras, data.challenges ?? [], data.fasts ?? [], data.leave ?? [], data.photos ?? []];
+  return lists.every((l) => l.length === 0);
 }

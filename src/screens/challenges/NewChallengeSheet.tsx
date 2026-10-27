@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import dayjs from 'dayjs';
 import { Plus, X } from 'lucide-react';
-import { habitStackDraft, HABIT_STACK_DAYS, seventyFiveDraft, type ChallengeDraft } from '@/domain/challengeTemplates';
+import { customDraft, habitStackDraft, HABIT_STACK_DAYS, seventyFiveDraft, type ChallengeDraft, type CustomTaskInput } from '@/domain/challengeTemplates';
 import { startChallenge } from '@/domain/challenges';
-import type { ChallengeRun, ChallengeTask } from '@/domain/types';
+import type { ChallengeRun } from '@/domain/types';
 import { Sheet } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { List } from '@/components/ui/card';
@@ -12,21 +12,18 @@ import { Segmented } from '@/components/ui/segmented';
 import { openSheet } from '@/lib/route';
 import { toast } from '@/lib/toast';
 import { useToday } from '@/lib/useToday';
-import { act } from '@/store/app';
+import { act, useData } from '@/store/app';
 
 type TemplateId = ChallengeRun['templateId'];
-type Link = 'none' | 'workout' | 'water';
-interface TaskInput {
-  label: string;
-  kind: ChallengeTask['kind'];
-  link: Link;
-}
+type TaskInput = CustomTaskInput;
+const BLANK_TASK: TaskInput = { label: '', kind: 'tick', link: 'none' };
 
 const TITLES: Record<TemplateId, string> = { '75-day': '75-Day Challenge', 'habit-stack': 'Habit stack', custom: 'Build your own' };
 const MAX_TASKS = 10;
 
 export function NewChallengeSheet({ templateId, onClose }: { templateId: TemplateId | null; onClose: () => void }) {
   const today = useToday();
+  const waterGoal = useData().profile.waterGoal;
   const [when, setWhen] = useState<'today' | 'tomorrow'>('today');
   const [anchor, setAnchor] = useState('');
   const [habits, setHabits] = useState(['', '', '']);
@@ -34,7 +31,19 @@ export function NewChallengeSheet({ templateId, onClose }: { templateId: Templat
   const [name, setName] = useState('');
   const [days, setDays] = useState('30');
   const [rule, setRule] = useState<'strict' | 'lenient'>('lenient');
-  const [tasks, setTasks] = useState<TaskInput[]>([{ label: '', kind: 'tick', link: 'none' }]);
+  const [tasks, setTasks] = useState<TaskInput[]>([BLANK_TASK]);
+  // The sheet stays mounted; each opening starts from a clean form.
+  useEffect(() => {
+    if (!templateId) return;
+    setWhen('today');
+    setAnchor('');
+    setHabits(['', '', '']);
+    setLength('30');
+    setName('');
+    setDays('30');
+    setRule('lenient');
+    setTasks([BLANK_TASK]);
+  }, [templateId]);
 
   function draft(): ChallengeDraft | string {
     if (templateId === '75-day') return seventyFiveDraft();
@@ -49,19 +58,7 @@ export function NewChallengeSheet({ templateId, onClose }: { templateId: Templat
     if (!name.trim()) return 'Name your challenge';
     if (!(n >= 7 && n <= 365)) return 'Pick 7 to 365 days';
     if (!list.length) return 'Add at least one task';
-    return {
-      templateId: 'custom',
-      title: name.trim(),
-      days: n,
-      rule,
-      tasks: list.map((t, i) => ({
-        id: `c${i + 1}`,
-        label: t.label.trim(),
-        // A linked task ticks itself, so it is never a photo.
-        kind: t.link === 'none' ? t.kind : 'tick',
-        ...(t.link !== 'none' ? { auto: t.link } : {}),
-      })),
-    };
+    return customDraft({ title: name.trim(), days: n, rule, tasks: list.map((t) => ({ ...t, label: t.label.trim() })) }, waterGoal);
   }
 
   function start() {
@@ -138,7 +135,7 @@ export function NewChallengeSheet({ templateId, onClose }: { templateId: Templat
             ))}
           </div>
           {tasks.length < MAX_TASKS && (
-            <Button variant="plain" className="mt-2" onClick={() => setTasks([...tasks, { label: '', kind: 'tick', link: 'none' }])}>
+            <Button variant="plain" className="mt-2" onClick={() => setTasks([...tasks, BLANK_TASK])}>
               <Plus className="size-4" /> Add task
             </Button>
           )}

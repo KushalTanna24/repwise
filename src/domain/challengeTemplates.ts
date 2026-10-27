@@ -1,4 +1,4 @@
-import type { ChallengeRun } from './types';
+import type { ChallengeRun, ChallengeTask } from './types';
 
 export type ChallengeDraft = Pick<ChallengeRun, 'templateId' | 'title' | 'days' | 'rule' | 'tasks' | 'anchor'>;
 
@@ -31,5 +31,29 @@ export function habitStackDraft(anchor: string, habits: string[], days: (typeof 
     rule: 'lenient',
     anchor,
     tasks: habits.map((label, i) => ({ id: `h${i + 1}`, label, kind: 'tick' as const })),
+  };
+}
+
+export interface CustomTaskInput {
+  label: string;
+  kind: ChallengeTask['kind'];
+  link: 'none' | 'workout' | 'water';
+}
+
+/** A built-your-own run. Water tasks keep today's goal, so a later goal change can't fail old days. */
+export function customDraft(input: { title: string; days: number; rule: ChallengeRun['rule']; tasks: CustomTaskInput[] }, waterGoal: number): ChallengeDraft {
+  return {
+    templateId: 'custom',
+    title: input.title,
+    days: input.days,
+    rule: input.rule,
+    tasks: input.tasks.map((t, i) => ({
+      id: `c${i + 1}`,
+      label: t.label,
+      // A linked task ticks itself, so it is never a photo.
+      kind: t.link === 'none' ? t.kind : 'tick',
+      ...(t.link === 'workout' ? { auto: 'workout' as const } : {}),
+      ...(t.link === 'water' ? { auto: 'water' as const, target: waterGoal } : {}),
+    })),
   };
 }

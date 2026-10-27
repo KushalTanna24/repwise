@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import dayjs from 'dayjs';
 import { emptyAppData } from './catalogue';
-import { habitStackDraft, seventyFiveDraft, type ChallengeDraft } from './challengeTemplates';
-import { activeRuns, canStart, challengeScore, restartChallenge, runCoversDate, settleChallenges, startChallenge, taskDone, toggleTask } from './challenges';
+import { customDraft, habitStackDraft, seventyFiveDraft, type ChallengeDraft } from './challengeTemplates';
+import { activeRuns, canStart, challengeScore, restartChallenge, runCoversDate, runsForToday, settleChallenges, startChallenge, taskDone, toggleTask } from './challenges';
 import { addPhoto } from './photos';
 import type { AppData, WorkoutSession } from './types';
 
@@ -130,6 +130,22 @@ describe('lifecycle', () => {
   it('a lenient run with misses still ends as done after its last day locks', () => {
     const d = ticked(startChallenge(base(), custom('lenient', 7), '2026-10-15', 'r'), 'r', ['2026-10-15']);
     expect(run(settleChallenges(d, TODAY), 'r').status).toBe('done');
+  });
+
+  it('the day after its last day, a run is off Today even before it settles', () => {
+    const d = startChallenge(startChallenge(base(), custom('lenient', 7), '2026-10-20', 'ended'), custom('lenient'), '2026-10-28', 'soon');
+    expect(runsForToday(d, TODAY).map((r) => r.id)).toEqual(['soon']);
+  });
+
+  it('the outdoor workout can also be ticked by hand', () => {
+    const d = startChallenge(base(), seventyFiveDraft(), TODAY, 'r');
+    const r = run(toggleTask(d, 'r', 'outdoor', TODAY, TODAY), 'r');
+    expect(taskDone(d, r, r.tasks.find((t) => t.id === 'outdoor')!, TODAY)).toBe(true);
+  });
+
+  it('a custom water task keeps the goal it was created with', () => {
+    const draft = customDraft({ title: 'Mine', days: 30, rule: 'strict', tasks: [{ label: 'Water', kind: 'tick', link: 'water' }] }, 8);
+    expect(draft.tasks[0]).toMatchObject({ auto: 'water', target: 8, kind: 'tick' });
   });
 
   it('a run starting tomorrow covers nothing yet and never fails', () => {

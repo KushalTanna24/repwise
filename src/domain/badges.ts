@@ -46,8 +46,18 @@ export const BADGES: BadgeDef[] = [
 const day = (iso: string) => dayjs(iso).format('YYYY-MM-DD');
 const FINISH: Record<ChallengeRun['templateId'], BadgeId> = { '75-day': 'finish-75', 'habit-stack': 'finish-stack', custom: 'finish-custom' };
 
-/** Every badge earned so far, with the local date it was earned. */
+const memo = new WeakMap<AppData, { today: string; out: Map<BadgeId, string> }>();
+
+/** Every badge earned so far, with the local date it was earned. Memoized per document. */
 export function earnedBadges(data: AppData, today: string): Map<BadgeId, string> {
+  const hit = memo.get(data);
+  if (hit?.today === today) return hit.out;
+  const out = computeEarned(data, today);
+  memo.set(data, { today, out });
+  return out;
+}
+
+function computeEarned(data: AppData, today: string): Map<BadgeId, string> {
   const out = new Map<BadgeId, string>();
   const first = (id: BadgeId, date: string | undefined) => date && (!out.has(id) || date < out.get(id)!) && out.set(id, date);
 

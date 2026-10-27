@@ -3,6 +3,8 @@ import dayjs from 'dayjs';
 import { emptyAppData } from './catalogue';
 import { deleteHistorySession } from './session';
 import { streak, withStreakHint } from './streak';
+import { startChallenge } from './challenges';
+import { seventyFiveDraft } from './challengeTemplates';
 import type { AppData, WorkoutSession } from './types';
 
 const TODAY = '2026-10-27';
@@ -66,5 +68,28 @@ describe('streak', () => {
 
   it('withStreakHint writes today, count and lit', () => {
     expect(withStreakHint(lit(base(), range(3, 1)), TODAY).streakHint).toEqual({ date: TODAY, current: 3, lit: false });
+  });
+});
+
+describe('streak cost', () => {
+  it('the hinted object reuses the replay', () => {
+    const d = lit(base(), range(5, 1));
+    const hinted = withStreakHint(d, TODAY);
+    expect(streak(hinted, TODAY)).toBe(streak(d, TODAY));
+  });
+
+  it('two years with three 75-day runs replays within budget', () => {
+    let d = base();
+    const days = Array.from({ length: 700 }, (_, i) => back(i));
+    d = {
+      ...d,
+      water: Object.fromEntries(days.map((x) => [x, d.profile.waterGoal])),
+      sessions: days.filter((_, i) => i % 2 === 0).map((x) => ({ id: x, planKey: null, splitId: null, sessionIndex: null, cycle: null, title: 'A', startedAt: `${x}T07:00:00`, finishedAt: `${x}T08:00:00`, exercises: [] })),
+    };
+    for (const id of ['a', 'b', 'c']) d = startChallenge(d, seventyFiveDraft(), back(60), id);
+    streak({ ...d }, TODAY); // warm up
+    const t = performance.now();
+    streak({ ...d }, TODAY);
+    expect(performance.now() - t).toBeLessThan(60);
   });
 });

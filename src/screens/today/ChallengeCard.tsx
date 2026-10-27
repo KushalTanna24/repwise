@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { Camera, Check, ChevronRight, Loader2, Trophy } from 'lucide-react';
-import { dayNumber, taskDone, toggleTask } from '@/domain/challenges';
+import { canTickByHand, dayNumber, taskDone, toggleTask } from '@/domain/challenges';
 import { addPhoto, photoFor, removePhoto } from '@/domain/photos';
 import { PhotoThumb } from '@/components/PhotoThumb';
 import { deletePhotoObject, resizeToJpeg, uploadPhoto } from '@/lib/photos';
@@ -73,7 +73,7 @@ function TaskRow({ data, run, task, today }: { data: AppData; run: ChallengeRun;
   // Signed out, a photo task is a plain tick; the photo needs somewhere private to live.
   if (task.kind !== 'photo' || !user || (done && !photo)) {
     return (
-      <button role="checkbox" aria-checked={done} aria-label={task.label} disabled={!!task.auto} onClick={() => act((d) => toggleTask(d, run.id, task.id, today, today))} className={row}>
+      <button role="checkbox" aria-checked={done} aria-label={task.label} disabled={!canTickByHand(task)} onClick={() => act((d) => toggleTask(d, run.id, task.id, today, today))} className={row}>
         <Tick done={done} />
         <span className="min-w-0 flex-1">
           <span className={cn('block text-body', done && 'text-label-2')}>{task.label}</span>
@@ -111,7 +111,12 @@ function TaskRow({ data, run, task, today }: { data: AppData; run: ChallengeRun;
       ) : (
         <Camera className="size-5 shrink-0 text-blue" />
       )}
-      <input ref={input} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => void pick(e.target.files?.[0])} />
+      <input ref={input} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => {
+          void pick(e.target.files?.[0]);
+          // Cleared so picking the same photo again after a failed upload still fires.
+          e.target.value = '';
+        }}
+      />
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import dayjs from 'dayjs';
 import { activeRuns } from '@/domain/challenges';
 import { currentLeave, endLeave, MAX_BACKDATE_DAYS, startLeave } from '@/domain/leave';
@@ -21,6 +21,14 @@ export function LeaveSheet({ open, onClose }: { open: boolean; onClose: () => vo
   const [openEnded, setOpenEnded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const strict = activeRuns(data).filter((r) => r.rule === 'strict');
+  // The sheet stays mounted for days in an installed app; dates start from today on every opening.
+  useEffect(() => {
+    if (!open) return;
+    setStart(today);
+    setEnd(dayjs(today).add(7, 'day').format('YYYY-MM-DD'));
+    setOpenEnded(false);
+    setError(null);
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function begin() {
     const r = startLeave(data, start, openEnded ? null : end, today);

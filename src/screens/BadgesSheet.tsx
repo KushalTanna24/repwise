@@ -10,7 +10,8 @@ import { Done } from './profile/Done';
 export function BadgesSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const data = useData();
   const today = useToday();
-  const earned = earnedBadges(data, today);
+  // Always mounted; only do the work while it's showing.
+  const earned = open ? earnedBadges(data, today) : new Map();
   return (
     <Sheet open={open} onClose={onClose} tall title="Badges" right={<Done onClose={onClose} />}>
       <p className="px-4 pb-3 text-subhead text-label-2">

@@ -84,4 +84,12 @@ describe('4.3 fields', () => {
   });
 
   it('new users start with seenBadges = []', () => expect(emptyAppData(NOW).seenBadges).toEqual([]));
+
+  it('a doc holding only challenges, fasts, leave or photos is not empty', () => {
+    const run = { id: 'r', templateId: 'custom' as const, title: 'X', startDate: '2026-10-17', days: 7, rule: 'lenient' as const, tasks: [], ticks: {}, status: 'active' as const, restarts: 0 };
+    expect(isEmpty({ ...emptyAppData(NOW), challenges: [run] })).toBe(false);
+    expect(isEmpty({ ...emptyAppData(NOW), fasts: [{ id: 'f', startedAt: NOW, endedAt: null, targetHours: 16 }] })).toBe(false);
+    expect(isEmpty({ ...emptyAppData(NOW), leave: [{ start: '2026-10-17', end: null }] })).toBe(false);
+    expect(isEmpty({ ...emptyAppData(NOW), photos: [{ id: 'p', date: '2026-10-17', path: 'u/p.jpg' }] })).toBe(false);
+  });
 });

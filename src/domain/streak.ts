@@ -62,5 +62,8 @@ export function streak(data: AppData, today: string): StreakResult {
 /** Cache for the server's streak nudge; the app never reads it. */
 export function withStreakHint(data: AppData, today: string): AppData {
   const s = streak(data, today);
-  return { ...data, streakHint: { date: today, current: s.current, lit: s.todayLit } };
+  const next = { ...data, streakHint: { date: today, current: s.current, lit: s.todayLit } };
+  // Same goals, so the same replay; screens reading the stored object hit the memo.
+  memo.set(next, { today, result: s });
+  return next;
 }
