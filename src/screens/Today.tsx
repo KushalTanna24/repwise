@@ -1,7 +1,7 @@
 import dayjs from 'dayjs';
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { Check, ChevronRight, Ellipsis, Plane, GlassWater, Minus, Pill, Play, Plus, RefreshCw, Repeat, SkipForward, Sparkles } from 'lucide-react';
+import { Check, ChevronRight, Ellipsis, Plane, Timer, GlassWater, Minus, Pill, Play, Plus, RefreshCw, Repeat, SkipForward, Sparkles } from 'lucide-react';
 import { getExercise } from '@/domain/catalogue';
 import { rebuildPlan } from '@/domain/planner';
 import { daysOff } from '@/domain/progression';
@@ -29,6 +29,9 @@ import { GuideButton } from './Guide';
 import { NotifyPrompt } from '@/components/NotifyPrompt';
 import { StreakChip } from '@/components/StreakChip';
 import { LeaveCard } from './today/LeaveCard';
+import { FastCard } from './today/FastCard';
+import { activeFast, elapsedHours } from '@/domain/fasting';
+import type { MenuItem } from '@/components/ui/menu';
 import { AddChallengeRow, ChallengeCard } from './today/ChallengeCard';
 import { ackChallengeFail, activeRuns, restartChallenge } from '@/domain/challenges';
 
@@ -59,6 +62,7 @@ export function Today() {
           <LeaveCard data={data} today={now.format('YYYY-MM-DD')} />
           <UpNext data={data} />
           <Challenges data={data} today={now.format('YYYY-MM-DD')} nowMinutes={nowMinutes} />
+          <FastCard data={data} now={now.toISOString()} />
           <NotifyPrompt />
           <Water data={data} nowMinutes={nowMinutes} />
           <Supplements data={data} nowMinutes={nowMinutes} />
@@ -68,6 +72,14 @@ export function Today() {
       )}
     </Screen>
   );
+}
+
+/** Start a fast, or show the running one (disabled) in the session menu. */
+function fastItem(data: AppData): MenuItem {
+  const f = activeFast(data);
+  return f
+    ? { label: `Fasting · ${Math.floor(elapsedHours(f, nowIso()))}h`, icon: <Timer className="size-4" />, onSelect: () => {}, disabled: true }
+    : { label: 'Start a fast', icon: <Timer className="size-4" />, onSelect: () => openSheet('fast') };
 }
 
 function Challenges({ data, today, nowMinutes }: { data: AppData; today: string; nowMinutes: number }) {
@@ -147,6 +159,7 @@ function UpNext({ data }: { data: AppData }) {
             items={[
               { label: 'Train again', icon: <Play className="size-4" />, onSelect: start },
               { label: 'Change split', icon: <Repeat className="size-4" />, onSelect: () => openSheet('split') },
+              fastItem(data),
               { label: 'Start leave', icon: <Plane className="size-4" />, onSelect: () => openSheet('leave') },
             ]}
           />
@@ -186,6 +199,7 @@ function UpNext({ data }: { data: AppData }) {
               { label: 'Rebuild workout', icon: <RefreshCw className="size-4" />, onSelect: rebuild },
               { label: 'Skip this session', icon: <SkipForward className="size-4" />, onSelect: skip },
               { label: 'Change split', icon: <Repeat className="size-4" />, onSelect: () => openSheet('split') },
+              fastItem(data),
               { label: 'Start leave', icon: <Plane className="size-4" />, onSelect: () => openSheet('leave') },
             ]}
           />

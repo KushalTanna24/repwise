@@ -18,9 +18,10 @@ export const FAST_MILESTONES_H = [12, 24, 36];
 
 export const activeFast = (data: AppData): Fast | null => data.fasts.find((f) => !f.endedAt) ?? null;
 
-export const elapsedHours = (fast: Fast, now: string) => (Date.parse(fast.endedAt ?? now) - Date.parse(fast.startedAt)) / 3_600_000;
+/** Never negative: a clock a little behind the start reads as zero. */
+export const elapsedHours = (fast: Fast, now: string) => Math.max(0, (Date.parse(fast.endedAt ?? now) - Date.parse(fast.startedAt)) / 3_600_000);
 
-export const fastPhase = (hours: number) => FAST_PHASES.filter((p) => hours >= p.fromH).at(-1)!.label;
+export const fastPhase = (hours: number) => (FAST_PHASES.filter((p) => hours >= p.fromH).at(-1) ?? FAST_PHASES[0]).label;
 
 export const fastReached = (fast: Fast) => !!fast.endedAt && elapsedHours(fast, fast.endedAt) >= fast.targetHours;
 

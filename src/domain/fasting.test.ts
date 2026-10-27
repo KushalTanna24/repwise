@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { emptyAppData } from './catalogue';
-import { endFast, fastPhase, fastReached, fastsEndedOn, needsSafetyAck, startFast } from './fasting';
+import { elapsedHours, endFast, fastPhase, fastReached, fastsEndedOn, needsSafetyAck, startFast } from './fasting';
 
 const NOW = '2026-10-20T20:00:00';
 const hoursLater = (h: number) => new Date(Date.parse(NOW) + h * 3_600_000).toISOString();
@@ -10,6 +10,13 @@ describe('fasting', () => {
     expect([0, 3.9, 4, 11.9, 12, 18, 24, 80].map(fastPhase)).toEqual([
       'Digesting', 'Digesting', 'Blood sugar settling', 'Blood sugar settling', 'Fat burning', 'Ketosis', 'Autophagy ramping up', 'Autophagy ramping up',
     ]);
+  });
+
+  it('a clock slightly behind the start reads as zero, never a crash', () => {
+    const d = startFast(emptyAppData(NOW), 16, NOW, 'f1');
+    const early = new Date(Date.parse(NOW) - 30_000).toISOString();
+    expect(elapsedHours(d.fasts[0], early)).toBe(0);
+    expect(fastPhase(-0.01)).toBe('Digesting');
   });
 
   it('one fast at a time', () => {

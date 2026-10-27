@@ -345,6 +345,22 @@ await sleep(500);
 check('History day card lists the challenge', !!(await page.$('button[aria-label="Habit stack details"]')));
 await shot('16-history-challenge');
 
+// Fasting: start a 16h fast from the session menu, see the card, end it
+await click('nav button::-p-text(Today)');
+await sleep(400);
+await click('button[aria-label="Session options"]');
+await sleep(300);
+await click('[role="menuitem"]::-p-text(Start a fast)');
+await sleep(600);
+await click('button::-p-text(Start fast)');
+await sleep(800);
+t = await text();
+check('Fast card shows target and phase', t.includes('of 16h') && t.includes('Digesting'));
+await shot('17-today-fast');
+await click('button::-p-text(End fast)');
+await sleep(300);
+check('Ending early says so', (await text()).includes('Fast ended at 0h'));
+
 // Loud water card: fresh context, clock pinned to 15:00 Asia/Kolkata, 0 glasses -> 4 expected, 4 behind
 {
   const ctx = await browser.createBrowserContext();

@@ -25,6 +25,7 @@ import { RemindersSheet } from '@/screens/profile/RemindersSheet';
 import { DataSheet } from '@/screens/profile/DataSheet';
 import { GuideSheet } from '@/screens/Guide';
 import { LeaveSheet } from '@/screens/LeaveSheet';
+import { FastSheet } from '@/screens/FastSheet';
 import { ChallengesSheet } from '@/screens/challenges/ChallengesSheet';
 import { NewChallengeSheet } from '@/screens/challenges/NewChallengeSheet';
 import { RunDetailSheet } from '@/screens/challenges/RunDetailSheet';
@@ -54,6 +55,7 @@ function Sheets() {
       <RemindersSheet open={kind === 'profile' && arg === 'reminders'} onClose={closeSheet} />
       <DataSheet open={kind === 'profile' && arg === 'data'} onClose={closeSheet} />
       <LeaveSheet open={kind === 'leave'} onClose={closeSheet} />
+      <FastSheet open={kind === 'fast'} onClose={closeSheet} />
       <ChallengesSheet open={kind === 'challenges'} onClose={closeSheet} />
       <NewChallengeSheet templateId={kind === 'challenge-new' ? (arg as '75-day' | 'habit-stack' | 'custom') : null} onClose={closeSheet} />
       <RunDetailSheet runId={kind === 'challenge' ? arg : null} onClose={closeSheet} />
