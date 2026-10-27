@@ -4,6 +4,8 @@ import { ConfirmHost } from '@/components/ui/alert';
 import { TabBar } from '@/components/TabBar';
 import { Toaster } from '@/components/Toaster';
 import { IgniteOverlay } from '@/components/IgniteOverlay';
+import { BadgeCard } from '@/components/BadgeCard';
+import { BadgesSheet } from '@/screens/BadgesSheet';
 import { closeSheet, useRoute } from '@/lib/route';
 import { boot } from '@/store/boot';
 import { useApp } from '@/store/app';
@@ -56,6 +58,7 @@ function Sheets() {
       <DataSheet open={kind === 'profile' && arg === 'data'} onClose={closeSheet} />
       <LeaveSheet open={kind === 'leave'} onClose={closeSheet} />
       <FastSheet open={kind === 'fast'} onClose={closeSheet} />
+      <BadgesSheet open={kind === 'badges'} onClose={closeSheet} />
       <ChallengesSheet open={kind === 'challenges'} onClose={closeSheet} />
       <NewChallengeSheet templateId={kind === 'challenge-new' ? (arg as '75-day' | 'habit-stack' | 'custom') : null} onClose={closeSheet} />
       <RunDetailSheet runId={kind === 'challenge' ? arg : null} onClose={closeSheet} />
@@ -90,6 +93,7 @@ function Shell() {
           <ConfirmHost />
           <Toaster />
           <IgniteOverlay />
+          <BadgeCard />
           <DailyBanner />
           <AuthBanner />
         </>

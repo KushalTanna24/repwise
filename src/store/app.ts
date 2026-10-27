@@ -7,13 +7,14 @@ import { settleChallenges } from '@/domain/challenges';
 import { ensurePlan } from '@/domain/planner';
 import { normalize } from '@/domain/migrate';
 import { withStreakHint } from '@/domain/streak';
+import { withBadgeBackfill } from '@/domain/badges';
 import type { AppData } from '@/domain/types';
 
 export const STORE_KEY = 'repwise_v4';
 
 const localToday = () => dayjs().format('YYYY-MM-DD');
-/** Derived upkeep on every load: close locked challenge days, keep the plan current. */
-const upkeep = (d: AppData) => ensurePlan(settleChallenges(d, localToday()));
+/** Derived upkeep: close locked challenge days, keep the plan current, never re-celebrate old badges. */
+const upkeep = (d: AppData) => withBadgeBackfill(ensurePlan(settleChallenges(d, localToday())), localToday());
 
 const idb: StateStorage = {
   getItem: async (name) => (await get<string>(name)) ?? null,
