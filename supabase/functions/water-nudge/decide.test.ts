@@ -55,6 +55,7 @@ describe('decideNudge', () => {
       title: 'Time for water',
       body: "1 of 8 glasses. You're 3 behind, have one now.",
       url: '/#/today',
+      topic: 'water',
     });
   });
   it('treats a missing day as zero glasses', () => {

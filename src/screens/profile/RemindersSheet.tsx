@@ -5,7 +5,8 @@ import { FieldRow, Select, Switch } from '@/components/ui/field';
 import { DEFAULT_WATER_REMINDERS } from '@/domain/water';
 import { disableReminders, enableReminders, pushSupported } from '@/lib/push';
 import { reminderToggle } from '@/lib/pushUtil';
-import { act, useData } from '@/store/app';
+import { act, useApp, useData } from '@/store/app';
+import type { Profile } from '@/domain/types';
 import { useSyncState } from '@/sync/useSync';
 import { requestNotifications, useNotifyPermission } from '@/lib/notify';
 import { toast } from '@/lib/toast';
@@ -37,6 +38,41 @@ function NotificationsRow() {
 const HOURS = Array.from({ length: 19 }, (_, i) => i + 5);
 const hourLabel = (h: number) => `${String(h).padStart(2, '0')}:00`;
 
+/** Default on, but only once push exists (water reminders on) or it was switched on here. */
+const streakOn = (p: Profile) => p.streakReminder === true || (p.streakReminder !== false && !!p.waterReminders?.on);
+
+function StreakReminder() {
+  const profile = useData().profile;
+  const user = useSyncState((s) => s.user);
+  const [busy, setBusy] = useState(false);
+  const on = streakOn(profile);
+  const set = (v: boolean) => act((d) => ({ ...d, profile: { ...d.profile, streakReminder: v } }));
+
+  async function toggle(next: boolean) {
+    if (busy) return;
+    if (!next) {
+      set(false);
+      if (!profile.waterReminders?.on) void disableReminders();
+      return;
+    }
+    setBusy(true);
+    const r = reminderToggle(await enableReminders(user?.id ?? null));
+    setBusy(false);
+    if (r.on) set(true);
+    if (r.message) toast(r.message);
+  }
+
+  return (
+    <List className="mt-4">
+      <FieldRow label="Streak reminder" hint="8 pm nudge when today isn't lit yet. Fast milestones use the same notifications.">
+        <div className={!user && !on ? 'pointer-events-none opacity-40' : undefined} aria-disabled={!user && !on}>
+          <Switch label="Streak reminder" checked={on} onChange={(v) => void toggle(v)} />
+        </div>
+      </FieldRow>
+    </List>
+  );
+}
+
 function WaterReminders() {
   const wr = useData().profile.waterReminders ?? DEFAULT_WATER_REMINDERS;
   const user = useSyncState((s) => s.user);
@@ -54,7 +90,8 @@ function WaterReminders() {
     if (busy) return;
     if (!next) {
       set({ on: false });
-      void disableReminders();
+      // The device subscription also carries streak and fast pushes.
+      if (!streakOn(useApp.getState().data.profile)) void disableReminders();
       return;
     }
     setBusy(true);
@@ -103,6 +140,7 @@ export function RemindersSheet({ open, onClose }: { open: boolean; onClose: () =
     <Sheet open={open} onClose={onClose} title="Reminders" right={<Done onClose={onClose} />}>
       <NotificationsRow />
       <WaterReminders />
+      <StreakReminder />
     </Sheet>
   );
 }

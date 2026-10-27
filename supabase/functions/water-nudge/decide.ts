@@ -2,7 +2,7 @@ import { waterPace } from './pace.ts';
 
 export type NudgeDecision =
   | { send: false; reason: 'bad-tz' | 'off' | 'window' | 'recent' | 'on-pace' | 'no-data' }
-  | { send: true; title: string; body: string; url: '/#/today' };
+  | { send: true; title: string; body: string; url: '/#/today'; topic: 'water' | 'fast' | 'streak' };
 
 // Cron fires on the hour, so a send stamped a few seconds late must not block the next slot.
 const JITTER_MS = 5 * 60_000;
@@ -45,5 +45,5 @@ export function decideNudge(input: { now: Date; tz: string; lastSentAt: string |
     if (elapsed < everyHours * 3_600_000 - JITTER_MS) return { send: false, reason: 'recent' };
   }
   if (pace.behind < 1) return { send: false, reason: 'on-pace' };
-  return { send: true, title: 'Time for water', body: `${glasses} of ${goal} glasses. You're ${pace.behind} behind, have one now.`, url: '/#/today' };
+  return { send: true, title: 'Time for water', body: `${glasses} of ${goal} glasses. You're ${pace.behind} behind, have one now.`, url: '/#/today', topic: 'water' };
 }

@@ -4,7 +4,7 @@ import webpush from 'npm:web-push@3.6.7';
 import { authorized, runNudges, type SubRow } from './run.ts';
 
 // A reminder is only useful within the hour: drop it rather than deliver it late to a phone that was offline.
-const SEND_OPTIONS = { TTL: 1800, urgency: 'normal', topic: 'water' } as const;
+const SEND_OPTIONS = { TTL: 1800, urgency: 'normal' } as const;
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
           if (error) throw error;
           return new Map((data ?? []).map((d): [string, unknown] => [d.user_id as string, d.workout_data]));
         },
-        send: (sub, payload) => webpush.sendNotification(sub, payload, SEND_OPTIONS),
+        send: (sub, payload, topic) => webpush.sendNotification(sub, payload, { ...SEND_OPTIONS, topic }),
         markSent: async (id, iso) => await db.from('push_subscriptions').update({ last_sent_at: iso }).eq('id', id),
         remove: async (id) => await db.from('push_subscriptions').delete().eq('id', id),
       },

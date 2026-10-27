@@ -30,6 +30,7 @@ describe('runNudges', () => {
     expect(d.send).toHaveBeenCalledWith(
       { endpoint: 'https://push.example/s1', keys: { p256dh: 'p', auth: 'a' } },
       JSON.stringify({ title: 'Time for water', body: "0 of 8 glasses. You're 4 behind, have one now.", url: '/#/today' }),
+      'water',
     );
     expect(d.markSent).toHaveBeenCalledWith('s1', NOW.toISOString());
     expect(d.remove).not.toHaveBeenCalled();
@@ -105,6 +106,27 @@ describe('runNudges', () => {
     expect(await runNudges(d, NOW)).toEqual({ checked: 3, sent: 1, removed: 0 });
     expect(d.markSent).toHaveBeenCalledTimes(1);
     expect(d.markSent).toHaveBeenCalledWith('s3', NOW.toISOString());
+  });
+
+  it('a fast milestone wins over water, with its own topic', async () => {
+    const fast = { id: 'f', startedAt: new Date(NOW.getTime() - 12.2 * 3_600_000).toISOString(), endedAt: null, targetHours: 16 };
+    const d = deps([row('s1')], { loadDocs: vi.fn(async () => new Map<string, unknown>([['u1', { ...DOC, fasts: [fast] }]])) });
+    await runNudges(d, NOW);
+    expect(d.send).toHaveBeenCalledWith(expect.anything(), expect.stringContaining('12 hours in'), 'fast');
+  });
+
+  it('the streak nudge wins over water at 8 pm', async () => {
+    const at8 = new Date('2026-10-18T14:40:00Z'); // 20:10 Kolkata, water still behind
+    const docs = new Map<string, unknown>([['u1', { ...DOC, streakHint: { date: '2026-10-18', current: 4, lit: false } }]]);
+    const d = deps([row('s1')], { loadDocs: vi.fn(async () => docs) });
+    await runNudges(d, at8);
+    expect(d.send).toHaveBeenCalledWith(expect.anything(), expect.stringContaining('4-day streak'), 'streak');
+  });
+
+  it('leave mutes everything', async () => {
+    const d = deps([row('s1')], { loadDocs: vi.fn(async () => new Map<string, unknown>([['u1', { ...DOC, leave: [{ start: '2026-10-01', end: null }] }]])) });
+    expect(await runNudges(d, NOW)).toEqual({ checked: 1, sent: 0, removed: 0 });
+    expect(d.send).not.toHaveBeenCalled();
   });
 
   it('lets a list failure reject the run', async () => {
