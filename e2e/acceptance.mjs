@@ -386,6 +386,42 @@ check('Ending early says so', (await text()).includes('Fast ended at 0h'));
   await ctx.close();
 }
 
+// Streak: a fresh user hits the water goal, the flame ignites, the chip turns orange; filters appear with two kinds
+{
+  const ctx = await browser.createBrowserContext();
+  const p3 = await ctx.newPage();
+  await p3.setViewport({ width: 412, height: 915, deviceScaleFactor: 2, isMobile: true, hasTouch: false });
+  p3.on('pageerror', (e) => errors.push(`pageerror: ${e.message.split('\n')[0]}`));
+  await p3.goto(APP, { waitUntil: 'domcontentloaded' });
+  await sleep(1500);
+  const body = () => p3.evaluate(() => document.body.textContent.replace(/\s+/g, ' '));
+  for (let i = 0; i < 8; i++) {
+    await p3.click('button[aria-label="Add a glass of water"]');
+    await sleep(120);
+  }
+  await sleep(700);
+  check('Lighting the first day ignites the flame', (await body()).includes('1-day streak!'));
+  await p3.screenshot({ path: `${OUT}18-ignite.png` });
+  await sleep(2600);
+  check('Flame chip shows the lit streak', !!(await p3.$('button[aria-label="1-day streak"]')));
+  // DOM clicks: a pill scrolled under the fixed header would swallow a mouse click.
+  for (const name of ['Creatine', 'Whey protein', 'Multivitamin']) {
+    await p3.$eval(`button[aria-label="${name}"]`, (b) => b.click());
+    await sleep(250);
+  }
+  await p3.click('nav button::-p-text(History)');
+  await sleep(600);
+  const chips = await p3.$$('[aria-label="Show on calendar"] button');
+  check('Filter chips appear once two kinds of goal are done', chips.length >= 3, `chips=${chips.length}`);
+  if (chips.length >= 3) {
+    await chips[1].click();
+    await sleep(300);
+    check('A filter chip toggles on', (await chips[1].evaluate((b) => b.getAttribute('aria-pressed'))) === 'true');
+  }
+  await p3.screenshot({ path: `${OUT}19-history-streak.png` });
+  await ctx.close();
+}
+
 check('No runtime errors in console', errors.length === 0, errors.slice(0, 5).join(' / '));
 console.log(results.join('\n'));
 await browser.close();
