@@ -68,6 +68,19 @@ export function goalIndex(data: AppData): (date: string) => Goal[] {
 
 export const goalsFor = (data: AppData, date: string) => goalIndex(data)(date);
 
+/** Goal kinds done at least once, in registry order; drives the History filter chips. */
+export function kindsSeen(data: AppData): GoalKind[] {
+  const stack = activeSupplements(data);
+  const seen: Record<GoalKind, boolean> = {
+    workout: data.extras.length > 0 || data.sessions.some((s) => s.finishedAt),
+    water: Object.values(data.water).some((g) => g >= data.profile.waterGoal),
+    supplements: stack.length > 0 && Object.values(data.suppLog).some((ids) => stack.every((p) => ids.includes(p.id))),
+    challenge: data.challenges.length > 0,
+    fast: data.fasts.some(fastReached),
+  };
+  return (Object.keys(GOAL_COLOR) as GoalKind[]).filter((k) => seen[k]);
+}
+
 /** Earliest date with any goal done, or null. */
 export function firstGoalDate(data: AppData): string | null {
   const candidates = [

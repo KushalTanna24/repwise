@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import dayjs from 'dayjs';
 import { AnimatePresence, motion } from 'motion/react';
-import { ChevronLeft, ChevronRight, Flag } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Flag, Snowflake } from 'lucide-react';
 import { deadlinesOn, monthCells, nextGoal } from '@/domain/calendar';
-import { GOAL_COLOR, GOAL_LABEL, goalIndex, type Goal } from '@/domain/goals';
+import { GOAL_COLOR, GOAL_LABEL, goalIndex, type Goal, type GoalKind } from '@/domain/goals';
+import { streak } from '@/domain/streak';
 import type { AppData } from '@/domain/types';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/cn';
@@ -12,17 +13,24 @@ const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
 interface Props {
   data: AppData;
-  selected: string | null;
-  onSelect: (date: string | null) => void;
+  today: string;
+  selected: string;
+  onSelect: (date: string) => void;
+  /** Dims days where this kind of goal wasn't done. */
+  filter: GoalKind | null;
+  /** Kinds shown in the legend. */
+  kinds: GoalKind[];
 }
 
-/** Month view: one dot per goal done (from the goal registry), an orange ring on goal dates. */
-export function Calendar({ data, selected, onSelect }: Props) {
-  const today = dayjs().format('YYYY-MM-DD');
+const FILL = { lit: 'bg-orange/20', frozen: 'bg-blue/15', leave: 'bg-fill', missed: '' };
+
+/** Month view coloured by streak state, one dot per goal done, an orange ring on goal dates. */
+export function Calendar({ data, today, selected, onSelect, filter, kinds }: Props) {
   const [month, setMonth] = useState(dayjs().format('YYYY-MM'));
   const [dir, setDir] = useState(0);
   const goal = nextGoal(data, today);
   const goalsAt = goalIndex(data);
+  const days = streak(data, today).days;
 
   const shift = (n: number) => {
     setDir(n);
@@ -77,23 +85,27 @@ export function Calendar({ data, selected, onSelect }: Props) {
             const isToday = c.date === today;
             const isSel = c.date === selected;
             const goalDay = deadlines.length > 0;
+            const state = days.get(c.date);
+            const dimmed = filter && !done.some((g) => g.kind === filter);
             return (
               <button
                 key={c.date}
-                aria-label={`${dayjs(c.date).format('D MMMM')}${done.map((g) => `, ${g.label}`).join('')}${goalDay ? `, goal: ${deadlines.join(', ')}` : ''}`}
+                aria-label={`${dayjs(c.date).format('D MMMM')}${state && state !== 'missed' ? `, ${state}` : ''}${done.map((g) => `, ${g.label}`).join('')}${goalDay ? `, goal: ${deadlines.join(', ')}` : ''}`}
                 aria-pressed={isSel}
-                onClick={() => onSelect(isSel ? null : c.date)}
-                className={cn('flex h-12 flex-col items-center justify-start gap-0.5 pt-1', !c.inMonth && 'opacity-30')}
+                onClick={() => onSelect(c.date)}
+                className={cn('flex h-12 flex-col items-center justify-start gap-0.5 pt-1 transition-opacity', !c.inMonth && 'opacity-30', c.inMonth && dimmed && 'opacity-35')}
               >
                 <span
                   className={cn(
                     'relative grid size-8 place-items-center rounded-full text-subhead tabular',
-                    isSel ? 'bg-label text-white' : isToday ? 'bg-pink text-white font-semibold' : '',
-                    goalDay && !isSel && 'ring-2 ring-orange',
+                    isSel ? 'bg-label text-white' : state ? FILL[state] : '',
+                    isToday && !isSel && 'font-bold text-pink',
+                    goalDay && !isSel ? 'ring-2 ring-orange' : isToday && !isSel && 'ring-2 ring-pink',
                   )}
                 >
                   {Number(c.date.slice(8))}
                   {goalDay && <Flag className="absolute -right-1 -top-1 size-3 fill-orange text-orange" />}
+                  {state === 'frozen' && <Snowflake className="absolute -bottom-1 -right-1 size-3 text-blue" />}
                 </span>
                 <span className="flex h-1.5 gap-[3px]">
                   {done.map((g) => (
@@ -107,7 +119,7 @@ export function Calendar({ data, selected, onSelect }: Props) {
       </AnimatePresence>
 
       <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1 border-t border-sep pt-2 text-caption text-label-2">
-        {(['workout', 'water', 'supplements'] as const).map((k) => (
+        {kinds.map((k) => (
           <Legend key={k} color={GOAL_COLOR[k]} label={GOAL_LABEL[k]} />
         ))}
         <span className="flex items-center gap-1">

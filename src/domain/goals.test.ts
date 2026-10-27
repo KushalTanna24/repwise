@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { emptyAppData } from './catalogue';
 import { endFast, startFast } from './fasting';
-import { firstGoalDate, goalsFor } from './goals';
+import { firstGoalDate, goalsFor, kindsSeen } from './goals';
 import { startChallenge } from './challenges';
 import type { AppData, WorkoutSession } from './types';
 
@@ -49,6 +49,13 @@ describe('goalsFor', () => {
     expect(goal(started, D, 'fast')).toBeUndefined();
     expect(goal(endFast(started, '2026-10-21T10:00:00'), '2026-10-21', 'fast')!.status.done).toBe(false);
     expect(goal(endFast(started, '2026-10-21T13:00:00'), '2026-10-21', 'fast')!.status.done).toBe(true);
+  });
+
+  it('kindsSeen lists the goal kinds that have ever been done, in registry order', () => {
+    expect(kindsSeen(base())).toEqual([]);
+    const d = { ...base(), water: { [D]: 8 }, extras: [{ id: 'x', date: D, type: 'run' as const }] };
+    expect(kindsSeen(d)).toEqual(['workout', 'water']);
+    expect(kindsSeen(endFast(startFast(d, 16, `${D}T00:00:00`, 'f'), `${D}T17:00:00`))).toEqual(['workout', 'water', 'fast']);
   });
 
   it('firstGoalDate is the earliest date with a done goal', () => {

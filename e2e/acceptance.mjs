@@ -188,7 +188,9 @@ check('Discard keeps Full Body B', (await text()).includes('Full Body B'));
 await click('nav button::-p-text(History)');
 await sleep(400);
 await shot('06-history');
-await click('button::-p-text(Full Body A)');
+await click('button[aria-label="Workout details"]');
+await sleep(400);
+await click('button[aria-label="Workout details"] + div button::-p-text(Full Body A)');
 await sleep(700);
 await shot('07-session-detail');
 t = await text();
@@ -315,7 +317,7 @@ await shot('14-today-supplements');
 await click('nav button::-p-text(History)');
 await sleep(500);
 t = await text();
-check('History shows the calendar and a daily habits row', t.includes('All supplements') && t.includes('daily habits'));
+check('History shows the streak header and the day card', t.includes('Best') && t.includes('day streak') && !!(await page.$('button[aria-label="Water details"]')));
 await shot('15-history-calendar');
 
 // Loud water card: fresh context, clock pinned to 15:00 Asia/Kolkata, 0 glasses -> 4 expected, 4 behind
