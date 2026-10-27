@@ -2,12 +2,12 @@ import { useState } from 'react';
 import dayjs from 'dayjs';
 import { AnimatePresence, motion } from 'motion/react';
 import { ChevronLeft, ChevronRight, Flag } from 'lucide-react';
-import { dayMarks, monthCells, nextGoal } from '@/domain/calendar';
+import { deadlinesOn, monthCells, nextGoal } from '@/domain/calendar';
+import { GOAL_COLOR, GOAL_LABEL, goalIndex, type Goal } from '@/domain/goals';
 import type { AppData } from '@/domain/types';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/cn';
 
-const DOT = { workout: '#FF2D55', water: '#007AFF', supps: '#AF52DE' };
 const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
 interface Props {
@@ -16,12 +16,13 @@ interface Props {
   onSelect: (date: string | null) => void;
 }
 
-/** Month view: dots for workout / water goal / full supplements, an orange ring on goal dates. */
+/** Month view: one dot per goal done (from the goal registry), an orange ring on goal dates. */
 export function Calendar({ data, selected, onSelect }: Props) {
   const today = dayjs().format('YYYY-MM-DD');
   const [month, setMonth] = useState(dayjs().format('YYYY-MM'));
   const [dir, setDir] = useState(0);
   const goal = nextGoal(data, today);
+  const goalsAt = goalIndex(data);
 
   const shift = (n: number) => {
     setDir(n);
@@ -71,14 +72,15 @@ export function Calendar({ data, selected, onSelect }: Props) {
           className="mt-1 grid grid-cols-7 gap-y-1"
         >
           {monthCells(month).map((c) => {
-            const m = dayMarks(data, c.date);
+            const done: Goal[] = goalsAt(c.date).filter((g) => g.status.done);
+            const deadlines = deadlinesOn(data, c.date);
             const isToday = c.date === today;
             const isSel = c.date === selected;
-            const goalDay = m.goals.length > 0;
+            const goalDay = deadlines.length > 0;
             return (
               <button
                 key={c.date}
-                aria-label={`${dayjs(c.date).format('D MMMM')}${m.workout ? ', workout' : ''}${m.water ? ', water goal' : ''}${m.supps ? ', supplements' : ''}${goalDay ? `, goal: ${m.goals.join(', ')}` : ''}`}
+                aria-label={`${dayjs(c.date).format('D MMMM')}${done.map((g) => `, ${g.label}`).join('')}${goalDay ? `, goal: ${deadlines.join(', ')}` : ''}`}
                 aria-pressed={isSel}
                 onClick={() => onSelect(isSel ? null : c.date)}
                 className={cn('flex h-12 flex-col items-center justify-start gap-0.5 pt-1', !c.inMonth && 'opacity-30')}
@@ -94,9 +96,9 @@ export function Calendar({ data, selected, onSelect }: Props) {
                   {goalDay && <Flag className="absolute -right-1 -top-1 size-3 fill-orange text-orange" />}
                 </span>
                 <span className="flex h-1.5 gap-[3px]">
-                  {m.workout && <i className="size-1.5 rounded-full" style={{ background: DOT.workout }} />}
-                  {m.water && <i className="size-1.5 rounded-full" style={{ background: DOT.water }} />}
-                  {m.supps && <i className="size-1.5 rounded-full" style={{ background: DOT.supps }} />}
+                  {done.map((g) => (
+                    <i key={g.id} className="size-1.5 rounded-full" style={{ background: g.color }} />
+                  ))}
                 </span>
               </button>
             );
@@ -105,9 +107,9 @@ export function Calendar({ data, selected, onSelect }: Props) {
       </AnimatePresence>
 
       <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1 border-t border-sep pt-2 text-caption text-label-2">
-        <Legend color={DOT.workout} label="Workout" />
-        <Legend color={DOT.water} label="Water goal" />
-        <Legend color={DOT.supps} label="All supplements" />
+        {(['workout', 'water', 'supplements'] as const).map((k) => (
+          <Legend key={k} color={GOAL_COLOR[k]} label={GOAL_LABEL[k]} />
+        ))}
         <span className="flex items-center gap-1">
           <Flag className="size-3 fill-orange text-orange" /> Goal date
         </span>

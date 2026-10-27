@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { emptyAppData } from './catalogue';
-import { addGoal, dayMarks, monthCells, nextGoal, removeGoal } from './calendar';
+import { addGoal, deadlinesOn, monthCells, nextGoal, removeGoal } from './calendar';
+import { goalsFor } from './goals';
 import { normalize } from './migrate';
 import { addSupplement, toggleSupplement } from './supplements';
 import { addWater } from './water';
@@ -59,7 +60,8 @@ describe('calendar', () => {
         exercises: [{ exerciseId: 'x', slotId: null, plan: null, rec: null, sets: [{ targetKg: null, targetReps: null, actualKg: 1, actualReps: 1, status: 'done' }] }],
       },
     ];
-    expect(dayMarks(d, '2026-10-16')).toEqual({ workout: true, water: true, supps: true, goals: ['Bench 100'] });
-    expect(dayMarks(d, '2026-10-15')).toEqual({ workout: false, water: false, supps: false, goals: [] });
+    const done = (date: string) => goalsFor(d, date).filter((g) => g.status.done).map((g) => g.kind);
+    expect([done('2026-10-16'), deadlinesOn(d, '2026-10-16')]).toEqual([['workout', 'water', 'supplements'], ['Bench 100']]);
+    expect([done('2026-10-15'), deadlinesOn(d, '2026-10-15')]).toEqual([[], []]);
   });
 });

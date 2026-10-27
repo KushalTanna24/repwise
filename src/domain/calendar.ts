@@ -1,5 +1,4 @@
 import dayjs from 'dayjs';
-import { activeSupplements } from './supplements';
 import type { AppData } from './types';
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -30,13 +29,5 @@ export function monthCells(month: string) {
 }
 
 /** What happened on a day, for the calendar dots. */
-export function dayMarks(data: AppData, date: string) {
-  const stack = activeSupplements(data);
-  const taken = data.suppLog[date] ?? [];
-  return {
-    workout: data.sessions.some((s) => s.finishedAt && dayjs(s.startedAt).format('YYYY-MM-DD') === date),
-    water: (data.water[date] ?? 0) >= data.profile.waterGoal,
-    supps: stack.length > 0 && stack.every((s) => taken.includes(s.id)),
-    goals: data.goals.filter((g) => g.date === date).map((g) => g.title),
-  };
-}
+/** Titles of user goals (deadlines) that fall on a date. */
+export const deadlinesOn = (data: AppData, date: string) => data.goals.filter((g) => g.date === date).map((g) => g.title);
