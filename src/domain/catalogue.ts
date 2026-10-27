@@ -115,6 +115,12 @@ export function emptyAppData(now: string): AppData {
     supplements: [],
     goals: [],
     suppLog: {},
+    leave: [],
+    challenges: [],
+    fasts: [],
+    photos: [],
+    seenBadges: [],
+    streakHint: null,
     meta: { updatedAt: now },
   });
 }

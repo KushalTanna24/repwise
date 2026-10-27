@@ -73,3 +73,15 @@ describe('normalize and parseImport', () => {
     expect(isEmpty(migrateV2(v2, NOW))).toBe(false);
   });
 });
+
+describe('4.3 fields', () => {
+  it('a v4 doc without the 4.3 fields loads with empty defaults and no seenBadges', () => {
+    const doc = { ...emptyAppData(NOW) } as Record<string, unknown>;
+    for (const k of ['leave', 'challenges', 'fasts', 'photos', 'seenBadges', 'streakHint']) delete doc[k];
+    const d = normalize(doc, NOW)!;
+    expect([d.leave, d.challenges, d.fasts, d.photos, d.streakHint]).toEqual([[], [], [], [], null]);
+    expect(d.seenBadges).toBeUndefined();
+  });
+
+  it('new users start with seenBadges = []', () => expect(emptyAppData(NOW).seenBadges).toEqual([]));
+});

@@ -139,6 +139,13 @@ export function normalize(doc: unknown, now: string): AppData | null {
       ...base,
       ...doc,
       supplements: doc.supplements ?? [],
+      leave: doc.leave ?? [],
+      challenges: doc.challenges ?? [],
+      fasts: doc.fasts ?? [],
+      photos: doc.photos ?? [],
+      // Missing (pre-4.3) stays missing so the store can back-fill earned badges silently.
+      seenBadges: doc.seenBadges,
+      streakHint: doc.streakHint ?? null,
       profile: { ...base.profile, ...doc.profile },
       program: { ...base.program, ...doc.program, rotation: { ...base.program.rotation, ...doc.program.rotation } },
     });

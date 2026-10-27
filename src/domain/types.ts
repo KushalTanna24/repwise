@@ -167,6 +167,64 @@ export interface Profile {
   waterGoal: number;
   /** Water nudges; hours are local. Missing means the defaults (off). */
   waterReminders?: { on: boolean; from: number; to: number; everyHours: number };
+  /** Set once the long-fast safety note was acknowledged. */
+  fastingSafetyAck?: boolean;
+  /** 8 pm streak-at-risk push. Missing means on. */
+  streakReminder?: boolean;
+}
+
+export interface ChallengeTask {
+  id: string;
+  label: string;
+  kind: 'tick' | 'photo';
+  /** Ticks itself from data the app already has. */
+  auto?: 'workout' | 'workout-outdoor' | 'water';
+  /** For auto 'water': glasses needed, otherwise the profile goal. */
+  target?: number;
+}
+
+export interface ChallengeRun {
+  id: string;
+  templateId: '75-day' | 'habit-stack' | 'custom';
+  title: string;
+  /** Local date of day 1 of the current attempt. */
+  startDate: string;
+  days: number;
+  rule: 'strict' | 'lenient';
+  tasks: ChallengeTask[];
+  /** Local date -> ticked task ids. Auto tasks are never stored. */
+  ticks: Record<string, string[]>;
+  status: 'active' | 'done' | 'failed' | 'quit';
+  restarts: number;
+  /** Habit stack only. */
+  anchor?: string;
+  /** Local date the run became done, failed or quit. */
+  endedOn?: string;
+  /** Day number that failed a strict run. */
+  failedDay?: number;
+  /** The restart prompt was answered. */
+  failAck?: boolean;
+}
+
+export interface Fast {
+  id: string;
+  startedAt: string;
+  endedAt: string | null;
+  targetHours: 16 | 24 | 36;
+}
+
+export interface ProgressPhoto {
+  id: string;
+  date: string;
+  /** Storage object path: {user_id}/{id}.jpg */
+  path: string;
+  challengeId?: string;
+}
+
+export interface LeaveRange {
+  /** Local dates, inclusive; a null end is open-ended. */
+  start: string;
+  end: string | null;
 }
 
 export interface RotationState {
@@ -194,5 +252,13 @@ export interface AppData {
   goals: Goal[];
   /** Supplement ids taken per local date. */
   suppLog: Record<string, string[]>;
+  leave: LeaveRange[];
+  challenges: ChallengeRun[];
+  fasts: Fast[];
+  photos: ProgressPhoto[];
+  /** Badges already celebrated. Missing means back-fill with everything earned. */
+  seenBadges?: string[];
+  /** Written on every change for the server's streak nudge; the app never reads it. */
+  streakHint: { date: string; current: number; lit: boolean } | null;
   meta: { updatedAt: string; migratedFrom?: 'repwise_v2'; migratedAt?: string; suppSeeded?: boolean };
 }
