@@ -27,6 +27,7 @@ import { SplitChooser } from './SplitPicker';
 import { useProgressTab } from '@/lib/progressTab';
 import { GuideButton } from './Guide';
 import { NotifyPrompt } from '@/components/NotifyPrompt';
+import { StreakChip } from '@/components/StreakChip';
 
 const RING = { workouts: '#FF2D55', sets: '#34C759', water: '#007AFF' };
 
@@ -42,7 +43,7 @@ export function Today() {
   const nowMinutes = now.hour() * 60 + now.minute();
 
   return (
-    <Screen title="Today" eyebrow={dayjs().format('dddd, D MMMM')}>
+    <Screen title="Today" eyebrow={dayjs().format('dddd, D MMMM')} action={<StreakChip />}>
       {!split ? (
         <>
           <p className="px-1 pb-4 pt-2 text-subhead text-label-2">Pick how you train. Repwise keeps your place in the rotation and builds every session from what you actually lift.</p>

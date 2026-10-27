@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ConfirmHost } from '@/components/ui/alert';
 import { TabBar } from '@/components/TabBar';
 import { Toaster } from '@/components/Toaster';
+import { IgniteOverlay } from '@/components/IgniteOverlay';
 import { closeSheet, useRoute } from '@/lib/route';
 import { boot } from '@/store/boot';
 import { useApp } from '@/store/app';
@@ -78,6 +79,7 @@ function Shell() {
           <GuideSheet />
           <ConfirmHost />
           <Toaster />
+          <IgniteOverlay />
           <DailyBanner />
           <AuthBanner />
         </>
