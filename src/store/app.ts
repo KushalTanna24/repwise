@@ -1,12 +1,19 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware';
 import { del, get, set } from 'idb-keyval';
+import dayjs from 'dayjs';
 import { emptyAppData } from '@/domain/catalogue';
+import { settleChallenges } from '@/domain/challenges';
 import { ensurePlan } from '@/domain/planner';
 import { normalize } from '@/domain/migrate';
+import { withStreakHint } from '@/domain/streak';
 import type { AppData } from '@/domain/types';
 
 export const STORE_KEY = 'repwise_v4';
+
+const localToday = () => dayjs().format('YYYY-MM-DD');
+/** Derived upkeep on every load: close locked challenge days, keep the plan current. */
+const upkeep = (d: AppData) => ensurePlan(settleChallenges(d, localToday()));
 
 const idb: StateStorage = {
   getItem: async (name) => (await get<string>(name)) ?? null,
@@ -32,9 +39,10 @@ export const useApp = create<AppStore>()(
         setState((s) => {
           const next = fn(s.data);
           if (next === s.data) return s;
-          return { data: ensurePlan({ ...next, meta: { ...next.meta, updatedAt: new Date().toISOString() } }) };
+          // The streak hint rides on real changes so the server sees today's state after each sync.
+          return { data: withStreakHint(upkeep({ ...next, meta: { ...next.meta, updatedAt: new Date().toISOString() } }), localToday()) };
         }),
-      replace: (d) => setState({ data: ensurePlan(d) }),
+      replace: (d) => setState({ data: upkeep(d) }),
     }),
     {
       name: STORE_KEY,
@@ -45,7 +53,7 @@ export const useApp = create<AppStore>()(
         const p = persisted as Partial<AppStore> | undefined;
         // normalize fills fields added after the document was saved (e.g. water).
         const saved = p?.data ? normalize(p.data, new Date().toISOString()) : null;
-        return { ...current, data: ensurePlan(saved ?? current.data) };
+        return { ...current, data: upkeep(saved ?? current.data) };
       },
       onRehydrateStorage: () => () => useApp.setState({ hydrated: true }),
     },
