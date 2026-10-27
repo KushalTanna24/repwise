@@ -5,6 +5,8 @@ import { Check, ChevronRight, Dumbbell, Footprints, GlassWater, Pill, Sparkles, 
 import { taskDone } from '@/domain/challenges';
 import { elapsedHours, fastReached, fastsEndedOn } from '@/domain/fasting';
 import { goalIndex, type Goal, type GoalKind } from '@/domain/goals';
+import { photoFor } from '@/domain/photos';
+import { PhotoThumb } from '@/components/PhotoThumb';
 import { sessionVolume } from '@/domain/stats';
 import { activeSupplements } from '@/domain/supplements';
 import type { AppData, ExtraSession, WorkoutSession } from '@/domain/types';
@@ -102,6 +104,7 @@ function Detail({ data, date, goal }: { data: AppData; date: string; goal: Goal 
     }
     case 'challenge': {
       const run = data.challenges.find((r) => r.id === goal.runId)!;
+      const photo = photoFor(data, run.id, date);
       return (
         <div className="py-1">
           {run.tasks.map((t) => (
@@ -109,6 +112,7 @@ function Detail({ data, date, goal }: { data: AppData; date: string; goal: Goal 
               {t.label}
             </Line>
           ))}
+          {photo && <PhotoThumb path={photo.path} alt={`Progress photo ${dayjs(date).format('D MMM')}`} className="mb-2 ml-16 size-24 rounded-[10px]" />}
         </div>
       );
     }

@@ -10,6 +10,7 @@ import { useToday } from '@/lib/useToday';
 import { act, useData } from '@/store/app';
 import { Done } from '../profile/Done';
 import { runSubtitle } from './ChallengesSheet';
+import { PhotoTimeline } from './PhotoTimeline';
 
 /** One run: day grid, score, quit. */
 export function RunDetailSheet({ runId, onClose }: { runId: string | null; onClose: () => void }) {
@@ -56,6 +57,7 @@ export function RunDetailSheet({ runId, onClose }: { runId: string | null; onClo
               })}
             </div>
           </Card>
+          <PhotoTimeline data={data} run={run} />
           {run.status === 'active' && (
             <Button variant="destructive" className="mt-6 w-full" onClick={() => void quit()}>
               Quit challenge
