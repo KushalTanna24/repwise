@@ -24,6 +24,7 @@ import { EquipmentSheet } from '@/screens/profile/EquipmentSheet';
 import { RemindersSheet } from '@/screens/profile/RemindersSheet';
 import { DataSheet } from '@/screens/profile/DataSheet';
 import { GuideSheet } from '@/screens/Guide';
+import { LeaveSheet } from '@/screens/LeaveSheet';
 import { Splash } from '@/components/Splash';
 import { DailyBanner } from '@/components/DailyBanner';
 import { AuthBanner } from '@/components/AuthBanner';
@@ -49,6 +50,7 @@ function Sheets() {
       <EquipmentSheet open={kind === 'profile' && arg === 'equipment'} onClose={closeSheet} />
       <RemindersSheet open={kind === 'profile' && arg === 'reminders'} onClose={closeSheet} />
       <DataSheet open={kind === 'profile' && arg === 'data'} onClose={closeSheet} />
+      <LeaveSheet open={kind === 'leave'} onClose={closeSheet} />
     </>
   );
 }

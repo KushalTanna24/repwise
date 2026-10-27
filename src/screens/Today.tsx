@@ -1,7 +1,7 @@
 import dayjs from 'dayjs';
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { Check, ChevronRight, Ellipsis, GlassWater, Minus, Pill, Play, Plus, RefreshCw, Repeat, SkipForward, Sparkles } from 'lucide-react';
+import { Check, ChevronRight, Ellipsis, Plane, GlassWater, Minus, Pill, Play, Plus, RefreshCw, Repeat, SkipForward, Sparkles } from 'lucide-react';
 import { getExercise } from '@/domain/catalogue';
 import { rebuildPlan } from '@/domain/planner';
 import { daysOff } from '@/domain/progression';
@@ -28,6 +28,7 @@ import { useProgressTab } from '@/lib/progressTab';
 import { GuideButton } from './Guide';
 import { NotifyPrompt } from '@/components/NotifyPrompt';
 import { StreakChip } from '@/components/StreakChip';
+import { LeaveCard } from './today/LeaveCard';
 
 const RING = { workouts: '#FF2D55', sets: '#34C759', water: '#007AFF' };
 
@@ -53,6 +54,7 @@ export function Today() {
         </>
       ) : (
         <>
+          <LeaveCard data={data} today={now.format('YYYY-MM-DD')} />
           <UpNext data={data} />
           <NotifyPrompt />
           <Water data={data} nowMinutes={nowMinutes} />
@@ -118,6 +120,7 @@ function UpNext({ data }: { data: AppData }) {
             items={[
               { label: 'Train again', icon: <Play className="size-4" />, onSelect: start },
               { label: 'Change split', icon: <Repeat className="size-4" />, onSelect: () => openSheet('split') },
+              { label: 'Start leave', icon: <Plane className="size-4" />, onSelect: () => openSheet('leave') },
             ]}
           />
         </div>
@@ -156,6 +159,7 @@ function UpNext({ data }: { data: AppData }) {
               { label: 'Rebuild workout', icon: <RefreshCw className="size-4" />, onSelect: rebuild },
               { label: 'Skip this session', icon: <SkipForward className="size-4" />, onSelect: skip },
               { label: 'Change split', icon: <Repeat className="size-4" />, onSelect: () => openSheet('split') },
+              { label: 'Start leave', icon: <Plane className="size-4" />, onSelect: () => openSheet('leave') },
             ]}
           />
         )}

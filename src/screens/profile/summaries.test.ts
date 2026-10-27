@@ -70,3 +70,20 @@ describe('profileSummaries', () => {
     for (const v of Object.values(profileSummaries(d, ctx))) expect(v.length).toBeGreaterThan(0);
   });
 });
+
+describe('4.3 rows', () => {
+  const at = { ...ctx, today: '2026-10-27' };
+  it('leave shows when it ends, or Off', () => {
+    const d = base();
+    expect(profileSummaries(d, at).leave).toBe('Off');
+    expect(profileSummaries({ ...d, leave: [{ start: '2026-10-25', end: '2026-11-03' }] }, at).leave).toBe('On until 3 Nov');
+    expect(profileSummaries({ ...d, leave: [{ start: '2026-10-25', end: null }] }, at).leave).toBe('On');
+  });
+
+  it('challenges counts active runs', () => {
+    const d = base();
+    expect(profileSummaries(d, at).challenges).toBe('None');
+    const run = { id: 'r', templateId: 'custom' as const, title: 'X', startDate: '2026-10-27', days: 7, rule: 'lenient' as const, tasks: [], ticks: {}, status: 'active' as const, restarts: 0 };
+    expect(profileSummaries({ ...d, challenges: [run, { ...run, id: 'q', status: 'done' }] }, at).challenges).toBe('1 active');
+  });
+});
