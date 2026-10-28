@@ -1,6 +1,6 @@
 import { Flame as FlameIcon, ListChecks, Mountain, Timer, Trophy } from 'lucide-react';
 import { activeRuns, canStart, challengeScore, dayNumber } from '@/domain/challenges';
-import { activeFast, elapsedHours } from '@/domain/fasting';
+import { activeFast, elapsedHours, fmtFastEnd } from '@/domain/fasting';
 import type { AppData, ChallengeRun } from '@/domain/types';
 import { Sheet } from '@/components/ui/sheet';
 import { List, Row, SectionHeader } from '@/components/ui/card';
@@ -48,7 +48,7 @@ export function ChallengesSheet({ open, onClose }: { open: boolean; onClose: () 
         <Row
           leading={icon(Timer)}
           title={fast ? `Fasting · ${Math.floor(elapsedHours(fast, nowIso()))}h` : 'Start a fast'}
-          subtitle="16, 24 or 36 hours, with milestones."
+          subtitle={fast ? fmtFastEnd(fast, nowIso()) : 'Pick a preset or set your own hours.'}
           onClick={() => openSheet('fast')}
           chevron
         />

@@ -1,4 +1,4 @@
-import { activeFast, elapsedHours, endFast, fastPhase } from '@/domain/fasting';
+import { activeFast, elapsedHours, endFast, fastPhase, fmtFastEnd } from '@/domain/fasting';
 import type { AppData } from '@/domain/types';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -27,6 +27,7 @@ export function FastCard({ data, now }: { data: AppData; now: string }) {
           {Math.floor(h)}h {Math.floor((h % 1) * 60)}m of {fast.targetHours}h
         </div>
         <div className="text-subhead text-label-2">{fastPhase(h)}</div>
+        <div className="text-footnote font-medium tabular text-label-2">{fmtFastEnd(fast, now)}</div>
       </div>
       <Button
         variant={done ? 'success' : 'gray'}

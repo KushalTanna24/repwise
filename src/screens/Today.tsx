@@ -8,7 +8,7 @@ import { daysOff } from '@/domain/progression';
 import { addWater, DEFAULT_WATER_REMINDERS, GLASS_ML, waterPace } from '@/domain/water';
 import { skipPlannedSession, startSession } from '@/domain/session';
 import { SPLITS } from '@/domain/splits';
-import { latestWeight, sessionVolume, weekStats } from '@/domain/stats';
+import { latestWeight, periodStats, sessionVolume, weekStats, type Period } from '@/domain/stats';
 import type { AppData, PlannedExercise, WorkoutSession } from '@/domain/types';
 import { activeSupplements, suppOverdue, toggleSupplement } from '@/domain/supplements';
 import { TIMING_LABEL, TIMING_ORDER } from '@/domain/supplementCatalogue';
@@ -29,11 +29,12 @@ import { GuideButton } from './Guide';
 import { NotifyPrompt } from '@/components/NotifyPrompt';
 import { StreakChip } from '@/components/StreakChip';
 import { LeaveCard } from './today/LeaveCard';
+import { DoneRow, useDoneCollapse } from './today/DoneRow';
 import { FastCard } from './today/FastCard';
 import { activeFast, elapsedHours } from '@/domain/fasting';
 import type { MenuItem } from '@/components/ui/menu';
-import { AddChallengeRow, ChallengeCard } from './today/ChallengeCard';
-import { ackChallengeFail, activeRuns, restartChallenge, runsForToday } from '@/domain/challenges';
+import { ChallengeCard } from './today/ChallengeCard';
+import { ackChallengeFail, restartChallenge, runsForToday } from '@/domain/challenges';
 
 const RING = { workouts: '#FF2D55', sets: '#34C759', water: '#007AFF' };
 
@@ -95,7 +96,7 @@ function Challenges({ data, today, nowMinutes }: { data: AppData; today: string;
     });
   }, [data.challenges, today]);
 
-  if (!activeRuns(data).length) return <AddChallengeRow />;
+  // Starting a challenge lives in Profile; Today only shows the running ones.
   const runs = runsForToday(data, today);
   return (
     <>
@@ -362,32 +363,75 @@ function ResumeButton({ startedAt, done }: { startedAt: string; done: number }) 
   );
 }
 
+const PERIODS: Period[] = ['day', 'week', 'month'];
+const PERIOD_TITLE: Record<Period, string> = { day: 'Today', week: 'This week', month: 'This month' };
+const PERIOD_KEY = 'repwise_rings_period';
+
+function readPeriod(): Period {
+  try {
+    const v = localStorage.getItem(PERIOD_KEY) as Period | null;
+    return v && PERIODS.includes(v) ? v : 'week';
+  } catch {
+    return 'week';
+  }
+}
+
+/** Tap cycles day, week, month; every ring always covers the same period. */
 function Week({ data }: { data: AppData }) {
-  const w = weekStats(data, nowIso());
+  const [period, setPeriod] = useState(readPeriod);
+  const reduce = useReducedMotion();
+  const p = periodStats(data, nowIso(), period);
+  const streak = weekStats(data, nowIso()).streakWeeks;
   const target = data.profile.daysPerWeek;
-  const setTarget = target * 15;
-  const glasses = data.water[dayjs().format('YYYY-MM-DD')] ?? 0;
-  const goal = data.profile.waterGoal;
+
+  function flip() {
+    const next = PERIODS[(PERIODS.indexOf(period) + 1) % PERIODS.length];
+    setPeriod(next);
+    try {
+      localStorage.setItem(PERIOD_KEY, next);
+    } catch {
+      /* per-session only */
+    }
+  }
+
   return (
     <>
-      <SectionHeader title="This week" />
-      <Card className="flex items-center gap-5 p-4">
-        <Rings
-          rings={[
-            { label: 'Workouts', value: w.sessions, max: target, color: RING.workouts },
-            { label: 'Sets', value: w.sets, max: setTarget, color: RING.sets },
-            { label: 'Water today', value: glasses, max: goal, color: RING.water },
-          ]}
-        />
-        <dl className="grid flex-1 gap-2">
-          <Stat color={RING.workouts} label="Workouts" value={`${w.sessions}/${target}`} />
-          <Stat color={RING.sets} label="Sets" value={`${w.sets}/${setTarget}`} />
-          <Stat color={RING.water} label="Water today" value={`${glasses}/${goal}`} />
-        </dl>
-      </Card>
-      <p className="px-4 pt-2 text-footnote text-label-2">
-        {w.streakWeeks > 0 ? `${w.streakWeeks}-week streak of hitting ${target} workouts. Keep it going.` : `Hit ${target} workouts this week to start a streak.`}
-      </p>
+      <SectionHeader title={PERIOD_TITLE[period]} />
+      <button onClick={flip} aria-label={`${PERIOD_TITLE[period]}. Tap to switch period`} className="press w-full rounded-card bg-card p-4 text-left shadow-card">
+        <div className="flex items-center gap-5">
+          <Rings
+            rings={[
+              { label: 'Workouts', value: p.sessions, max: p.targets.sessions, color: RING.workouts },
+              { label: 'Sets', value: p.sets, max: p.targets.sets, color: RING.sets },
+              { label: 'Water', value: p.glasses, max: p.targets.glasses, color: RING.water },
+            ]}
+          />
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.dl
+              key={period}
+              initial={reduce ? false : { opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={reduce ? undefined : { opacity: 0, y: -4 }}
+              transition={{ duration: 0.15 }}
+              className="grid flex-1 gap-2"
+            >
+              <Stat color={RING.workouts} label="Workouts" value={`${p.sessions}/${p.targets.sessions}`} />
+              <Stat color={RING.sets} label="Sets" value={`${p.sets}/${p.targets.sets}`} />
+              <Stat color={RING.water} label="Water" value={`${p.glasses}/${p.targets.glasses}`} />
+            </motion.dl>
+          </AnimatePresence>
+        </div>
+        <div className="mt-3 flex justify-center gap-1.5" aria-hidden>
+          {PERIODS.map((x) => (
+            <span key={x} className={cn('size-1.5 rounded-full transition-colors', x === period ? 'bg-label-2' : 'bg-fill')} />
+          ))}
+        </div>
+      </button>
+      {period === 'week' && (
+        <p className="px-4 pt-2 text-footnote text-label-2">
+          {streak > 0 ? `${streak}-week streak of hitting ${target} workouts. Keep it going.` : `Hit ${target} workouts this week to start a streak.`}
+        </p>
+      )}
     </>
   );
 }
@@ -451,12 +495,16 @@ function Water({ data, nowMinutes }: { data: AppData; nowMinutes: number }) {
   const reduce = useReducedMotion();
   const { behind } = waterPace(glasses, goal, nowMinutes, data.profile.waterReminders ?? DEFAULT_WATER_REMINDERS);
   const loud = behind >= 1;
+  const [collapsed, expand] = useDoneCollapse(done);
 
   function add(delta: number) {
     navigator.vibrate?.(10);
     act((d) => addWater(d, today, delta));
     if (delta > 0 && glasses + 1 === goal) toast('Water goal hit 💧');
   }
+
+  const litres = ((glasses * GLASS_ML) / 1000).toFixed(2).replace(/0$/, '');
+  if (collapsed) return <DoneRow label="Water" detail={`${glasses} / ${goal} glasses · ${litres} L`} onOpen={expand} />;
 
   return (
     <motion.div
@@ -480,7 +528,7 @@ function Water({ data, nowMinutes }: { data: AppData; nowMinutes: number }) {
             />
           ))}
         </div>
-        <div className="mt-1 text-caption text-label-2">{((glasses * GLASS_ML) / 1000).toFixed(2).replace(/0$/, '')} L{done ? ' · goal hit' : ''}</div>
+        <div className="mt-1 text-caption text-label-2">{litres} L{done ? ' · goal hit' : ''}</div>
         {loud && (
           <div className="mt-1 text-footnote font-medium text-blue">
             {glasses} of {goal}. You're {behind} behind. Have one now.
@@ -503,6 +551,8 @@ function Supplements({ data, nowMinutes }: { data: AppData; nowMinutes: number }
   const stack = activeSupplements(data);
   const taken = data.suppLog[today] ?? [];
   const overdue = suppOverdue(data, today, nowMinutes);
+  const takenCount = taken.filter((id) => stack.some((s) => s.id === id)).length;
+  const [collapsed, expand] = useDoneCollapse(stack.length > 0 && takenCount === stack.length);
 
   if (!stack.length)
     return (
@@ -518,6 +568,8 @@ function Supplements({ data, nowMinutes }: { data: AppData; nowMinutes: number }
       </button>
     );
 
+  if (collapsed) return <DoneRow label="Supplements" detail={stack.length === 1 ? `${stack[0].name} taken` : `All ${stack.length} taken`} onOpen={expand} />;
+
   return (
     <Card className={cn('mt-3 p-3 pl-4', overdue.length > 0 && 'ring-1 ring-orange/40')}>
       <div className="flex items-center gap-3">
@@ -526,7 +578,7 @@ function Supplements({ data, nowMinutes }: { data: AppData; nowMinutes: number }
         </span>
         <div className="min-w-0">
           <div className="text-headline font-semibold tabular">
-            {taken.filter((id) => stack.some((s) => s.id === id)).length} <span className="font-normal text-label-2">/ {stack.length} taken</span>
+            {takenCount} <span className="font-normal text-label-2">/ {stack.length} taken</span>
           </div>
           {overdue.length > 0 && <div className="text-footnote font-medium text-orange">{overdue.map((s) => s.name).join(', ')} not taken yet</div>}
         </div>

@@ -14,6 +14,8 @@ describe('profileSummaries', () => {
     d.program.splitId = 'full-body-abc';
     d.profile.daysPerWeek = 5;
     expect(profileSummaries(d, ctx).training).toBe('Full Body A/B/C · 5×/wk');
+    d.program.splitId = 'ppl-hybrid';
+    expect(profileSummaries(d, ctx).training).toBe('Hybrid PPL Push/Pull/Legs · 5×/wk');
     d.program.splitId = undefined as never;
     expect(profileSummaries(d, ctx).training).toBe('Not set');
   });

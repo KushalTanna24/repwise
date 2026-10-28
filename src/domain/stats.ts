@@ -31,6 +31,28 @@ const doneSets = (s: WorkoutSession, exerciseId?: string): SetRecord[] =>
 
 const weekStart = (d: dayjs.Dayjs) => d.startOf('day').subtract((d.day() + 6) % 7, 'day');
 
+export type Period = 'day' | 'week' | 'month';
+
+/** Target sets per workout, for the sets ring. */
+export const SETS_PER_WORKOUT = 15;
+
+/** Workouts, sets and water for one period, each against a target for that same period. */
+export function periodStats(data: AppData, now: string, period: Period) {
+  const n = dayjs(now);
+  const from = period === 'day' ? n.startOf('day') : period === 'week' ? weekStart(n) : n.startOf('month');
+  const days = period === 'day' ? 1 : period === 'week' ? 7 : n.daysInMonth();
+  const inPeriod = data.sessions.filter((s) => s.finishedAt && !dayjs(s.startedAt).isBefore(from) && !dayjs(s.startedAt).isAfter(n.endOf('day')));
+  let glasses = 0;
+  for (let i = 0; i < days; i++) glasses += data.water[from.add(i, 'day').format('YYYY-MM-DD')] ?? 0;
+  const sessions = period === 'day' ? 1 : Math.round((data.profile.daysPerWeek * days) / 7);
+  return {
+    sessions: inPeriod.length,
+    sets: inPeriod.reduce((x, s) => x + doneSets(s).length, 0),
+    glasses,
+    targets: { sessions, sets: sessions * SETS_PER_WORKOUT, glasses: data.profile.waterGoal * days },
+  };
+}
+
 export function weekStats(data: AppData, now: string) {
   const finished = data.sessions.filter((s) => s.finishedAt);
   const perWeek = new Map<string, number>();

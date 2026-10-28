@@ -66,7 +66,30 @@ const rows: Row[] = [
   ['dead-bug', 'Dead bug', 'Core', 'core', 'bodyweight', 'bodyweight', ['Dead bug']],
 ];
 
-export const BUILTIN_EXERCISES: Exercise[] = rows.map(([id, name, muscle, pattern, equipment, kind = 'weighted', aliases]) => ({
+/** Calisthenics skills. Holds are timed in seconds; never picked by the planner, only added by hand. */
+const calisthenics: Row[] = [
+  ['muscle-up', 'Muscle-up', 'Lats, chest & triceps', 'vpull', 'bodyweight', 'bodyweight'],
+  ['archer-pull-up', 'Archer pull-up', 'Lats', 'vpull', 'bodyweight', 'bodyweight'],
+  ['front-lever', 'Front lever', 'Lats & core', 'vpull', 'bodyweight', 'timed'],
+  ['back-lever', 'Back lever', 'Lats, chest & biceps', 'vpull', 'bodyweight', 'timed'],
+  ['dead-hang', 'Dead hang', 'Grip & lats', 'vpull', 'bodyweight', 'timed'],
+  ['skin-the-cat', 'Skin the cat', 'Shoulders & lats', 'shoulders', 'bodyweight', 'bodyweight'],
+  ['ring-dip', 'Ring dip', 'Chest & triceps', 'hpush', 'bodyweight', 'bodyweight'],
+  ['archer-push-up', 'Archer push-up', 'Chest', 'hpush', 'bodyweight', 'bodyweight'],
+  ['planche', 'Planche', 'Shoulders & chest', 'hpush', 'bodyweight', 'timed'],
+  ['handstand', 'Handstand', 'Shoulders & balance', 'vpush', 'bodyweight', 'timed'],
+  ['handstand-push-up', 'Handstand push-up', 'Shoulders & triceps', 'vpush', 'bodyweight', 'bodyweight'],
+  ['pike-push-up', 'Pike push-up', 'Shoulders', 'vpush', 'bodyweight', 'bodyweight'],
+  ['pistol-squat', 'Pistol squat', 'Quads & glutes', 'knee', 'bodyweight', 'bodyweight'],
+  ['nordic-curl', 'Nordic curl', 'Hamstrings', 'hip', 'bodyweight', 'bodyweight'],
+  ['human-flag', 'Human flag', 'Obliques, lats & shoulders', 'core', 'bodyweight', 'timed'],
+  ['l-sit', 'L-sit', 'Abs & hip flexors', 'core', 'bodyweight', 'timed'],
+  ['hollow-hold', 'Hollow body hold', 'Abs', 'core', 'bodyweight', 'timed'],
+  ['toes-to-bar', 'Toes-to-bar', 'Abs & grip', 'core', 'bodyweight', 'bodyweight'],
+  ['dragon-flag', 'Dragon flag', 'Abs', 'core', 'bodyweight', 'bodyweight'],
+];
+
+const toExercise = ([id, name, muscle, pattern, equipment, kind = 'weighted', aliases]: Row): Exercise => ({
   id,
   name,
   muscle,
@@ -74,7 +97,9 @@ export const BUILTIN_EXERCISES: Exercise[] = rows.map(([id, name, muscle, patter
   equipment,
   kind,
   ...(aliases ? { aliases } : {}),
-}));
+});
+
+export const BUILTIN_EXERCISES: Exercise[] = [...rows.map(toExercise), ...calisthenics.map((r) => ({ ...toExercise(r), calisthenics: true }))];
 
 const byId = new Map(BUILTIN_EXERCISES.map((e) => [e.id, e]));
 
@@ -103,7 +128,7 @@ export function emptyAppData(now: string): AppData {
       waterGoal: 8,
       waterReminders: { ...DEFAULT_WATER_REMINDERS },
     },
-    program: { splitId: null, rotation: { 'full-body-abc': { ...zero }, 'upper-lower': { ...zero }, ppl: { ...zero } } },
+    program: { splitId: null, rotation: { 'full-body-abc': { ...zero }, 'upper-lower': { ...zero }, ppl: { ...zero }, 'ppl-hybrid': { ...zero } } },
     customExercises: [],
     archivedExerciseIds: [],
     plannedSession: null,

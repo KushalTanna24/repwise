@@ -1,7 +1,7 @@
 /** All loads are stored in kilograms. Pounds are a display concern only. */
 export type Kg = number;
 
-export type SplitId = 'full-body-abc' | 'upper-lower' | 'ppl';
+export type SplitId = 'full-body-abc' | 'upper-lower' | 'ppl' | 'ppl-hybrid';
 export type Pattern =
   | 'knee'
   | 'hip'
@@ -27,6 +27,8 @@ export interface Exercise {
   /** Legacy names used to map repwise_v2 history onto this id. */
   aliases?: string[];
   custom?: boolean;
+  /** Bodyweight skill work; the picker lists these in their own group. */
+  calisthenics?: boolean;
 }
 
 export interface Slot {
@@ -40,7 +42,8 @@ export interface SplitDef {
   id: SplitId;
   name: string;
   blurb: string;
-  sessions: { title: string; slots: Slot[] }[];
+  /** `short` names the day in one-line summaries when the title's last word would not. */
+  sessions: { title: string; short?: string; slots: Slot[] }[];
 }
 
 export interface Recommendation {
@@ -210,7 +213,8 @@ export interface Fast {
   id: string;
   startedAt: string;
   endedAt: string | null;
-  targetHours: 16 | 24 | 36;
+  /** Whole hours, 1 to 72. */
+  targetHours: number;
 }
 
 export interface ProgressPhoto {

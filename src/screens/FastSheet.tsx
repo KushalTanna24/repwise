@@ -1,14 +1,16 @@
 import { useState } from 'react';
-import { activeFast, elapsedHours, endFast, fastPhase, FAST_TARGETS, needsSafetyAck, startFast, type FastTarget } from '@/domain/fasting';
+import { activeFast, elapsedHours, endFast, fastPhase, fmtFastEnd, FAST_MAX_H, FAST_PRESETS, needsSafetyAck, startFast, validFastHours } from '@/domain/fasting';
 import { Sheet } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { List } from '@/components/ui/card';
-import { FieldRow } from '@/components/ui/field';
+import { FieldRow, TextInput } from '@/components/ui/field';
 import { Segmented } from '@/components/ui/segmented';
 import { nowIso } from '@/lib/fmt';
 import { toast } from '@/lib/toast';
 import { act, useData } from '@/store/app';
 import { Done } from './profile/Done';
+
+type Choice = `${(typeof FAST_PRESETS)[number]}` | 'custom';
 
 const SAFETY = [
   'Not for anyone pregnant or breastfeeding, diabetic or on glucose-lowering medication, under 18, or with a history of eating disorders.',
@@ -23,11 +25,15 @@ export function endFastToast(hours: number, target: number) {
 export function FastSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const data = useData();
   const fast = activeFast(data);
-  const [target, setTarget] = useState<FastTarget>(16);
+  const [choice, setChoice] = useState<Choice>('16');
+  const [custom, setCustom] = useState('');
   const [ack, setAck] = useState(false);
-  const needsAck = needsSafetyAck(data, target);
+  const target = choice === 'custom' ? Number(custom.trim()) : Number(choice);
+  const valid = validFastHours(target);
+  const needsAck = valid && needsSafetyAck(data, target);
 
   function start() {
+    if (!valid) return toast(`Pick 1 to ${FAST_MAX_H} hours`);
     act((d) => startFast(needsAck ? { ...d, profile: { ...d.profile, fastingSafetyAck: true } } : d, target, nowIso()));
     toast(`Fast started. ${target}h target`);
     onClose();
@@ -47,7 +53,8 @@ export function FastSheet({ open, onClose }: { open: boolean; onClose: () => voi
           <p className="px-4 pb-1 text-title3 font-bold tabular">
             {Math.floor(elapsedHours(fast, nowIso()))}h of {fast.targetHours}h
           </p>
-          <p className="px-4 pb-4 text-subhead text-label-2">{fastPhase(elapsedHours(fast, nowIso()))}</p>
+          <p className="px-4 text-subhead text-label-2">{fastPhase(elapsedHours(fast, nowIso()))}</p>
+          <p className="px-4 pb-4 text-subhead font-semibold tabular">{fmtFastEnd(fast, nowIso())}</p>
           <Button variant="destructive" className="w-full" onClick={end}>
             End fast
           </Button>
@@ -57,12 +64,17 @@ export function FastSheet({ open, onClose }: { open: boolean; onClose: () => voi
           <List>
             <FieldRow label="Target">
               <Segmented
-                className="w-44"
-                value={String(target) as '16' | '24' | '36'}
-                onChange={(v) => setTarget(Number(v) as FastTarget)}
-                options={FAST_TARGETS.map((t) => ({ value: String(t) as '16' | '24' | '36', label: `${t}h` }))}
+                className="w-56"
+                value={choice}
+                onChange={setChoice}
+                options={[...FAST_PRESETS.map((t) => ({ value: `${t}` as Choice, label: `${t}h` })), { value: 'custom' as const, label: 'Custom' }]}
               />
             </FieldRow>
+            {choice === 'custom' && (
+              <FieldRow label="Hours" hint={`Whole hours, 1 to ${FAST_MAX_H}.`}>
+                <TextInput aria-label="Fast length in hours" inputMode="numeric" placeholder="14" autoFocus value={custom} onChange={(e) => setCustom(e.target.value)} className="w-20" />
+              </FieldRow>
+            )}
           </List>
           {needsAck && (
             <div className="mt-3 rounded-card bg-orange/12 p-4">
@@ -77,7 +89,7 @@ export function FastSheet({ open, onClose }: { open: boolean; onClose: () => voi
               </label>
             </div>
           )}
-          <Button size="lg" className="mt-4" disabled={needsAck && !ack} onClick={start}>
+          <Button size="lg" className="mt-4" disabled={!valid || (needsAck && !ack)} onClick={start}>
             Start fast
           </Button>
           <p className="px-4 pt-2 text-footnote text-label-2">Phases are general guidance, not medical advice.</p>

@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { ArrowDown, ArrowDownRight, ArrowUp, ArrowUpRight, Ellipsis, Minus, Plus, Repeat, Sparkles, SkipForward, Target } from 'lucide-react';
+import { ArrowDown, ArrowDownRight, ArrowUp, ArrowUpRight, ChevronDown, Ellipsis, Minus, Plus, Repeat, Sparkles, SkipForward, Target } from 'lucide-react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { getExercise } from '@/domain/catalogue';
 import { lastDoneMs, region, suggestNext } from '@/domain/flow';
 import { exerciseHistory } from '@/domain/stats';
 import { addSet, confirmSet, moveExercise, removeSet, skipExercise, skipSet, uncheckSet, updateSet } from '@/domain/session';
-import type { AppData, Recommendation, SessionExercise } from '@/domain/types';
+import type { AppData, Recommendation, SessionExercise, SetRecord } from '@/domain/types';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Menu } from '@/components/ui/menu';
@@ -16,6 +17,7 @@ import { SetRow } from './SetRow';
 import { useHighlight } from './highlight';
 import { GuideButton } from '../Guide';
 import { startRest } from './RestTimer';
+import { useDoneCollapse } from '../today/DoneRow';
 
 /** Rest when the next suggested set is a different body area. */
 const SWITCH_REST_SEC = 45;
@@ -49,6 +51,10 @@ export function ExerciseCard({ data, entry, index, count, onSwap }: Props) {
   const rec = entry.rec;
   const style = rec ? REC_STYLE[rec.kind] : null;
   const highlight = useHighlight((s) => s.key);
+  const reduce = useReducedMotion();
+  // A finished or skipped exercise folds to one line so the open ones stay in reach.
+  const finished = allDone || !!entry.skipped;
+  const [collapsed, expand, fold] = useDoneCollapse(finished);
 
   if (!entry.exerciseId) {
     return (
@@ -99,10 +105,17 @@ export function ExerciseCard({ data, entry, index, count, onSwap }: Props) {
             {!allDone && !entry.skipped && <Recovery last={lastDoneMs(entry.sets)} restSec={entry.plan?.restSec ?? 90} />}
             {allDone && !entry.skipped && <span className="rounded-full bg-green px-2 py-0.5 text-caption font-bold text-white">Done</span>}
           </div>
-          <div className="text-footnote text-label-2">
-            {ex?.muscle} · {entry.plan ? `${entry.plan.sets} × ${fmtRange(entry.plan.repMin, entry.plan.repMax, timed)}` : 'Extra'}
-            {entry.plan && ` · rest ${Math.round(entry.plan.restSec / 60 * 2) / 2} min`}
-          </div>
+          {collapsed ? (
+            <button onClick={expand} aria-expanded={false} aria-label={`Show sets for ${exName(data, entry.exerciseId)}`} className="flex w-full items-center gap-1 text-left text-footnote text-label-2">
+              <span className="truncate">{entry.skipped ? 'Skipped' : doneSummary(entry.sets, timed, usesAssist, units)}</span>
+              <ChevronDown className="size-4 shrink-0" />
+            </button>
+          ) : (
+            <div className="text-footnote text-label-2">
+              {ex?.muscle} · {entry.plan ? `${entry.plan.sets} × ${fmtRange(entry.plan.repMin, entry.plan.repMax, timed)}` : 'Extra'}
+              {entry.plan && ` · rest ${Math.round(entry.plan.restSec / 60 * 2) / 2} min`}
+            </div>
+          )}
         </div>
         <Menu
           label={`${exName(data, entry.exerciseId)} options`}
@@ -132,54 +145,89 @@ export function ExerciseCard({ data, entry, index, count, onSwap }: Props) {
         />
       </div>
 
-      {rec && style && (
-        <div className={cn('mt-3 flex items-start gap-2 rounded-[12px] px-3 py-2 text-footnote font-medium', style.cls)}>
-          <style.icon className="mt-[1px] size-4 shrink-0" strokeWidth={2.5} />
-          <span>{rec.reason}</span>
-        </div>
-      )}
-      {last && (
-        <div className="mt-2 px-1 text-footnote text-label-2">
-          Last · {timed ? '' : `${fmtLoad(last.bestKg, units)} × `}
-          {last.sets.map((s) => s.actualReps).join(' · ')}
-          {timed ? 's' : ''} · {fmtDay(last.date)}
-        </div>
-      )}
+      <AnimatePresence initial={false}>
+        {!collapsed && (
+          <motion.div
+            key="sets"
+            initial={reduce ? false : { height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={reduce ? undefined : { height: 0, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 380, damping: 38 }}
+            className="overflow-hidden"
+          >
+            {rec && style && (
+              <div className={cn('mt-3 flex items-start gap-2 rounded-[12px] px-3 py-2 text-footnote font-medium', style.cls)}>
+                <style.icon className="mt-[1px] size-4 shrink-0" strokeWidth={2.5} />
+                <span>{rec.reason}</span>
+              </div>
+            )}
+            {last && (
+              <div className="mt-2 px-1 text-footnote text-label-2">
+                Last · {timed ? '' : `${fmtLoad(last.bestKg, units)} × `}
+                {last.sets.map((s) => s.actualReps).join(' · ')}
+                {timed ? 's' : ''} · {fmtDay(last.date)}
+              </div>
+            )}
 
-      <div className="mt-3 grid grid-cols-[36px_1fr_1fr_44px] gap-2 px-1 text-caption font-semibold uppercase tracking-wide text-label-2">
-        <span className="text-center">Set</span>
-        <span className="text-center">{kgHeader}</span>
-        <span className="text-center">{timed ? 'Sec' : 'Reps'}</span>
-        <span />
-      </div>
-      <div className="mt-1 grid gap-1">
-        {entry.sets.map((s, i) => (
-          <SetRow
-            key={i}
-            index={i}
-            set={s}
-            ex={ex}
-            units={units}
-            loadField={loadField}
-            targetAssist={rec?.assistKg ?? null}
-            exIdx={index}
-            highlight={highlight === `${index}-${i}`}
-            onHold={(sec) => {
-              act((d) => updateSet(d, index, i, { actualReps: sec }));
-              toggle(i);
-            }}
-            onPatch={(patch) => act((d) => updateSet(d, index, i, patch))}
-            onToggle={() => toggle(i)}
-            onSkip={() => act((d) => skipSet(d, index, i))}
-            onRemove={() => act((d) => removeSet(d, index, i))}
-          />
-        ))}
-      </div>
-      <Button variant="plain" size="sm" className="mt-2" onClick={() => act((d) => addSet(d, index))}>
-        <Plus className="size-4" strokeWidth={2.5} /> Add set
-      </Button>
+            <div className="mt-3 grid grid-cols-[36px_1fr_1fr_44px] gap-2 px-1 text-caption font-semibold uppercase tracking-wide text-label-2">
+              <span className="text-center">Set</span>
+              <span className="text-center">{kgHeader}</span>
+              <span className="text-center">{timed ? 'Sec' : 'Reps'}</span>
+              <span />
+            </div>
+            <div className="mt-1 grid gap-1">
+              {entry.sets.map((s, i) => (
+                <SetRow
+                  key={i}
+                  index={i}
+                  set={s}
+                  ex={ex}
+                  units={units}
+                  loadField={loadField}
+                  targetAssist={rec?.assistKg ?? null}
+                  exIdx={index}
+                  highlight={highlight === `${index}-${i}`}
+                  onHold={(sec) => {
+                    act((d) => updateSet(d, index, i, { actualReps: sec }));
+                    toggle(i);
+                  }}
+                  onPatch={(patch) => act((d) => updateSet(d, index, i, patch))}
+                  onToggle={() => toggle(i)}
+                  onSkip={() => act((d) => skipSet(d, index, i))}
+                  onRemove={() => act((d) => removeSet(d, index, i))}
+                />
+              ))}
+            </div>
+            <div className="mt-2 flex items-center justify-between">
+              <Button variant="plain" size="sm" onClick={() => act((d) => addSet(d, index))}>
+                <Plus className="size-4" strokeWidth={2.5} /> Add set
+              </Button>
+              {finished && (
+                <Button variant="plain" size="sm" onClick={fold}>
+                  Hide sets
+                </Button>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </Card>
   );
+}
+
+/** "80 kg × 8 · 8 · 7" when the load held, else each set's load; "45 · 40s" for holds. */
+function doneSummary(sets: SetRecord[], timed: boolean, assist: boolean, units: 'kg' | 'lb'): string {
+  const done = sets.filter((s) => s.status === 'done');
+  const skipped = sets.length - done.length;
+  const tail = skipped ? ` · ${skipped} skipped` : '';
+  if (!done.length) return 'All sets skipped';
+  const reps = done.map((s) => s.actualReps ?? 0);
+  if (timed) return `${reps.join(' · ')}s${tail}`;
+  const load = (s: SetRecord) => (assist ? s.assistKg : s.actualKg) ?? 0;
+  const fmt = (kg: number) => (kg > 0 ? `${assist ? 'assist ' : ''}${fmtLoad(kg, units)} × ` : '');
+  const same = done.every((s) => load(s) === load(done[0]));
+  const body = same ? `${fmt(load(done[0]))}${reps.join(' · ')}` : done.map((s, i) => `${fmt(load(s))}${reps[i]}`).join(' · ');
+  return `${done.length} ${done.length === 1 ? 'set' : 'sets'} · ${body}${tail}`;
 }
 
 /** "Rested 1:12" while recovering, green "Ready" once this exercise's rest has passed. */

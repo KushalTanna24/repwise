@@ -12,7 +12,7 @@ export type ProfileRow = 'training' | 'goals' | 'challenges' | 'leave' | 'body' 
 export function profileSummaries(data: AppData, ctx: { permission: Permission; signedIn: boolean; today?: string }): Record<ProfileRow, string> {
   const p = data.profile;
   const split = data.program.splitId ? SPLITS[data.program.splitId] : null;
-  const rotation = split ? split.sessions.map((s) => s.title.split(' ').pop()).join('/') : '';
+  const rotation = split ? split.sessions.map((s) => s.short ?? s.title.split(' ').pop()).join('/') : '';
   const goals = data.goals.length;
   const stack = data.supplements.filter((s) => !s.archived).length;
   const on = ALL_EQUIPMENT.filter((k) => p.equipment.includes(k)).length;

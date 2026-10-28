@@ -121,4 +121,49 @@ export const SPLITS: Record<SplitId, SplitDef> = {
       },
     ],
   },
+  // Each arm muscle trains on its partner's day, so curls are fresh on push day and pushdowns on pull day.
+  'ppl-hybrid': {
+    id: 'ppl-hybrid',
+    name: 'Hybrid PPL',
+    blurb: '3–6 days · Chest & biceps / Back & triceps / Legs & shoulders',
+    sessions: [
+      {
+        title: 'Chest & Biceps',
+        short: 'Push',
+        slots: [
+          anchor('hp-hpush', 'hpush', ['bench-press', 'db-bench-press', 'machine-chest-press', 'push-up']),
+          anchor('hp-incline', 'hpush', ['incline-db-press', 'machine-chest-press', 'db-bench-press']),
+          acc('hp-biceps', 'arms', ['db-curl', 'cable-curl']),
+          acc('hp-fly', 'hpush', ['cable-fly', 'push-up']),
+          acc('hp-hammer', 'arms', ['hammer-curl', 'cable-curl']),
+          acc('hp-dip', 'hpush', ['dip', 'push-up']),
+        ],
+      },
+      {
+        title: 'Back & Triceps',
+        short: 'Pull',
+        slots: [
+          anchor('hq-vpull', 'vpull', ['pull-up', 'lat-pulldown', 'chin-up']),
+          anchor('hq-hpull', 'hpull', ['barbell-row', 'chest-supported-row', 'seated-cable-row', 'one-arm-db-row', 'inverted-row']),
+          acc('hq-triceps', 'arms', ['triceps-pushdown', 'overhead-triceps-extension']),
+          acc('hq-row', 'hpull', ['seated-cable-row', 'one-arm-db-row', 'inverted-row']),
+          acc('hq-triceps2', 'arms', ['overhead-triceps-extension', 'triceps-pushdown']),
+          acc('hq-lats', 'vpull', ['straight-arm-pulldown', 'lat-pulldown']),
+        ],
+      },
+      {
+        title: 'Legs & Shoulders',
+        short: 'Legs',
+        slots: [
+          anchor('hl-knee', 'knee', ['back-squat', 'hack-squat', 'leg-press', 'goblet-squat']),
+          anchor('hl-vpush', 'vpush', ['overhead-press', 'seated-db-press', 'machine-shoulder-press']),
+          anchor('hl-hip', 'hip', ['romanian-deadlift', 'db-romanian-deadlift', 'back-extension']),
+          acc('hl-lateral', 'shoulders', ['db-lateral-raise', 'cable-lateral-raise']),
+          acc('hl-hip2', 'hip', ['leg-curl', 'hip-thrust']),
+          acc('hl-rear', 'shoulders', ['face-pull', 'rear-delt-fly', 'reverse-pec-deck']),
+          acc('hl-calves', 'calves', ['standing-calf-raise', 'seated-calf-raise']),
+        ],
+      },
+    ],
+  },
 };

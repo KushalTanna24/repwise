@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { emptyAppData } from './catalogue';
-import { bestSet, bmi, exerciseHistory, fromDisplay, latestWeight, localDate, parseNumber, sessionPRs, toDisplay, weekStats } from './stats';
+import { bestSet, bmi, exerciseHistory, fromDisplay, latestWeight, localDate, parseNumber, periodStats, sessionPRs, toDisplay, weekStats } from './stats';
 import type { AppData, SetRecord, WorkoutSession } from './types';
 
 const NOW = '2026-10-17T08:00:00.000Z'; // Saturday
@@ -67,6 +67,36 @@ describe('helpers', () => {
       { id: 'a', date: '2026-10-01', kg: 62 },
     ];
     expect(latestWeight(d)?.kg).toBe(61);
+  });
+});
+
+describe('periodStats', () => {
+  // NOW is Saturday 17 Oct 2026; the week starts Monday 12 Oct.
+  const d = withSessions([
+    sess('1', '2026-09-30', { x: [[1, 1]] }),
+    sess('2', '2026-10-01', { x: [[1, 1], [1, 1]] }),
+    sess('3', '2026-10-12', { x: [[1, 1], [1, 1, 'skipped']] }),
+    sess('4', '2026-10-17', { x: [[1, 1], [1, 1], [1, 1]] }),
+  ]);
+  d.profile.waterGoal = 8;
+  d.water = { '2026-09-30': 8, '2026-10-01': 5, '2026-10-12': 6, '2026-10-17': 3 };
+
+  it('day counts only today against one workout and one day of water', () => {
+    expect(periodStats(d, NOW, 'day')).toEqual({ sessions: 1, sets: 3, glasses: 3, targets: { sessions: 1, sets: 15, glasses: 8 } });
+  });
+
+  it('week counts from Monday, every ring against the week', () => {
+    expect(periodStats(d, NOW, 'week')).toEqual({ sessions: 2, sets: 4, glasses: 9, targets: { sessions: 3, sets: 45, glasses: 56 } });
+  });
+
+  it('month counts from the 1st, targets scale with the days in the month', () => {
+    // October has 31 days: 3 a week × 31/7 ≈ 13 workouts.
+    expect(periodStats(d, NOW, 'month')).toEqual({ sessions: 3, sets: 6, glasses: 14, targets: { sessions: 13, sets: 195, glasses: 248 } });
+  });
+
+  it('an unfinished workout does not count', () => {
+    const open = withSessions([{ ...sess('5', '2026-10-17', { x: [[1, 1]] }), finishedAt: null }]);
+    expect(periodStats(open, NOW, 'day').sessions).toBe(0);
   });
 });
 

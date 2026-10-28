@@ -26,6 +26,17 @@ describe('catalogue', () => {
     for (const p of ['knee', 'hip', 'hpush', 'vpush', 'hpull', 'vpull']) expect(patterns.has(p as never), p).toBe(true);
   });
 
+  it('hybrid PPL pairs chest with biceps, back with triceps, legs with shoulders', () => {
+    const [push, pull, legs] = SPLITS['ppl-hybrid'].sessions;
+    const patterns = (s: typeof push) => new Set(s.slots.map((x) => x.pattern));
+    const arms = (s: typeof push) => s.slots.filter((x) => x.pattern === 'arms').flatMap((x) => x.candidates);
+    expect(patterns(push)).toEqual(new Set(['hpush', 'arms']));
+    expect(arms(push).every((id) => /curl/.test(id))).toBe(true);
+    expect(patterns(pull)).toEqual(new Set(['vpull', 'hpull', 'arms']));
+    expect(arms(pull).every((id) => /triceps|dip/.test(id))).toBe(true);
+    expect(patterns(legs)).toEqual(new Set(['knee', 'hip', 'vpush', 'shoulders', 'calves']));
+  });
+
   it('getExercise finds custom exercises', () => {
     const custom = [{ id: 'custom-x', name: 'X', muscle: 'Back', pattern: 'hpull', equipment: 'cable', kind: 'weighted', custom: true } as const];
     expect(getExercise('custom-x', [...custom])?.name).toBe('X');

@@ -5,7 +5,8 @@ import { isEligible } from '@/domain/planner';
 import type { AppData, Exercise, Pattern } from '@/domain/types';
 import { List, Row } from '@/components/ui/card';
 
-const PATTERN_LABEL: Record<Pattern, string> = {
+const GROUP_LABEL: Record<Pattern | 'calisthenics', string> = {
+  calisthenics: 'Calisthenics',
   knee: 'Squat & lunge',
   hip: 'Hinge & hamstrings',
   hpush: 'Chest press',
@@ -30,8 +31,13 @@ export function ExercisePicker({ data, suggested = [], onPick }: Props) {
   const groups = useMemo(() => {
     const needle = q.trim().toLowerCase();
     const list = allExercises(data).filter((e) => isEligible(e, data) && (!needle || `${e.name} ${e.muscle}`.toLowerCase().includes(needle)));
-    const by = new Map<Pattern, Exercise[]>();
-    for (const e of list) by.set(e.pattern, [...(by.get(e.pattern) ?? []), e]);
+    // Calisthenics first so skill work is easy to find; the Map keeps insertion order.
+    const by = new Map<Pattern | 'calisthenics', Exercise[]>([['calisthenics', []]]);
+    for (const e of list) {
+      const k = e.calisthenics ? 'calisthenics' : e.pattern;
+      by.set(k, [...(by.get(k) ?? []), e]);
+    }
+    if (!by.get('calisthenics')!.length) by.delete('calisthenics');
     return [...by.entries()];
   }, [data, q]);
 
@@ -59,7 +65,7 @@ export function ExercisePicker({ data, suggested = [], onPick }: Props) {
       )}
       {groups.map(([pattern, list]) => (
         <div key={pattern}>
-          <div className="px-4 pb-1.5 pt-5 text-footnote uppercase text-label-2">{PATTERN_LABEL[pattern]}</div>
+          <div className="px-4 pb-1.5 pt-5 text-footnote uppercase text-label-2">{GROUP_LABEL[pattern]}</div>
           <List>
             {list.map((e) => (
               <Row key={e.id} title={e.name} subtitle={`${e.muscle}${e.custom ? ' · custom' : ''}`} onClick={() => onPick(e.id)} chevron />

@@ -1,12 +1,12 @@
 import { useRef, useState } from 'react';
-import { Camera, Check, ChevronRight, Loader2, Trophy } from 'lucide-react';
+import { Camera, Check, ChevronRight, Loader2 } from 'lucide-react';
 import { canTickByHand, dayNumber, taskDone, toggleTask } from '@/domain/challenges';
 import { addPhoto, photoFor, removePhoto } from '@/domain/photos';
 import { PhotoThumb } from '@/components/PhotoThumb';
 import { deletePhotoObject, resizeToJpeg, uploadPhoto } from '@/lib/photos';
 import { useSyncState } from '@/sync/useSync';
 import type { AppData, ChallengeRun, ChallengeTask } from '@/domain/types';
-import { Card, List, Row } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/cn';
 import { openSheet } from '@/lib/route';
 import { act } from '@/store/app';
@@ -121,11 +121,3 @@ function TaskRow({ data, run, task, today }: { data: AppData; run: ChallengeRun;
   );
 }
 
-/** Shown on Today when no challenge is running. */
-export function AddChallengeRow() {
-  return (
-    <List className="mt-4">
-      <Row leading={<Trophy className="size-5 shrink-0 text-orange" />} title="Add a challenge" subtitle="75-Day, habit stack, your own, or a fast" onClick={() => openSheet('challenges')} chevron />
-    </List>
-  );
-}

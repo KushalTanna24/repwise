@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { emptyAppData } from './catalogue';
-import { elapsedHours, endFast, fastPhase, fastReached, fastsEndedOn, needsSafetyAck, startFast } from './fasting';
+import { elapsedHours, endFast, fastEndsAt, fastPhase, fastReached, fastsEndedOn, fmtFastEnd, needsSafetyAck, startFast, validFastHours } from './fasting';
 
 const NOW = '2026-10-20T20:00:00';
 const hoursLater = (h: number) => new Date(Date.parse(NOW) + h * 3_600_000).toISOString();
@@ -36,6 +36,22 @@ describe('fasting', () => {
     const d = endFast(startFast(emptyAppData(NOW), 16, NOW, 'f1'), '2026-10-21T12:00:00');
     expect(fastsEndedOn(d, '2026-10-21').map((f) => f.id)).toEqual(['f1']);
     expect(fastsEndedOn(d, '2026-10-20')).toEqual([]);
+  });
+
+  it('any whole number of hours from 1 to 72 is a valid target', () => {
+    expect([0, 1, 13, 72, 73, 12.5, NaN].map(validFastHours)).toEqual([false, true, true, true, false, false, false]);
+    expect(startFast(emptyAppData(NOW), 13, NOW, 'f1').fasts[0].targetHours).toBe(13);
+    const d = emptyAppData(NOW);
+    expect(startFast(d, 0, NOW, 'f1')).toBe(d);
+  });
+
+  it('ends at its start plus the target, said relative to now', () => {
+    const f = startFast(emptyAppData(NOW), 16, NOW, 'f1').fasts[0];
+    expect(fastEndsAt(f)).toBe(hoursLater(16));
+    expect(fmtFastEnd(f, NOW)).toBe('Ends tomorrow 12:00');
+    expect(fmtFastEnd(startFast(emptyAppData(NOW), 2, NOW, 'f2').fasts[0], NOW)).toBe('Ends today 22:00');
+    expect(fmtFastEnd(startFast(emptyAppData(NOW), 40, NOW, 'f3').fasts[0], NOW)).toBe('Ends Thu 12:00');
+    expect(fmtFastEnd(f, hoursLater(17))).toBe('Target reached 12:00');
   });
 
   it('long fasts need the safety note acknowledged once', () => {
