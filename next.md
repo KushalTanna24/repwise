@@ -1,10 +1,14 @@
 # Next
 
-## Custom split builder
+## Custom split builder (in design)
 
-Let people build their own split instead of picking one of the fixed four.
+Let people build their own split instead of picking one of the fixed four. Spec in progress under `docs/superpowers/specs/`. It starts with a refactor that moves splits, rotation and progression into one `domain/training` module.
 
-- Recommendations come from the selected experience level and session length (`profile.experience`, `profile.sessionMinutes`), the same inputs the planner already uses for sets and exercise count.
-- Only offer exercises the user has enabled in Equipment & exercises (respect `profile.equipment`, `excludedExerciseIds`, `archivedExerciseIds`; reuse `isEligible`).
-- Open question: start from a suggested full split the user then edits, or start from blank days with suggestions per day.
-- Touches the planner: `SplitId` is a closed union and `SPLITS` a fixed record today, so custom splits need their own storage and rotation entry. Needs a written spec before building.
+## App-wide restructure (after the split builder)
+
+Apply the same module pattern to the rest of the app.
+
+- Split `Today.tsx` (618 lines) into feature widgets.
+- Give water, supplements, challenges and fasting their own domain modules, each with one public `index.ts`.
+- Break `domain/types.ts` up by feature.
+- Needs its own spec.
