@@ -117,7 +117,7 @@ interface AppData {
 
 ## Editing rules (`splits/custom.ts`)
 
-- `newCustomSplit(data, from, now)` creates the split and returns `{ data, id }`. With `from` set, it copies that split's days, titles, Main/Extra roles and alternates, with new slot ids and `copiedFrom` set; the name is "My <name>". With `from` null, the split is named "My split" with one empty day called "Day 1".
+- `newCustomSplit(data, from, now)` returns a new draft `{ split }` without storing it. With `from` set, it copies that split's days, titles, Main/Extra roles and alternates, with new slot ids and `copiedFrom` set; the name is "My <name>". With `from` null, the split is named "My split" with one empty day called "Day 1".
 - `saveCustomSplit(data, split, now)` replaces the stored split as a whole and bumps `updatedAt`. Validation: a non-empty name, 1 to 7 days, each day with a non-empty title and 1 to 12 exercises. On an invalid split it returns `data` unchanged and the editor shows the reason. If the split is active and no workout is running, `plannedSession` is cleared so `ensurePlan` rebuilds it. If days were removed, its rotation index is clamped to `min(index, days - 1)` and the cycle is kept.
 - `deleteCustomSplit(data, id, now)` sets `deletedAt`. If it was the active split, `splitId` becomes `null` and `plannedSession` is cleared. A running workout blocks deletion of the active split.
 - `suggestDay(data, focus)` returns slots for one day. The focus maps to movement patterns:
@@ -188,7 +188,7 @@ Day name [Push    ]
 
 ### Drafts
 
-The editor holds the split as a local draft in component state. Save calls `saveCustomSplit` once. Closing with unsaved changes asks "Discard changes?". A split created from `split-new` is only stored on its first Save.
+The editor holds the split as a draft in a small non-persisted Zustand store (`src/store/splitDraft.ts`), because the split editor and day editor are separate routed sheets that share it. Save calls `saveCustomSplit` once. Closing with unsaved changes asks "Discard changes?". A split created from `split-new` is only stored on its first Save.
 
 ### Copy
 
@@ -224,7 +224,7 @@ The editor holds the split as a local draft in component state. Save calls `save
 
 ## Delivery
 
-Three commits on `dev`, in order: the training module refactor, the custom split domain, the builder screens. They ship together as Repwise 4.5.0.
+Three stages on `dev`, in order: the training module refactor, the custom split domain, the builder screens. Each stage is several small commits (one per plan task). They ship together as Repwise 4.5.0.
 
 ## Out of scope
 
