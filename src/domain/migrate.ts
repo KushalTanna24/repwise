@@ -1,4 +1,5 @@
 import { ALL_EQUIPMENT, BUILTIN_EXERCISES, emptyAppData } from './catalogue';
+import { getSplit } from './training';
 import { seedStack } from './supplementCatalogue';
 import type { AppData, EquipmentKind, Exercise, Objective, Profile, SessionExercise, WorkoutSession } from './types';
 
@@ -135,7 +136,7 @@ export function normalize(doc: unknown, now: string): AppData | null {
   if (isV4(doc)) {
     const base = emptyAppData(now);
     // The seeded stack in base must not leak into a doc that has none; seedStack decides that once.
-    return seedStack({
+    const out = seedStack({
       ...base,
       ...doc,
       supplements: doc.supplements ?? [],
@@ -150,6 +151,10 @@ export function normalize(doc: unknown, now: string): AppData | null {
       profile: { ...base.profile, ...doc.profile },
       program: { ...base.program, ...doc.program, rotation: { ...base.program.rotation, ...doc.program.rotation } },
     });
+    // A custom split that no longer resolves would crash planning; fall back to the chooser.
+    const id = out.program.splitId;
+    if (id?.startsWith('custom-') && !getSplit(out, id)) return { ...out, plannedSession: null, program: { ...out.program, splitId: null } };
+    return out;
   }
   const wrapped = doc as { version?: number; state?: unknown };
   if (wrapped && typeof wrapped === 'object' && wrapped.state !== undefined && isV2(wrapped.state)) return migrateV2(wrapped.state, now);
