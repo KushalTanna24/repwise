@@ -1,9 +1,9 @@
 import { allExercises, getExercise } from '../catalogue';
-import type { AppData, EquipmentKind, Exercise, Profile } from '../types';
-import { daysOff, easedSets, recommend, returnTier, type ReturnTier } from './progression';
+import type { AppData, EquipmentKind, Exercise } from '../types';
+import { prescribe, tierAt } from './prescribe';
 import { currentRotation, restartAfterBreak } from './rotation';
 import { FINISHERS, getSplit } from './splits/registry';
-import type { PlannedExercise, PlannedSession, Prescription, Slot, SplitId } from './types';
+import type { PlannedExercise, PlannedSession, Slot, SplitId } from './types';
 
 export const planKey = (splitId: SplitId, sessionIndex: number, cycle: number) => `${splitId}:${sessionIndex}:${cycle}`;
 
@@ -11,22 +11,6 @@ const MAX_EXERCISES: Record<AppData['profile']['sessionMinutes'], number> = { 45
 
 /** Beginners start on machines and dumbbells, which are easier to learn and load safely. */
 const BEGINNER_ORDER: Record<EquipmentKind, number> = { machine: 0, dumbbell: 1, cable: 2, bodyweight: 3, barbell: 4 };
-
-const RX: Record<Profile['objective'], Record<Slot['role'], Omit<Prescription, 'restSec'>>> = {
-  hypertrophy: { anchor: { sets: 3, repMin: 6, repMax: 10 }, accessory: { sets: 3, repMin: 10, repMax: 15 } },
-  strength: { anchor: { sets: 4, repMin: 4, repMax: 6 }, accessory: { sets: 3, repMin: 8, repMax: 12 } },
-  general: { anchor: { sets: 3, repMin: 8, repMax: 12 }, accessory: { sets: 3, repMin: 8, repMax: 12 } },
-};
-const REST: Record<Slot['role'], number> = { anchor: 150, accessory: 90 };
-
-export function prescription(profile: Pick<Profile, 'objective' | 'experience'>, role: Slot['role'], ex: Exercise | undefined): Prescription {
-  if (ex?.kind === 'timed') return { sets: 3, repMin: 30, repMax: 60, restSec: 60 };
-  const base = RX[profile.objective][role];
-  let sets = base.sets;
-  if (profile.experience === 'beginner' && role === 'anchor') sets = Math.max(2, sets - 1);
-  if (profile.experience === 'advanced' && role === 'accessory') sets += 1;
-  return { ...base, sets, restSec: REST[role] };
-}
 
 export function isEligible(ex: Exercise | undefined, data: AppData): ex is Exercise {
   return (
@@ -37,17 +21,10 @@ export function isEligible(ex: Exercise | undefined, data: AppData): ex is Exerc
   );
 }
 
-const tierAt = (data: AppData, now?: string): ReturnTier => (now ? returnTier(daysOff(data.sessions, now)) : 0);
-
 /** `now` dates the break since the last workout; omitted, no easing applies. */
 export function plannedExercise(data: AppData, slot: Slot, exerciseId: string, now?: string): PlannedExercise {
-  const ex = getExercise(exerciseId, data.customExercises);
-  const base = prescription(data.profile, slot.role, ex);
-  const rx = { ...base, sets: easedSets(base.sets, tierAt(data, now)) };
-  const rec = ex
-    ? recommend(ex, rx, data.sessions, now)
-    : { kind: 'first' as const, targetKg: null, targetReps: Array(rx.sets).fill(rx.repMin), reason: 'No option for your equipment. Pick one.' };
-  return { exerciseId: ex ? exerciseId : '', slotId: slot.id, role: slot.role, ...rx, rec };
+  const { exerciseId: id, plan, rec } = prescribe(data, exerciseId, slot.role, now);
+  return { exerciseId: id, slotId: slot.id, role: slot.role, ...plan, rec };
 }
 
 /** Deterministic: same data, rotation and `now` always give the same session. */

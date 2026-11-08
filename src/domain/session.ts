@@ -1,18 +1,6 @@
 import { getExercise } from './catalogue';
-import { advanceRotation, currentRotation, daysOff, easedSets, ensurePlan, findSlot, planKey, plannedExercise, prescription, recommend, returnTier, type Recommendation } from './training';
+import { advanceRotation, currentRotation, ensurePlan, findSlot, planKey, prescribe, setsFrom } from './training';
 import type { AppData, Profile, SessionExercise, SetRecord, WorkoutSession } from './types';
-
-function setsFrom(rec: Recommendation, count: number, repMin: number): SetRecord[] {
-  return Array.from({ length: count }, (_, i) => ({
-    targetReps: rec.targetReps[i] ?? repMin,
-    targetKg: rec.targetKg,
-    actualReps: null,
-    actualKg: null,
-    // Assistance target lives on rec; null here only switches the UI to the assistance column.
-    ...(rec.assistKg != null ? { assistKg: null } : {}),
-    status: 'pending' as const,
-  }));
-}
 
 /** Apply a change to one exercise of the active session. */
 function withExercise(data: AppData, exIdx: number, fn: (e: SessionExercise) => SessionExercise | null): AppData {
@@ -123,10 +111,8 @@ export function addExercise(data: AppData, exerciseId: string): AppData {
   const s = data.activeSession;
   const ex = getExercise(exerciseId, data.customExercises);
   if (!s || !ex) return data;
-  const base = prescription(data.profile, 'accessory', ex);
-  const rx = { ...base, sets: easedSets(base.sets, returnTier(daysOff(data.sessions, s.startedAt))) };
-  const rec = recommend(ex, rx, data.sessions, s.startedAt);
-  const entry: SessionExercise = { exerciseId, slotId: null, plan: rx, rec, sets: setsFrom(rec, rx.sets, rx.repMin) };
+  const { plan, rec, sets } = prescribe(data, exerciseId, 'accessory', s.startedAt);
+  const entry: SessionExercise = { exerciseId, slotId: null, plan, rec, sets };
   return { ...data, activeSession: { ...s, exercises: [...s.exercises, entry] } };
 }
 
@@ -136,12 +122,8 @@ export function swapExercise(data: AppData, exIdx: number, exerciseId: string): 
   return withExercise(data, exIdx, (e) => {
     if (e.sets.some((x) => x.status === 'done') || !getExercise(exerciseId, data.customExercises)) return null;
     const slot = findSlot(data, s!.splitId, e.slotId);
-    const p = slot
-      ? plannedExercise(data, slot, exerciseId, s!.startedAt)
-      : { ...prescription(data.profile, 'accessory', getExercise(exerciseId, data.customExercises)), rec: null };
-    const rx = { sets: p.sets, repMin: p.repMin, repMax: p.repMax, restSec: p.restSec };
-    const rec = p.rec ?? recommend(getExercise(exerciseId, data.customExercises)!, rx, data.sessions, s!.startedAt);
-    return { ...e, exerciseId, plan: rx, rec, skipped: false, sets: setsFrom(rec, rx.sets, rx.repMin) };
+    const { plan, rec, sets } = prescribe(data, exerciseId, slot?.role ?? 'accessory', s!.startedAt);
+    return { ...e, exerciseId, plan, rec, skipped: false, sets };
   });
 }
 
@@ -209,9 +191,8 @@ export function applyProfileToActive(data: AppData): AppData {
   const exercises = s.exercises.map((e) => {
     const slot = findSlot(data, s.splitId, e.slotId);
     if (!slot || !e.exerciseId || e.sets.some((x) => x.status === 'done')) return e;
-    const p = plannedExercise(data, slot, e.exerciseId);
-    const rx = { sets: p.sets, repMin: p.repMin, repMax: p.repMax, restSec: p.restSec };
-    return { ...e, plan: rx, rec: p.rec, skipped: false, sets: setsFrom(p.rec, rx.sets, rx.repMin) };
+    const { plan, rec, sets } = prescribe(data, e.exerciseId, slot.role);
+    return { ...e, plan, rec, skipped: false, sets };
   });
   return { ...data, activeSession: { ...s, exercises } };
 }
