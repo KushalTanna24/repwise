@@ -15,8 +15,19 @@ export interface SplitDef {
   id: SplitId;
   name: string;
   blurb: string;
+  custom?: true;
   /** `short` names the day in one-line summaries when the title's last word would not. */
   sessions: { title: string; short?: string; slots: Slot[] }[];
+}
+
+export interface CustomSplit extends SplitDef {
+  id: CustomSplitId;
+  custom: true;
+  createdAt: string;
+  updatedAt: string;
+  copiedFrom?: SplitId;
+  /** Set on delete. Hidden from lists, still resolved for history and swaps. */
+  deletedAt?: string;
 }
 
 export interface Recommendation {

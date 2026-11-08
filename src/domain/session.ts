@@ -1,5 +1,5 @@
 import { getExercise } from './catalogue';
-import { BUILT_IN_SPLITS, daysOff, easedSets, ensurePlan, findSlot, planKey, plannedExercise, prescription, recommend, returnTier, type Recommendation, type SplitId } from './training';
+import { advanceRotation, currentRotation, daysOff, easedSets, ensurePlan, findSlot, planKey, plannedExercise, prescription, recommend, returnTier, type Recommendation } from './training';
 import type { AppData, Profile, SessionExercise, SetRecord, WorkoutSession } from './types';
 
 function setsFrom(rec: Recommendation, count: number, repMin: number): SetRecord[] {
@@ -135,7 +135,7 @@ export function swapExercise(data: AppData, exIdx: number, exerciseId: string): 
   const s = data.activeSession;
   return withExercise(data, exIdx, (e) => {
     if (e.sets.some((x) => x.status === 'done') || !getExercise(exerciseId, data.customExercises)) return null;
-    const slot = findSlot(s!.splitId, e.slotId);
+    const slot = findSlot(data, s!.splitId, e.slotId);
     const p = slot
       ? plannedExercise(data, slot, exerciseId, s!.startedAt)
       : { ...prescription(data.profile, 'accessory', getExercise(exerciseId, data.customExercises)), rec: null };
@@ -143,13 +143,6 @@ export function swapExercise(data: AppData, exIdx: number, exerciseId: string): 
     const rec = p.rec ?? recommend(getExercise(exerciseId, data.customExercises)!, rx, data.sessions, s!.startedAt);
     return { ...e, exerciseId, plan: rx, rec, skipped: false, sets: setsFrom(rec, rx.sets, rx.repMin) };
   });
-}
-
-function advance(data: AppData, splitId: SplitId): AppData {
-  const len = BUILT_IN_SPLITS[splitId].sessions.length;
-  const cur = data.program.rotation[splitId];
-  const next = cur.sessionIndex + 1 >= len ? { sessionIndex: 0, cycle: cur.cycle + 1 } : { sessionIndex: cur.sessionIndex + 1, cycle: cur.cycle };
-  return { ...data, plannedSession: null, program: { ...data.program, rotation: { ...data.program.rotation, [splitId]: next } } };
 }
 
 /**
@@ -171,25 +164,14 @@ export function finishSession(data: AppData, now: string): AppData {
   };
   let next: AppData = { ...data, activeSession: null, sessions: [...data.sessions, done] };
   if (s.splitId && s.sessionIndex != null && s.cycle != null) {
-    const rot = data.program.rotation[s.splitId];
-    if (s.planKey === planKey(s.splitId, rot.sessionIndex, rot.cycle)) next = advance(next, s.splitId);
+    const rot = currentRotation(data, s.splitId);
+    if (s.planKey === planKey(s.splitId, rot.sessionIndex, rot.cycle)) next = advanceRotation(next, s.splitId);
   }
   return next;
 }
 
 export function discardSession(data: AppData): AppData {
   return data.activeSession ? { ...data, activeSession: null } : data;
-}
-
-export function skipPlannedSession(data: AppData): AppData {
-  const id = data.program.splitId;
-  if (data.activeSession || !id) return data;
-  return advance(data, id);
-}
-
-export function setSplit(data: AppData, splitId: SplitId): AppData {
-  if (data.activeSession) return data;
-  return { ...data, plannedSession: null, program: { ...data.program, splitId } };
 }
 
 export function editHistorySet(data: AppData, sessionId: string, exIdx: number, setIdx: number, patch: Partial<SetRecord>): AppData {
@@ -225,7 +207,7 @@ export function applyProfileToActive(data: AppData): AppData {
   const s = data.activeSession;
   if (!s) return data;
   const exercises = s.exercises.map((e) => {
-    const slot = findSlot(s.splitId, e.slotId);
+    const slot = findSlot(data, s.splitId, e.slotId);
     if (!slot || !e.exerciseId || e.sets.some((x) => x.status === 'done')) return e;
     const p = plannedExercise(data, slot, e.exerciseId);
     const rx = { sets: p.sets, repMin: p.repMin, repMax: p.repMax, restSec: p.restSec };

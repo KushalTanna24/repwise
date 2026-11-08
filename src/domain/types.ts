@@ -1,6 +1,6 @@
 /** All loads are stored in kilograms. Pounds are a display concern only. */
 
-import type { PlannedSession, Prescription, Recommendation, RotationState, SplitId } from './training/types';
+import type { CustomSplit, PlannedSession, Prescription, Recommendation, RotationState, SplitId } from './training/types';
 export type Kg = number;
 
 export type Pattern =
@@ -183,8 +183,10 @@ export interface AppData {
   profile: Profile;
   program: {
     splitId: SplitId | null;
-    rotation: Record<SplitId, RotationState>;
+    /** A missing entry means day 1, cycle 1. */
+    rotation: Partial<Record<SplitId, RotationState>>;
   };
+  customSplits: CustomSplit[];
   customExercises: Exercise[];
   archivedExerciseIds: string[];
   plannedSession: PlannedSession | null;

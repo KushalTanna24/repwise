@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { emptyAppData } from './catalogue';
-import { ensurePlan } from './training';
+import { ensurePlan, setSplit, skipDay } from './training';
 import {
   addExercise,
   addSet,
@@ -10,9 +10,7 @@ import {
   editHistorySet,
   finishSession,
   moveExercise,
-  setSplit,
   skipExercise,
-  skipPlannedSession,
   skipSet,
   startSession,
   swapExercise,
@@ -33,7 +31,7 @@ function fresh(): AppData {
 const started = () => startSession(fresh(), T0, 'w1');
 /** Start, tick the first set with typed values, finish. */
 function complete(d: AppData, id: string): AppData {
-  let x = startSession(ensurePlan(d), T0, id);
+  let x = startSession(ensurePlan(d, T1), T0, id);
   x = updateSet(x, 0, 0, { actualKg: 60, actualReps: 8 });
   x = confirmSet(x, 0, 0);
   return finishSession(x, T1);
@@ -153,10 +151,10 @@ describe('finishing and rotation', () => {
     let d = fresh();
     d = complete(d, 'a');
     d = complete(d, 'b');
-    expect(ensurePlan(d).plannedSession?.title).toBe('Full Body C');
+    expect(ensurePlan(d, T1).plannedSession?.title).toBe('Full Body C');
     d = complete(d, 'c');
     expect(d.program.rotation['full-body-abc']).toEqual({ sessionIndex: 0, cycle: 2 });
-    expect(ensurePlan(d).plannedSession?.title).toBe('Full Body A');
+    expect(ensurePlan(d, T1).plannedSession?.title).toBe('Full Body A');
   });
 
   it('finishSession is idempotent', () => {
@@ -189,11 +187,11 @@ describe('finishing and rotation', () => {
     expect(d.program.rotation['full-body-abc']).toEqual({ sessionIndex: 0, cycle: 1 });
   });
 
-  it('skipPlannedSession advances once and only without an active session', () => {
-    const d = skipPlannedSession(fresh());
+  it('skipDay advances once and only without an active session', () => {
+    const d = skipDay(fresh());
     expect(d.program.rotation['full-body-abc']).toEqual({ sessionIndex: 1, cycle: 1 });
     const a = started();
-    expect(skipPlannedSession(a)).toBe(a);
+    expect(skipDay(a)).toBe(a);
   });
 
   it('editing or deleting history leaves rotation alone', () => {
@@ -210,13 +208,13 @@ describe('finishing and rotation', () => {
 describe('setSplit', () => {
   it('switching keeps each split rotation and clears the plan', () => {
     let d = complete(fresh(), 'w1');
-    d = setSplit(ensurePlan(d), 'ppl');
+    d = setSplit(ensurePlan(d, T1), 'ppl');
     expect(d.program.splitId).toBe('ppl');
     expect(d.plannedSession).toBeNull();
     expect(d.program.rotation['full-body-abc']).toEqual({ sessionIndex: 1, cycle: 1 });
-    expect(ensurePlan(d).plannedSession?.title).toBe('Push');
+    expect(ensurePlan(d, T1).plannedSession?.title).toBe('Push');
     d = setSplit(d, 'full-body-abc');
-    expect(ensurePlan(d).plannedSession?.title).toBe('Full Body B');
+    expect(ensurePlan(d, T1).plannedSession?.title).toBe('Full Body B');
   });
 
   it('is refused during a workout', () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BUILTIN_EXERCISES, emptyAppData, getExercise } from './catalogue';
-import { BUILT_IN_SPLITS } from './training';
+import { BUILT_IN_SPLITS } from './training/splits/builtins';
 
 describe('catalogue', () => {
   it('has unique exercise ids', () => {

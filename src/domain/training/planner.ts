@@ -1,19 +1,13 @@
 import { allExercises, getExercise } from '../catalogue';
 import type { AppData, EquipmentKind, Exercise, Profile } from '../types';
 import { daysOff, easedSets, recommend, returnTier, type ReturnTier } from './progression';
-import { BUILT_IN_SPLITS } from './splits/builtins';
+import { currentRotation, restartAfterBreak } from './rotation';
+import { FINISHERS, getSplit } from './splits/registry';
 import type { PlannedExercise, PlannedSession, Prescription, Slot, SplitId } from './types';
 
 export const planKey = (splitId: SplitId, sessionIndex: number, cycle: number) => `${splitId}:${sessionIndex}:${cycle}`;
 
 const MAX_EXERCISES: Record<AppData['profile']['sessionMinutes'], number> = { 45: 5, 60: 6, 75: 7, 90: 8 };
-
-/** Appended after a session's own slots when it lacks the pattern; longer sessions reach them. */
-const FINISHERS: Slot[] = [
-  { id: 'f-calves', pattern: 'calves', role: 'accessory', candidates: ['standing-calf-raise', 'seated-calf-raise'] },
-  { id: 'f-core', pattern: 'core', role: 'accessory', candidates: ['hanging-knee-raise', 'plank', 'cable-crunch', 'dead-bug'] },
-  { id: 'f-arms', pattern: 'arms', role: 'accessory', candidates: ['db-curl', 'triceps-pushdown', 'hammer-curl', 'cable-curl'] },
-];
 
 /** Beginners start on machines and dumbbells, which are easier to learn and load safely. */
 const BEGINNER_ORDER: Record<EquipmentKind, number> = { machine: 0, dumbbell: 1, cable: 2, bodyweight: 3, barbell: 4 };
@@ -58,12 +52,12 @@ export function plannedExercise(data: AppData, slot: Slot, exerciseId: string, n
 
 /** Deterministic: same data, rotation and `now` always give the same session. */
 export function buildPlan(data: AppData, splitId: SplitId, variant = 0, now?: string): PlannedSession {
-  const split = BUILT_IN_SPLITS[splitId];
-  const { sessionIndex, cycle } = data.program.rotation[splitId];
+  const split = getSplit(data, splitId)!;
+  const { sessionIndex, cycle } = currentRotation(data, splitId);
   const tmpl = split.sessions[sessionIndex % split.sessions.length];
 
   const patterns = new Set(tmpl.slots.map((s) => s.pattern));
-  const slots = [...tmpl.slots, ...FINISHERS.filter((f) => !patterns.has(f.pattern))];
+  const slots = split.custom ? tmpl.slots : [...tmpl.slots, ...FINISHERS.filter((f) => !patterns.has(f.pattern))];
   const beginner = data.profile.experience === 'beginner';
 
   const chosen = new Set<string>();
@@ -78,7 +72,7 @@ export function buildPlan(data: AppData, splitId: SplitId, variant = 0, now?: st
 
   // Trim accessories from the end until the session fits its time budget.
   let room = MAX_EXERCISES[data.profile.sessionMinutes] - picks.filter((p) => p.slot.role === 'anchor').length;
-  const kept = picks.filter((p) => p.slot.role === 'anchor' || room-- > 0);
+  const kept = split.custom ? picks : picks.filter((p) => p.slot.role === 'anchor' || room-- > 0);
 
   return {
     key: planKey(splitId, sessionIndex, cycle),
@@ -116,10 +110,8 @@ export function ensurePlan(data: AppData, now = new Date().toISOString()): AppDa
   const splitId = data.program.splitId;
   if (!splitId) return data.plannedSession ? { ...data, plannedSession: null } : data;
   const tier = tierAt(data, now);
-  const rot = data.program.rotation[splitId];
-  if (tier >= 2 && rot.sessionIndex !== 0 && !data.activeSession)
-    data = { ...data, program: { ...data.program, rotation: { ...data.program.rotation, [splitId]: { sessionIndex: 0, cycle: rot.cycle + 1 } } } };
-  const { sessionIndex, cycle } = data.program.rotation[splitId];
+  if (tier >= 2 && currentRotation(data, splitId).sessionIndex !== 0 && !data.activeSession) data = restartAfterBreak(data, splitId);
+  const { sessionIndex, cycle } = currentRotation(data, splitId);
   const cur = data.plannedSession;
   if (cur?.key === planKey(splitId, sessionIndex, cycle) && (cur.returnTier ?? 0) === tier) return data;
   return { ...data, plannedSession: buildPlan(data, splitId, 0, now) };
@@ -131,9 +123,4 @@ export function swapCandidates(slot: Slot, data: AppData): Exercise[] {
   const inSlot = slot.candidates.map((id) => all.find((e) => e.id === id)).filter((e): e is Exercise => !!e);
   const others = all.filter((e) => e.pattern === slot.pattern && !slot.candidates.includes(e.id));
   return [...inSlot, ...others];
-}
-
-export function findSlot(splitId: SplitId | null, slotId: string | null): Slot | undefined {
-  if (!splitId || !slotId) return undefined;
-  return [...BUILT_IN_SPLITS[splitId].sessions.flatMap((s) => s.slots), ...FINISHERS].find((s) => s.id === slotId);
 }

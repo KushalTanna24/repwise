@@ -109,7 +109,7 @@ export function WorkoutSheet({ open, onClose }: { open: boolean; onClose: () => 
 
   const picking = mode.kind !== 'log';
   const swapEntry = mode.kind === 'swap' ? s?.exercises[mode.index] : undefined;
-  const swapSlot = swapEntry ? findSlot(s!.splitId, swapEntry.slotId) : undefined;
+  const swapSlot = swapEntry ? findSlot(data, s!.splitId, swapEntry.slotId) : undefined;
 
   const title = summary ? '' : picking ? (mode.kind === 'swap' ? 'Swap exercise' : 'Add exercise') : (s?.title ?? 'Workout');
   const left = summary ? null : picking ? (

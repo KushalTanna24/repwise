@@ -143,6 +143,7 @@ export function normalize(doc: unknown, now: string): AppData | null {
       challenges: doc.challenges ?? [],
       fasts: doc.fasts ?? [],
       photos: doc.photos ?? [],
+      customSplits: doc.customSplits ?? [],
       // Missing (pre-4.3) stays missing so the store can back-fill earned badges silently.
       seenBadges: doc.seenBadges,
       streakHint: doc.streakHint ?? null,

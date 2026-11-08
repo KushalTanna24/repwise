@@ -1,4 +1,4 @@
-import type { BuiltInSplitId, Slot, SplitDef, SplitId } from '../types';
+import type { BuiltInSplitId, Slot, SplitDef } from '../types';
 
 const anchor = (id: string, pattern: Slot['pattern'], candidates: string[]): Slot => ({ id, pattern, role: 'anchor', candidates });
 const acc = (id: string, pattern: Slot['pattern'], candidates: string[]): Slot => ({ id, pattern, role: 'accessory', candidates });
@@ -8,7 +8,7 @@ const acc = (id: string, pattern: Slot['pattern'], candidates: string[]): Slot =
  * Accessories rotate through their candidates by cycle number.
  * Slot order is the order exercises appear; accessories at the end get trimmed first.
  */
-const BUILT_IN: Record<BuiltInSplitId, SplitDef> = {
+export const BUILT_IN_SPLITS: Record<BuiltInSplitId, SplitDef> = {
   'full-body-abc': {
     id: 'full-body-abc',
     name: 'Full Body',
@@ -167,6 +167,3 @@ const BUILT_IN: Record<BuiltInSplitId, SplitDef> = {
     ],
   },
 };
-
-/** Typed by SplitId so lookups by a stored id compile; custom ids resolve in the registry from Task 2. */
-export const BUILT_IN_SPLITS: Record<SplitId, SplitDef> = BUILT_IN;

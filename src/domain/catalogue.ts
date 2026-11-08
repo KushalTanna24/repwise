@@ -129,6 +129,7 @@ export function emptyAppData(now: string): AppData {
       waterReminders: { ...DEFAULT_WATER_REMINDERS },
     },
     program: { splitId: null, rotation: { 'full-body-abc': { ...zero }, 'upper-lower': { ...zero }, ppl: { ...zero }, 'ppl-hybrid': { ...zero } } },
+    customSplits: [],
     customExercises: [],
     archivedExerciseIds: [],
     plannedSession: null,

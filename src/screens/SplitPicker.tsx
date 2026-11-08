@@ -1,6 +1,5 @@
 import { Check } from 'lucide-react';
-import { BUILT_IN_SPLITS, type SplitId } from '@/domain/training';
-import { setSplit } from '@/domain/session';
+import { currentRotation, getSplit, listSplits, setSplit, type SplitId } from '@/domain/training';
 import { Sheet } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { confirm } from '@/components/ui/alert';
@@ -17,23 +16,24 @@ export function SplitChooser({ onPicked }: { onPicked?: () => void }) {
     if (id === current) return onPicked?.();
     if (data.activeSession) return toast('Finish or discard your workout first');
     if (current) {
-      const rot = data.program.rotation[id];
-      const where = rot.cycle > 1 || rot.sessionIndex > 0 ? `picks up at ${BUILT_IN_SPLITS[id].sessions[rot.sessionIndex].title}` : 'starts at session 1';
+      const target = getSplit(data, id)!;
+      const rot = currentRotation(data, id);
+      const where = rot.cycle > 1 || rot.sessionIndex > 0 ? `picks up at ${target.sessions[rot.sessionIndex].title}` : 'starts at session 1';
       const ok = await confirm({
-        title: `Switch to ${BUILT_IN_SPLITS[id].name}?`,
-        message: `${BUILT_IN_SPLITS[id].name} ${where}. Your history stays, and ${BUILT_IN_SPLITS[current].name} keeps its place if you switch back.`,
+        title: `Switch to ${target.name}?`,
+        message: `${target.name} ${where}. Your history stays, and ${getSplit(data, current)?.name ?? 'your current split'} keeps its place if you switch back.`,
         confirmLabel: 'Switch',
       });
       if (!ok) return;
     }
     act((d) => setSplit(d, id));
-    toast(`${BUILT_IN_SPLITS[id].name} it is`);
+    toast(`${getSplit(data, id)!.name} it is`);
     onPicked?.();
   }
 
   return (
     <div className="grid gap-3">
-      {Object.values(BUILT_IN_SPLITS).map((s) => (
+      {listSplits(data).builtIn.map((s) => (
         <button
           key={s.id}
           onClick={() => pick(s.id)}

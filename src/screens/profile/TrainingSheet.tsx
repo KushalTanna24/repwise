@@ -1,5 +1,5 @@
 import { applyProfileToActive } from '@/domain/session';
-import { BUILT_IN_SPLITS } from '@/domain/training';
+import { getSplit } from '@/domain/training';
 import { Sheet } from '@/components/ui/sheet';
 import { List, Row } from '@/components/ui/card';
 import { FieldRow, Select } from '@/components/ui/field';
@@ -15,7 +15,7 @@ export function TrainingSheet({ open, onClose }: { open: boolean; onClose: () =>
   return (
     <Sheet open={open} onClose={onClose} tall title="Training plan" right={<Done onClose={onClose} />}>
       <List>
-        <Row title="Split" value={data.program.splitId ? BUILT_IN_SPLITS[data.program.splitId].name : 'Not set'} onClick={() => openSheet('split')} chevron />
+        <Row title="Split" value={(data.program.splitId && getSplit(data, data.program.splitId)?.name) || 'Not set'} onClick={() => openSheet('split')} chevron />
         <FieldRow label="Goal">
           <Select
             label="Goal"

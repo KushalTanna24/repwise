@@ -2,7 +2,7 @@ import dayjs from 'dayjs';
 import { ALL_EQUIPMENT } from '@/domain/catalogue';
 import { activeRuns } from '@/domain/challenges';
 import { currentLeave } from '@/domain/leave';
-import { BUILT_IN_SPLITS } from '@/domain/training';
+import { getSplit } from '@/domain/training';
 import type { AppData } from '@/domain/types';
 import type { Permission } from '@/lib/notify';
 
@@ -11,7 +11,7 @@ export type ProfileRow = 'training' | 'goals' | 'challenges' | 'leave' | 'body' 
 /** One-line value shown on each Profile row, so the list says what is set without opening anything. */
 export function profileSummaries(data: AppData, ctx: { permission: Permission; signedIn: boolean; today?: string }): Record<ProfileRow, string> {
   const p = data.profile;
-  const split = data.program.splitId ? BUILT_IN_SPLITS[data.program.splitId] : null;
+  const split = (data.program.splitId && getSplit(data, data.program.splitId)) || null;
   const rotation = split ? split.sessions.map((s) => s.short ?? s.title.split(' ').pop()).join('/') : '';
   const goals = data.goals.length;
   const stack = data.supplements.filter((s) => !s.archived).length;

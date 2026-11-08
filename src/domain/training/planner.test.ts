@@ -43,7 +43,7 @@ describe('buildPlan', () => {
   it('75 min gives up to 7 exercises', () => {
     const d = data((x) => {
       x.profile.sessionMinutes = 75;
-      x.program.rotation['full-body-abc'].sessionIndex = 1;
+      x.program.rotation['full-body-abc']!.sessionIndex = 1;
     });
     expect(buildPlan(d, 'full-body-abc').exercises).toHaveLength(7);
   });
@@ -156,7 +156,7 @@ describe('session length and experience', () => {
 
   it('finishers never repeat a pattern the session already trains', () => {
     const b = buildPlan(at(1), 'full-body-abc');
-    const p90 = buildPlan(data((x) => { x.profile.sessionMinutes = 90; x.program.rotation['full-body-abc'].sessionIndex = 1; }), 'full-body-abc');
+    const p90 = buildPlan(data((x) => { x.profile.sessionMinutes = 90; x.program.rotation['full-body-abc']!.sessionIndex = 1; }), 'full-body-abc');
     expect(p90.exercises.filter((e) => e.slotId.startsWith('f-')).map((e) => e.slotId)).toEqual(['f-core']);
     expect(b.exercises.length).toBe(6);
   });
@@ -216,6 +216,6 @@ describe('return after a gap', () => {
   it('does not touch the rotation mid-workout', () => {
     const d = back('2026-10-01', 1);
     d.activeSession = { ...d.sessions[0], id: 'live', finishedAt: null };
-    expect(ensurePlan(d, '2026-10-25T09:00:00.000Z').program.rotation['full-body-abc'].sessionIndex).toBe(1);
+    expect(ensurePlan(d, '2026-10-25T09:00:00.000Z').program.rotation['full-body-abc']!.sessionIndex).toBe(1);
   });
 });
