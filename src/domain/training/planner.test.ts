@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { emptyAppData } from '../catalogue';
 import { buildPlan, ensurePlan, planKey, rebuildPlan, swapCandidates } from './planner';
+import { newCustomSplit, saveCustomSplit } from './splits/custom';
+import type { CustomSplit, Slot } from './types';
 import { BUILT_IN_SPLITS } from './splits/builtins';
-import type { AppData } from '../types';
+import type { AppData, Exercise } from '../types';
 
 const NOW = '2026-10-17T08:00:00.000Z';
 function data(patch: (d: AppData) => void = () => {}): AppData {
@@ -217,5 +219,63 @@ describe('return after a gap', () => {
     const d = back('2026-10-01', 1);
     d.activeSession = { ...d.sessions[0], id: 'live', finishedAt: null };
     expect(ensurePlan(d, '2026-10-25T09:00:00.000Z').program.rotation['full-body-abc']!.sessionIndex).toBe(1);
+  });
+});
+
+describe('custom splits', () => {
+  const slot = (id: string, role: Slot['role'], candidates: string[]): Slot => ({ id, pattern: 'knee', role, candidates });
+  const NINE = ['back-squat', 'front-squat', 'hack-squat', 'leg-press', 'goblet-squat', 'bulgarian-split-squat', 'reverse-lunge', 'leg-extension', 'romanian-deadlift'];
+
+  function withSplit(slots: Slot[], patch: (d: AppData) => void = () => {}): { d: AppData; id: CustomSplit['id'] } {
+    const d0 = emptyAppData(NOW);
+    const { split } = newCustomSplit(d0, null, NOW, 'custom-t');
+    split.sessions = [{ title: 'Mine', slots }];
+    const d = saveCustomSplit(d0, split, NOW);
+    d.program.splitId = split.id;
+    patch(d);
+    return { d, id: split.id };
+  }
+  const cycle = (d: AppData, n: number) => ({ ...d, program: { ...d.program, rotation: { ...d.program.rotation, 'custom-t': { sessionIndex: 0, cycle: n } } } });
+
+  it('plans every exercise in order with no finishers or trim', () => {
+    const { d, id } = withSplit(NINE.map((x, i) => slot(`cs-${i}`, i === 0 ? 'anchor' : 'accessory', [x])), (x) => (x.profile.sessionMinutes = 45));
+    expect(buildPlan(d, id, 0, NOW).exercises.map((e) => e.exerciseId)).toEqual(NINE);
+  });
+
+  it('keeps Main fixed and rotates Extra through alternates', () => {
+    const { d, id } = withSplit([slot('cs-main', 'anchor', ['back-squat', 'front-squat']), slot('cs-x', 'accessory', ['leg-press', 'hack-squat', 'leg-extension'])]);
+    const plan = (n: number) => buildPlan(cycle(d, n), id, 0, NOW).exercises.map((e) => e.exerciseId);
+    expect(plan(1)).toEqual(['back-squat', 'leg-press']);
+    expect(plan(2)).toEqual(['back-squat', 'hack-squat']);
+    expect(plan(3)).toEqual(['back-squat', 'leg-extension']);
+  });
+
+  const mine: Exercise = { id: 'mine-1', name: 'Mine', muscle: 'Quads', pattern: 'knee', equipment: 'machine', kind: 'weighted', custom: true };
+
+  it('plans the alternate when the first candidate custom exercise is archived', () => {
+    const { d, id } = withSplit([slot('cs-x', 'accessory', ['mine-1', 'leg-press'])], (x) => {
+      x.customExercises = [mine];
+      x.archivedExerciseIds = ['mine-1'];
+    });
+    expect(buildPlan(d, id, 0, NOW).exercises[0].exerciseId).toBe('leg-press');
+  });
+
+  it('plans an empty Pick one slot when the only candidate was removed', () => {
+    const { d, id } = withSplit([slot('cs-x', 'accessory', ['mine-1'])]);
+    const ex = buildPlan(d, id, 0, NOW).exercises[0];
+    expect(ex.exerciseId).toBe('');
+    expect(ex.rec.reason).toBe('No option for your equipment. Pick one.');
+  });
+
+  it('ensurePlan clears the plan when the active split is gone', () => {
+    const d = data((x) => (x.program.splitId = 'custom-gone'));
+    expect(ensurePlan(d, NOW).plannedSession).toBeNull();
+  });
+
+  it('rebuildPlan returns null when the plan split is gone', () => {
+    const { d } = withSplit([slot('cs-x', 'accessory', ['leg-press', 'hack-squat'])]);
+    const planned = ensurePlan(d, NOW);
+    const gone = { ...planned, customSplits: [], plannedSession: planned.plannedSession };
+    expect(rebuildPlan(gone, NOW)).toBeNull();
   });
 });

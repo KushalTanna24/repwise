@@ -70,7 +70,7 @@ export function buildPlan(data: AppData, splitId: SplitId, variant = 0, now?: st
  */
 export function rebuildPlan(data: AppData, now = new Date().toISOString()): AppData | null {
   const cur = data.plannedSession;
-  if (!cur || data.activeSession) return null;
+  if (!cur || data.activeSession || !getSplit(data, cur.splitId)) return null;
   const ids = (p: PlannedSession) => p.exercises.map((e) => e.exerciseId).join();
   for (let step = 1; step <= 6; step++) {
     const next = buildPlan(data, cur.splitId, (cur.variant ?? 0) + step, now);
@@ -85,7 +85,7 @@ export function rebuildPlan(data: AppData, now = new Date().toISOString()): AppD
  */
 export function ensurePlan(data: AppData, now = new Date().toISOString()): AppData {
   const splitId = data.program.splitId;
-  if (!splitId) return data.plannedSession ? { ...data, plannedSession: null } : data;
+  if (!splitId || !getSplit(data, splitId)) return data.plannedSession ? { ...data, plannedSession: null } : data;
   const tier = tierAt(data, now);
   if (tier >= 2 && currentRotation(data, splitId).sessionIndex !== 0 && !data.activeSession) data = restartAfterBreak(data, splitId);
   const { sessionIndex, cycle } = currentRotation(data, splitId);

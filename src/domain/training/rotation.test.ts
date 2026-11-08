@@ -67,3 +67,14 @@ describe('rotation', () => {
     expect(clampRotation(d, 'custom-two').program.rotation['custom-two']).toEqual({ sessionIndex: 1, cycle: 4 });
   });
 });
+
+describe('unknown split', () => {
+  it('advanceRotation leaves data unchanged', () => {
+    const d = data();
+    expect(advanceRotation(d, 'custom-gone')).toBe(d);
+  });
+  it('clampRotation leaves data unchanged', () => {
+    const d = data();
+    expect(clampRotation(d, 'custom-gone')).toBe(d);
+  });
+});
