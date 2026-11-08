@@ -23,14 +23,18 @@ interface Props {
   data: AppData;
   /** Shown first, e.g. same-slot swaps. */
   suggested?: Exercise[];
+  /** Exercise ids left out of every list. */
+  exclude?: string[];
+  /** Only exercises of this pattern. */
+  pattern?: Pattern;
   onPick: (id: string) => void;
 }
 
-export function ExercisePicker({ data, suggested = [], onPick }: Props) {
+export function ExercisePicker({ data, suggested = [], exclude, pattern, onPick }: Props) {
   const [q, setQ] = useState('');
   const groups = useMemo(() => {
     const needle = q.trim().toLowerCase();
-    const list = allExercises(data).filter((e) => isEligible(e, data) && (!needle || `${e.name} ${e.muscle}`.toLowerCase().includes(needle)));
+    const list = allExercises(data).filter((e) => isEligible(e, data) && !exclude?.includes(e.id) && (!pattern || e.pattern === pattern) && (!needle || `${e.name} ${e.muscle}`.toLowerCase().includes(needle)));
     // Calisthenics first so skill work is easy to find; the Map keeps insertion order.
     const by = new Map<Pattern | 'calisthenics', Exercise[]>([['calisthenics', []]]);
     for (const e of list) {
@@ -39,7 +43,7 @@ export function ExercisePicker({ data, suggested = [], onPick }: Props) {
     }
     if (!by.get('calisthenics')!.length) by.delete('calisthenics');
     return [...by.entries()];
-  }, [data, q]);
+  }, [data, q, exclude, pattern]);
 
   return (
     <div>
@@ -57,7 +61,7 @@ export function ExercisePicker({ data, suggested = [], onPick }: Props) {
         <>
           <div className="px-4 pb-1.5 pt-5 text-footnote uppercase text-label-2">Same movement</div>
           <List>
-            {suggested.map((e) => (
+            {suggested.filter((e) => !exclude?.includes(e.id)).map((e) => (
               <Row key={e.id} title={e.name} subtitle={e.muscle} onClick={() => onPick(e.id)} chevron />
             ))}
           </List>

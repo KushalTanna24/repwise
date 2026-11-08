@@ -15,6 +15,8 @@ import { History } from '@/screens/History';
 import { Profile } from '@/screens/Profile';
 import { WorkoutSheet } from '@/screens/Workout';
 import { SessionSheet } from '@/screens/SessionDetail';
+import { SplitEditorSheet } from '@/screens/splits/SplitEditorSheet';
+import { DayEditorSheet } from '@/screens/splits/DayEditorSheet';
 import { NewSplitSheet } from '@/screens/splits/NewSplitSheet';
 import { SplitSheet } from '@/screens/splits/SplitSheet';
 import { ExtraSheet } from '@/screens/LogExtra';
@@ -42,13 +44,15 @@ const Progress = lazy(() => import('@/screens/Progress').then((m) => ({ default:
 
 function Sheets() {
   const sheet = useRoute((r) => r.sheet) ?? '';
-  const [kind, arg] = sheet.split(':');
+  const [kind, arg, third] = sheet.split(':');
   return (
     <>
       <WorkoutSheet open={kind === 'workout'} onClose={closeSheet} />
       <SessionSheet sessionId={kind === 'session' ? arg : null} onClose={closeSheet} />
       <SplitSheet open={kind === 'split'} onClose={closeSheet} />
       <NewSplitSheet open={kind === 'split-new'} onClose={closeSheet} />
+      <SplitEditorSheet splitId={kind === 'split-edit' ? (arg ?? null) : null} onClose={closeSheet} />
+      <DayEditorSheet splitId={kind === 'split-day' ? (arg ?? null) : null} day={Number(third)} onClose={closeSheet} />
       <ExtraSheet open={kind === 'extra'} onClose={closeSheet} />
       <LibrarySheet open={kind === 'library'} onClose={closeSheet} />
       <SupplementSheet open={kind === 'supps'} onClose={closeSheet} />
