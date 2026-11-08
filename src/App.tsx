@@ -15,7 +15,8 @@ import { History } from '@/screens/History';
 import { Profile } from '@/screens/Profile';
 import { WorkoutSheet } from '@/screens/Workout';
 import { SessionSheet } from '@/screens/SessionDetail';
-import { SplitSheet } from '@/screens/SplitPicker';
+import { NewSplitSheet } from '@/screens/splits/NewSplitSheet';
+import { SplitSheet } from '@/screens/splits/SplitSheet';
 import { ExtraSheet } from '@/screens/LogExtra';
 import { LibrarySheet } from '@/screens/Library';
 import { SupplementSheet } from '@/screens/SupplementLibrary';
@@ -47,6 +48,7 @@ function Sheets() {
       <WorkoutSheet open={kind === 'workout'} onClose={closeSheet} />
       <SessionSheet sessionId={kind === 'session' ? arg : null} onClose={closeSheet} />
       <SplitSheet open={kind === 'split'} onClose={closeSheet} />
+      <NewSplitSheet open={kind === 'split-new'} onClose={closeSheet} />
       <ExtraSheet open={kind === 'extra'} onClose={closeSheet} />
       <LibrarySheet open={kind === 'library'} onClose={closeSheet} />
       <SupplementSheet open={kind === 'supps'} onClose={closeSheet} />

@@ -21,7 +21,7 @@ import { exName, fmtClock, fmtDay, fmtDuration, fmtLoad, fmtRange, nowIso } from
 import { go, openSheet } from '@/lib/route';
 import { toast } from '@/lib/toast';
 import { act, useApp, useData } from '@/store/app';
-import { SplitChooser } from './SplitPicker';
+import { SplitChooser } from './splits/SplitSheet';
 import { useProgressTab } from '@/lib/progressTab';
 import { GuideButton } from './Guide';
 import { NotifyPrompt } from '@/components/NotifyPrompt';
