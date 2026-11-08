@@ -7,10 +7,10 @@ import type { PlannedExercise, PlannedSession, Slot, SplitId } from './types';
 
 export const planKey = (splitId: SplitId, sessionIndex: number, cycle: number) => `${splitId}:${sessionIndex}:${cycle}`;
 
-const MAX_EXERCISES: Record<AppData['profile']['sessionMinutes'], number> = { 45: 5, 60: 6, 75: 7, 90: 8 };
+export const MAX_EXERCISES: Record<AppData['profile']['sessionMinutes'], number> = { 45: 5, 60: 6, 75: 7, 90: 8 };
 
 /** Beginners start on machines and dumbbells, which are easier to learn and load safely. */
-const BEGINNER_ORDER: Record<EquipmentKind, number> = { machine: 0, dumbbell: 1, cable: 2, bodyweight: 3, barbell: 4 };
+export const BEGINNER_ORDER: Record<EquipmentKind, number> = { machine: 0, dumbbell: 1, cable: 2, bodyweight: 3, barbell: 4 };
 
 export function isEligible(ex: Exercise | undefined, data: AppData): ex is Exercise {
   return (
