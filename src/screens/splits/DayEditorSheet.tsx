@@ -102,6 +102,7 @@ export function DayEditorSheet({ splitId, day, onClose }: { splitId: string | nu
           data={data}
           suggested={mode?.kind === 'add' ? suggestions() : []}
           exclude={ids}
+          suggestedLabel={mode?.kind === 'add' ? 'Suggested for this day' : undefined}
           pattern={alt?.pattern}
           onPick={pick}
         />

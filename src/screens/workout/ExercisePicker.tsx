@@ -25,12 +25,14 @@ interface Props {
   suggested?: Exercise[];
   /** Exercise ids left out of every list. */
   exclude?: string[];
+  /** Header over the suggested list. */
+  suggestedLabel?: string;
   /** Only exercises of this pattern. */
   pattern?: Pattern;
   onPick: (id: string) => void;
 }
 
-export function ExercisePicker({ data, suggested = [], exclude, pattern, onPick }: Props) {
+export function ExercisePicker({ data, suggested = [], exclude, pattern, suggestedLabel = 'Same movement', onPick }: Props) {
   const [q, setQ] = useState('');
   const groups = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -59,7 +61,7 @@ export function ExercisePicker({ data, suggested = [], exclude, pattern, onPick 
       </label>
       {!q && suggested.length > 0 && (
         <>
-          <div className="px-4 pb-1.5 pt-5 text-footnote uppercase text-label-2">Same movement</div>
+          <div className="px-4 pb-1.5 pt-5 text-footnote uppercase text-label-2">{suggestedLabel}</div>
           <List>
             {suggested.filter((e) => !exclude?.includes(e.id)).map((e) => (
               <Row key={e.id} title={e.name} subtitle={e.muscle} onClick={() => onPick(e.id)} chevron />
