@@ -47,7 +47,7 @@ const click = async (sel) => {
   await page.click(sel);
   await sleep(350);
 };
-const dumpState = () => page.evaluate(() => new Promise((res) => { const r = indexedDB.open('keyval-store'); r.onsuccess = () => { const g = r.result.transaction('keyval').objectStore('keyval').get('repwise_v4'); g.onsuccess = () => { const d = JSON.parse(g.result).state.data; res(JSON.stringify({ active: !!d.activeSession, plan: d.plannedSession && d.plannedSession.key, hash: location.hash })); }; }; }));
+const dumpState = () => page.evaluate(() => new Promise((res) => { const r = indexedDB.open('keyval-store'); r.onsuccess = () => { const g = r.result.transaction('keyval').objectStore('keyval').get('repwise_v4'); g.onsuccess = () => { const d = JSON.parse(g.result).state.data; res(JSON.stringify({ active: !!d.activeSession, plan: d.plannedSession && d.plannedSession.key, hash: location.hash, customSplits: d.customSplits.length, splitId: d.program.splitId, rotation: d.program.rotation[d.program.splitId] ?? null })); }; }; }));
 const hist = () => page.evaluate(() => JSON.stringify({ hash: location.hash, len: history.length, state: history.state }));
 const typeInto = async (sel, value) => {
   await page.$eval(sel, (el) => el.scrollIntoView({ block: 'center' }));
@@ -145,7 +145,9 @@ await click('button[aria-label="Add a glass of water"]');
 t = await text();
 check('Two taps log two glasses', t.includes('2 / 8 glasses') && t.includes('0.5 L'));
 await reload();
-check('Water survives refresh and shows in the ring stats', (await text()).includes('2/8'));
+// Ring stats default to "This week" now, so the target is the weekly one (2/56), not 2/8.
+t = await text();
+check('Water survives refresh and shows in the ring stats', t.includes('2 / 8 glasses') && /Water\s*2\/\d+/.test(t));
 
 // Workout A, refresh mid-way, finish with the last exercise untouched
 await click('button[aria-label="Start workout"]');
@@ -323,7 +325,8 @@ await shot('15-history-calendar');
 // Challenges: start a habit stack, tick it on Today, see it in History
 await click('nav button::-p-text(Today)');
 await sleep(400);
-await click('button::-p-text(Add a challenge)');
+// Starting a challenge lives in Profile now (Today only lists running ones).
+await page.evaluate(() => { location.hash = '#/profile/challenges'; });
 await sleep(600);
 await click('button::-p-text(Habit stack)');
 await sleep(600);
@@ -336,6 +339,8 @@ await page.keyboard.press('Escape');
 await sleep(600);
 await page.keyboard.press('Escape');
 await sleep(600);
+await click('nav button::-p-text(Today)'); // the challenge sheet now opens over Profile
+await sleep(400);
 check('Habit stack shows on Today as day 1', (await text()).includes('Day 1 of 30'));
 await click('button[role="checkbox"][aria-label="Stretch"]');
 await sleep(300);
@@ -420,6 +425,64 @@ check('Ending early says so', (await text()).includes('Fast ended at 0h'));
   }
   await p3.screenshot({ path: `${OUT}19-history-streak.png` });
   await ctx.close();
+}
+
+// Custom split: build one from Push / Pull / Legs, rename day 1, switch to it, train it
+{
+  // "Start from" rows: button > div.min-w-0 > name.
+  const pressRow = async (name) => {
+    await page.waitForFunction((n) => [...document.querySelectorAll('button')].some((b) => b.firstElementChild?.classList.contains('min-w-0') && b.firstElementChild.firstElementChild?.textContent === n), { timeout: 5000 }, name);
+    await page.evaluate((n) => [...document.querySelectorAll('button')].find((b) => b.firstElementChild?.classList.contains('min-w-0') && b.firstElementChild.firstElementChild?.textContent === n)?.click(), name);
+    await sleep(600);
+  };
+  await click('nav button::-p-text(Today)');
+  await page.evaluate(() => { location.hash = '#/today/split'; });
+  await sleep(600);
+  await click('button::-p-text(Build your own)');
+  await sleep(500);
+  await pressRow('Push / Pull / Legs');
+  check('Split editor opens with a copied name', (await page.$eval('input[aria-label="Split name"]', (i) => i.value)) === 'My Push / Pull / Legs');
+  // Day 1 row: its first child is the "1" index.
+  await page.waitForFunction(() => [...document.querySelectorAll('button')].some((b) => b.firstElementChild?.textContent === '1'), { timeout: 5000 });
+  await page.evaluate(() => [...document.querySelectorAll('button')].find((b) => b.firstElementChild?.textContent === '1')?.click());
+  await sleep(600);
+  await page.waitForSelector('input[aria-label="Day name"]', { visible: true });
+  await page.click('input[aria-label="Day name"]', { clickCount: 3 });
+  await page.keyboard.type('Chest day');
+  await sleep(200);
+  if (!(await text()).includes('Cable fly')) {
+    await click('button::-p-text(Add exercise)');
+    await typeInto('input[placeholder="Search exercises"]', 'Cable fly');
+    await sleep(300);
+    await click('button::-p-text(Cable fly)');
+    await sleep(400);
+  }
+  check('Day editor lists Cable fly', (await text()).includes('Cable fly'));
+  await click('[data-vaul-drawer] button::-p-text(Done)');
+  await sleep(500);
+  check('Split editor shows the renamed day', (await text()).includes('Chest day'));
+  await click('button::-p-text(Save)');
+  await sleep(600);
+  t = await text();
+  check('Saving toasts and returns to the split sheet', t.includes('My Push / Pull / Legs saved') && t.includes('Your splits'));
+  check('One custom split stored', JSON.parse(await dumpState()).customSplits === 1);
+  await page.evaluate(() => [...document.querySelectorAll('button.ring-2')].find((b) => b.querySelector('.truncate')?.textContent === 'My Push / Pull / Legs')?.click());
+  await sleep(500);
+  await click('[role="alertdialog"] button::-p-text(Switch)');
+  await sleep(600);
+  if (await page.$('[data-vaul-drawer]')) await page.keyboard.press('Escape');
+  await sleep(600);
+  check('Today shows the custom day name', (await text()).includes('Chest day'));
+  let st = JSON.parse(await dumpState());
+  check('Custom split is active at day 1, cycle 1', String(st.splitId).startsWith('custom-') && (st.rotation?.sessionIndex ?? 0) === 0 && (st.rotation?.cycle ?? 1) === 1, JSON.stringify(st));
+  await startAgain();
+  await sleep(700);
+  await logAll(30);
+  await finish();
+  await click('[data-vaul-drawer] button::-p-text(Done)');
+  await sleep(800);
+  st = JSON.parse(await dumpState());
+  check('Custom rotation advanced to day 2 of cycle 1', st.rotation?.sessionIndex === 1 && st.rotation?.cycle === 1, JSON.stringify(st.rotation));
 }
 
 check('No runtime errors in console', errors.length === 0, errors.slice(0, 5).join(' / '));
