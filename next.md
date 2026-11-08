@@ -1,8 +1,8 @@
 # Next
 
-## Custom split builder (in design)
+## Custom split builder (shipped in 4.5.0)
 
-Let people build their own split instead of picking one of the fixed four. Spec in progress under `docs/superpowers/specs/`. It starts with a refactor that moves splits, rotation and progression into one `domain/training` module.
+People can build their own split: start blank or from any split, edit days and exercises, and switch between splits while each keeps its place. Splits, rotation and progression now live in one `domain/training` module.
 
 ## App-wide restructure (after the split builder)
 
