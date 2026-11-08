@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { emptyAppData } from './catalogue';
 import { region, suggestNext } from './flow';
-import { ensurePlan } from './planner';
+import { ensurePlan } from './training';
 import { confirmSet, skipExercise, startSession, updateSet } from './session';
 import type { AppData } from './types';
 

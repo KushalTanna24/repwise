@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, Plus } from 'lucide-react';
-import { findSlot, swapCandidates } from '@/domain/planner';
+import { ensurePlan, findSlot, swapCandidates } from '@/domain/training';
 import { addExercise, discardSession, finishSession, swapExercise } from '@/domain/session';
 import { sessionPRs } from '@/domain/stats';
 import { Sheet } from '@/components/ui/sheet';
@@ -17,7 +17,6 @@ import { RestTimer, useRest } from './workout/RestTimer';
 import { flashSet } from './workout/highlight';
 import { closeSheet } from '@/lib/route';
 import { suggestNext } from '@/domain/flow';
-import { ensurePlan } from '@/domain/planner';
 import { getExercise } from '@/domain/catalogue';
 import { exName, fmtLoad } from '@/lib/fmt';
 

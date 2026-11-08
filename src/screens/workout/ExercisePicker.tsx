@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
 import { allExercises } from '@/domain/catalogue';
-import { isEligible } from '@/domain/planner';
+import { isEligible } from '@/domain/training';
 import type { AppData, Exercise, Pattern } from '@/domain/types';
 import { List, Row } from '@/components/ui/card';
 

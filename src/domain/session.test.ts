@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { emptyAppData } from './catalogue';
-import { ensurePlan } from './planner';
+import { ensurePlan } from './training';
 import {
   addExercise,
   addSet,

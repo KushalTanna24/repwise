@@ -4,7 +4,7 @@ import { del, get, set } from 'idb-keyval';
 import dayjs from 'dayjs';
 import { emptyAppData } from '@/domain/catalogue';
 import { settleChallenges } from '@/domain/challenges';
-import { ensurePlan } from '@/domain/planner';
+import { ensurePlan } from '@/domain/training';
 import { normalize } from '@/domain/migrate';
 import { withStreakHint } from '@/domain/streak';
 import { withBadgeBackfill } from '@/domain/badges';

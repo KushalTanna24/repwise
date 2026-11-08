@@ -1,8 +1,6 @@
 import { getExercise } from './catalogue';
-import { ensurePlan, findSlot, planKey, plannedExercise, prescription } from './planner';
-import { daysOff, easedSets, recommend, returnTier } from './progression';
-import { SPLITS } from './splits';
-import type { AppData, Profile, Recommendation, SessionExercise, SetRecord, SplitId, WorkoutSession } from './types';
+import { BUILT_IN_SPLITS, daysOff, easedSets, ensurePlan, findSlot, planKey, plannedExercise, prescription, recommend, returnTier, type Recommendation, type SplitId } from './training';
+import type { AppData, Profile, SessionExercise, SetRecord, WorkoutSession } from './types';
 
 function setsFrom(rec: Recommendation, count: number, repMin: number): SetRecord[] {
   return Array.from({ length: count }, (_, i) => ({
@@ -148,7 +146,7 @@ export function swapExercise(data: AppData, exIdx: number, exerciseId: string): 
 }
 
 function advance(data: AppData, splitId: SplitId): AppData {
-  const len = SPLITS[splitId].sessions.length;
+  const len = BUILT_IN_SPLITS[splitId].sessions.length;
   const cur = data.program.rotation[splitId];
   const next = cur.sessionIndex + 1 >= len ? { sessionIndex: 0, cycle: cur.cycle + 1 } : { sessionIndex: cur.sessionIndex + 1, cycle: cur.cycle };
   return { ...data, plannedSession: null, program: { ...data.program, rotation: { ...data.program.rotation, [splitId]: next } } };

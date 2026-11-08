@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BUILTIN_EXERCISES, emptyAppData, getExercise } from './catalogue';
-import { SPLITS } from './splits';
+import { BUILT_IN_SPLITS } from './training';
 
 describe('catalogue', () => {
   it('has unique exercise ids', () => {
@@ -9,25 +9,25 @@ describe('catalogue', () => {
   });
 
   it('every split candidate exists in the catalogue', () => {
-    for (const split of Object.values(SPLITS))
+    for (const split of Object.values(BUILT_IN_SPLITS))
       for (const s of split.sessions)
         for (const slot of s.slots)
           for (const id of slot.candidates) expect(getExercise(id, []), `${split.id}/${slot.id}/${id}`).toBeDefined();
   });
 
   it('full body sessions are A, B, C', () => {
-    expect(SPLITS['full-body-abc'].sessions.map((s) => s.title)).toEqual(['Full Body A', 'Full Body B', 'Full Body C']);
+    expect(BUILT_IN_SPLITS['full-body-abc'].sessions.map((s) => s.title)).toEqual(['Full Body A', 'Full Body B', 'Full Body C']);
   });
 
   it('full body anchors cover the six main patterns across the cycle', () => {
     const patterns = new Set(
-      SPLITS['full-body-abc'].sessions.flatMap((s) => s.slots.filter((x) => x.role === 'anchor').map((x) => x.pattern)),
+      BUILT_IN_SPLITS['full-body-abc'].sessions.flatMap((s) => s.slots.filter((x) => x.role === 'anchor').map((x) => x.pattern)),
     );
     for (const p of ['knee', 'hip', 'hpush', 'vpush', 'hpull', 'vpull']) expect(patterns.has(p as never), p).toBe(true);
   });
 
   it('hybrid PPL pairs chest with biceps, back with triceps, legs with shoulders', () => {
-    const [push, pull, legs] = SPLITS['ppl-hybrid'].sessions;
+    const [push, pull, legs] = BUILT_IN_SPLITS['ppl-hybrid'].sessions;
     const patterns = (s: typeof push) => new Set(s.slots.map((x) => x.pattern));
     const arms = (s: typeof push) => s.slots.filter((x) => x.pattern === 'arms').flatMap((x) => x.candidates);
     expect(patterns(push)).toEqual(new Set(['hpush', 'arms']));

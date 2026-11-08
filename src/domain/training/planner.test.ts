@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { emptyAppData } from './catalogue';
+import { emptyAppData } from '../catalogue';
 import { buildPlan, ensurePlan, planKey, rebuildPlan, swapCandidates } from './planner';
-import { SPLITS } from './splits';
-import type { AppData } from './types';
+import { BUILT_IN_SPLITS } from './splits/builtins';
+import type { AppData } from '../types';
 
 const NOW = '2026-10-17T08:00:00.000Z';
 function data(patch: (d: AppData) => void = () => {}): AppData {
@@ -68,7 +68,7 @@ describe('buildPlan', () => {
   });
 
   it('empty slot when no candidate', () => {
-    const knee = SPLITS['full-body-abc'].sessions[0].slots[0].candidates;
+    const knee = BUILT_IN_SPLITS['full-body-abc'].sessions[0].slots[0].candidates;
     const d = data((x) => (x.profile.excludedExerciseIds = knee));
     const first = buildPlan(d, 'full-body-abc').exercises[0];
     expect(first.exerciseId).toBe('');
@@ -113,7 +113,7 @@ describe('ensurePlan', () => {
 
 describe('swapCandidates', () => {
   it('lists same-pattern exercises, slot candidates first', () => {
-    const slot = SPLITS['full-body-abc'].sessions[0].slots[0];
+    const slot = BUILT_IN_SPLITS['full-body-abc'].sessions[0].slots[0];
     const list = swapCandidates(slot, data()).map((e) => e.id);
     expect(list.slice(0, 4)).toEqual(slot.candidates);
     expect(list).toContain('bulgarian-split-squat');
@@ -173,7 +173,7 @@ describe('session length and experience', () => {
   });
 });
 describe('return after a gap', () => {
-  const anchor = SPLITS['full-body-abc'].sessions[0].slots[0].candidates[0];
+  const anchor = BUILT_IN_SPLITS['full-body-abc'].sessions[0].slots[0].candidates[0];
   const back = (date: string, idx = 1): AppData =>
     data((d) => {
       d.program.rotation['full-body-abc'] = { sessionIndex: idx, cycle: 2 };

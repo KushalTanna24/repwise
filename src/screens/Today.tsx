@@ -3,13 +3,11 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Check, ChevronRight, Ellipsis, Plane, Timer, GlassWater, Minus, Pill, Play, Plus, RefreshCw, Repeat, SkipForward, Sparkles } from 'lucide-react';
 import { getExercise } from '@/domain/catalogue';
-import { rebuildPlan } from '@/domain/planner';
-import { daysOff } from '@/domain/progression';
+import { BUILT_IN_SPLITS, daysOff, rebuildPlan, type PlannedExercise } from '@/domain/training';
 import { addWater, DEFAULT_WATER_REMINDERS, GLASS_ML, waterPace } from '@/domain/water';
 import { skipPlannedSession, startSession } from '@/domain/session';
-import { SPLITS } from '@/domain/splits';
 import { latestWeight, periodStats, sessionVolume, weekStats, type Period } from '@/domain/stats';
-import type { AppData, PlannedExercise, WorkoutSession } from '@/domain/types';
+import type { AppData, WorkoutSession } from '@/domain/types';
 import { activeSupplements, suppOverdue, toggleSupplement } from '@/domain/supplements';
 import { TIMING_LABEL, TIMING_ORDER } from '@/domain/supplementCatalogue';
 import { cn } from '@/lib/cn';
@@ -110,7 +108,7 @@ function Challenges({ data, today, nowMinutes }: { data: AppData; today: string;
 function UpNext({ data }: { data: AppData }) {
   const active = data.activeSession;
   const plan = data.plannedSession;
-  const split = SPLITS[data.program.splitId!];
+  const split = BUILT_IN_SPLITS[data.program.splitId!];
   if (!plan) return null;
 
   async function skip() {

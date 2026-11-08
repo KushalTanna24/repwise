@@ -1,5 +1,6 @@
 import dayjs from 'dayjs';
-import type { EquipmentKind, Exercise, Kg, Recommendation, SetRecord, WorkoutSession } from './types';
+import type { EquipmentKind, Exercise, Kg, SetRecord, WorkoutSession } from '../types';
+import type { Recommendation } from './types';
 
 /** Smallest practical load jump per equipment type. */
 export const INCREMENT: Record<EquipmentKind, number> = {

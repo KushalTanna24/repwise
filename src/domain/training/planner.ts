@@ -1,7 +1,8 @@
-import { allExercises, getExercise } from './catalogue';
+import { allExercises, getExercise } from '../catalogue';
+import type { AppData, EquipmentKind, Exercise, Profile } from '../types';
 import { daysOff, easedSets, recommend, returnTier, type ReturnTier } from './progression';
-import { SPLITS } from './splits';
-import type { AppData, EquipmentKind, Exercise, PlannedExercise, PlannedSession, Prescription, Profile, Slot, SplitId } from './types';
+import { BUILT_IN_SPLITS } from './splits/builtins';
+import type { PlannedExercise, PlannedSession, Prescription, Slot, SplitId } from './types';
 
 export const planKey = (splitId: SplitId, sessionIndex: number, cycle: number) => `${splitId}:${sessionIndex}:${cycle}`;
 
@@ -57,7 +58,7 @@ export function plannedExercise(data: AppData, slot: Slot, exerciseId: string, n
 
 /** Deterministic: same data, rotation and `now` always give the same session. */
 export function buildPlan(data: AppData, splitId: SplitId, variant = 0, now?: string): PlannedSession {
-  const split = SPLITS[splitId];
+  const split = BUILT_IN_SPLITS[splitId];
   const { sessionIndex, cycle } = data.program.rotation[splitId];
   const tmpl = split.sessions[sessionIndex % split.sessions.length];
 
@@ -134,5 +135,5 @@ export function swapCandidates(slot: Slot, data: AppData): Exercise[] {
 
 export function findSlot(splitId: SplitId | null, slotId: string | null): Slot | undefined {
   if (!splitId || !slotId) return undefined;
-  return [...SPLITS[splitId].sessions.flatMap((s) => s.slots), ...FINISHERS].find((s) => s.id === slotId);
+  return [...BUILT_IN_SPLITS[splitId].sessions.flatMap((s) => s.slots), ...FINISHERS].find((s) => s.id === slotId);
 }

@@ -1,7 +1,8 @@
 /** All loads are stored in kilograms. Pounds are a display concern only. */
+
+import type { PlannedSession, Prescription, Recommendation, RotationState, SplitId } from './training/types';
 export type Kg = number;
 
-export type SplitId = 'full-body-abc' | 'upper-lower' | 'ppl' | 'ppl-hybrid';
 export type Pattern =
   | 'knee'
   | 'hip'
@@ -29,60 +30,6 @@ export interface Exercise {
   custom?: boolean;
   /** Bodyweight skill work; the picker lists these in their own group. */
   calisthenics?: boolean;
-}
-
-export interface Slot {
-  id: string;
-  pattern: Pattern;
-  role: 'anchor' | 'accessory';
-  candidates: string[];
-}
-
-export interface SplitDef {
-  id: SplitId;
-  name: string;
-  blurb: string;
-  /** `short` names the day in one-line summaries when the title's last word would not. */
-  sessions: { title: string; short?: string; slots: Slot[] }[];
-}
-
-export interface Recommendation {
-  targetKg: Kg | null;
-  targetReps: number[];
-  reason: string;
-  kind: 'first' | 'hold' | 'increase' | 'reps' | 'deload' | 'assist';
-  /** Bodyweight moves: suggested assistance or added load, when history supports it. */
-  assistKg?: Kg | null;
-  addedKg?: Kg | null;
-}
-
-export interface Prescription {
-  sets: number;
-  repMin: number;
-  repMax: number;
-  restSec: number;
-}
-
-export interface PlannedExercise extends Prescription {
-  /** Empty string when no catalogue exercise fits the slot. */
-  exerciseId: string;
-  slotId: string;
-  role: 'anchor' | 'accessory';
-  rec: Recommendation;
-}
-
-export interface PlannedSession {
-  key: string;
-  splitId: SplitId;
-  sessionIndex: number;
-  cycle: number;
-  title: string;
-  exercises: PlannedExercise[];
-  createdAt: string;
-  /** Bumped by Rebuild to rotate accessories; anchors never change. */
-  variant?: number;
-  /** Set when built after a long break; loads and sets are eased. */
-  returnTier?: 1 | 2 | 3;
 }
 
 export interface SetRecord {
@@ -229,11 +176,6 @@ export interface LeaveRange {
   /** Local dates, inclusive; a null end is open-ended. */
   start: string;
   end: string | null;
-}
-
-export interface RotationState {
-  sessionIndex: number;
-  cycle: number;
 }
 
 export interface AppData {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { daysOff, easedSets, recommend, returnTier } from './progression';
-import type { Exercise, SetRecord, WorkoutSession } from './types';
+import type { Exercise, SetRecord, WorkoutSession } from '../types';
 
 const bench: Exercise = { id: 'bench-press', name: 'Bench press', muscle: 'Chest', pattern: 'hpush', equipment: 'barbell', kind: 'weighted' };
 const dbPress: Exercise = { ...bench, id: 'incline-db-press', equipment: 'dumbbell' };
