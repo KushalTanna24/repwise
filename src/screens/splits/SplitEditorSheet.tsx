@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Menu } from '@/components/ui/menu';
 import { List } from '@/components/ui/card';
 import { confirm } from '@/components/ui/alert';
-import { closeSheet, openSheet } from '@/lib/route';
+import { closeSheet, openSheet, useRoute } from '@/lib/route';
 import { toast } from '@/lib/toast';
 import { act } from '@/store/app';
 import { useSplitDraft } from '@/store/splitDraft';
@@ -31,6 +31,24 @@ export function SplitEditorSheet({ splitId, onClose }: { splitId: string | null;
     if (splitId) leaving.current = false;
   }, [splitId]);
 
+  // Hardware back leaves the route without going through close(): bring the editor back and ask first.
+  const prev = useRef<string | null>(null);
+  useEffect(() => {
+    const was = prev.current;
+    prev.current = splitId;
+    if (!was || splitId) return;
+    const { dirty: isDirty } = useSplitDraft.getState();
+    const next = useRoute.getState().sheet ?? '';
+    if (!isDirty || leaving.current || next.startsWith(`split-day:${was}:`)) return;
+    openSheet(`split-edit:${was}`);
+    void confirm({ title: 'Discard changes?', confirmLabel: 'Discard' }).then((ok) => {
+      if (!ok) return;
+      leaving.current = true;
+      useSplitDraft.getState().close();
+      closeSheet();
+    });
+  }, [splitId]);
+
   async function close() {
     if (dirty) {
       const ok = await confirm({ title: 'Discard changes?', confirmLabel: 'Discard' });
@@ -49,7 +67,7 @@ export function SplitEditorSheet({ splitId, onClose }: { splitId: string | null;
     leaving.current = true;
     act((d) => saveCustomSplit(d, live, now));
     useSplitDraft.getState().close();
-    openSheet('split', { replace: true });
+    closeSheet();
     toast(`${live.name.trim()} saved`);
   }
 

@@ -27,7 +27,7 @@ export function SlotRow({ data, slot, first, last, onRole, onMove, onRemove, onA
     <div className="[&:not(:last-child)]:border-b [&:not(:last-child)]:border-sep py-2 pl-4 pr-1">
       <div className="flex items-center gap-1">
         <div className="min-w-0 flex-1">
-          <div className="truncate text-body">{ex?.name ?? 'Unknown exercise'}</div>
+          <div className="line-clamp-2 break-words text-body">{ex?.name ?? 'Unknown exercise'}</div>
           {blocked && <div className="text-footnote text-orange">Not available with your equipment</div>}
         </div>
         <Segmented
