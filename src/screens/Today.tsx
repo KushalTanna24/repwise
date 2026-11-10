@@ -288,7 +288,7 @@ function RotationStrip({ titles, current, cycle, count }: { titles: string[]; cu
     <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-footnote text-label-2">
       {titles.map((t, i) => (
         <span
-          key={t}
+          key={i}
           className={cn(
             'rounded-full px-2 py-0.5 text-caption font-bold',
             i === current ? 'bg-pink text-white' : i < current ? 'bg-pink/15 text-pink' : 'bg-fill text-label-2',

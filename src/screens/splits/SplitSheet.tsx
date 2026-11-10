@@ -52,7 +52,9 @@ export function SplitChooser({ onPicked }: { onPicked?: () => void }) {
   async function remove(s: CustomSplit) {
     if (data.activeSession) return toast('Finish or discard your workout first');
     const ok = await confirm({ title: `Delete ${s.name}?`, message: 'Your workout history stays.', confirmLabel: 'Delete' });
-    if (ok) act((d) => deleteCustomSplit(d, s.id, now()));
+    if (!ok) return;
+    act((d) => deleteCustomSplit(d, s.id, now()));
+    toast(`${s.name} deleted`);
   }
 
   const card = (s: CustomSplit | (typeof builtIn)[number]) => (

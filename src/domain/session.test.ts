@@ -111,6 +111,16 @@ describe('set logging', () => {
     expect(d.activeSession!.exercises[0].rec?.kind).toBe('first');
   });
 
+  it('swapExercise keeps the exercise role when its slot was removed mid-workout', () => {
+    const d = started();
+    const base = swapExercise(d, 0, 'hack-squat').activeSession!.exercises[0];
+    const orphan = { ...d, activeSession: { ...d.activeSession!, exercises: d.activeSession!.exercises.map((e, i) => (i === 0 ? { ...e, slotId: 'cs-gone0000' } : e)) } };
+    const swapped = swapExercise(orphan, 0, 'hack-squat').activeSession!.exercises[0];
+    expect(d.activeSession!.exercises[0].role).toBe('anchor');
+    expect(swapped.plan).toEqual(base.plan);
+    expect(swapped.sets).toHaveLength(base.sets.length);
+  });
+
   it('swapExercise is refused once a set is done', () => {
     const d = confirmSet(updateSet(started(), 0, 0, { actualKg: 60, actualReps: 8 }), 0, 0);
     expect(swapExercise(d, 0, 'hack-squat')).toBe(d);

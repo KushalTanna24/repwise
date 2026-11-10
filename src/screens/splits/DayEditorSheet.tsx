@@ -73,7 +73,9 @@ export function DayEditorSheet({ splitId, day, onClose }: { splitId: string | nu
 
   function fill(f: DayFocus) {
     useSplitDraft.getState().setFocus(day, f);
-    change((s) => fillDay(s, day, suggestDay(data, f)));
+    const slots = suggestDay(data, f);
+    if (!slots.length) toast(`Nothing fits your equipment for ${FOCUS_LABEL[f]}`);
+    else change((s) => fillDay(s, day, slots));
     setMode(null);
   }
 

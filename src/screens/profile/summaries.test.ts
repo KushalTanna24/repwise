@@ -20,6 +20,15 @@ describe('profileSummaries', () => {
     expect(profileSummaries(d, ctx).training).toBe('Not set');
   });
 
+  it('training uses full day titles for a custom split', () => {
+    const d = base();
+    d.customSplits = [{ id: 'custom-abc', name: 'My split', createdAt: NOW, updatedAt: NOW, sessions: [
+      { title: 'Chest day', slots: [] }, { title: 'Back day', slots: [] },
+    ] } as never];
+    d.program.splitId = 'custom-abc';
+    expect(profileSummaries(d, ctx).training).toBe('My split Chest day/Back day · 3×/wk');
+  });
+
   it('goals counts', () => {
     let d = base();
     expect(profileSummaries(d, ctx).goals).toBe('None yet');
