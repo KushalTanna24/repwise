@@ -102,8 +102,24 @@ export interface BodyWeight {
   kg: Kg;
 }
 
+export type FocusArea = 'chest' | 'back' | 'shoulders' | 'arms' | 'legs' | 'glutes' | 'abs';
+export type Activity = 'sitting' | 'feet' | 'physical';
+export type BodyGoal = 'lose' | 'maintain' | 'gain';
+
 export interface Profile {
   heightCm?: number;
+  sex?: 'male' | 'female';
+  /** Stored instead of age so age stays current. */
+  birthYear?: number;
+  /** Daily life outside training; sets the activity factor. */
+  activity?: Activity;
+  /** Calories the user said they eat a day. */
+  intakeKcal?: number;
+  bodyGoal?: BodyGoal;
+  /** Up to three muscles the plan gives extra volume. */
+  focus?: FocusArea[];
+  /** Set when onboarding was finished or skipped. */
+  onboardedAt?: string;
   units: 'kg' | 'lb';
   experience: 'beginner' | 'intermediate' | 'advanced';
   objective: Objective;

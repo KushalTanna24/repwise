@@ -93,3 +93,35 @@ describe('4.3 fields', () => {
     expect(isEmpty({ ...emptyAppData(NOW), photos: [{ id: 'p', date: '2026-10-17', path: 'u/p.jpg' }] })).toBe(false);
   });
 });
+
+describe('4.6 onboarding', () => {
+  const UPDATED = '2026-11-01T10:00:00.000Z';
+  const base = () => {
+    const d = emptyAppData(NOW);
+    return { ...d, meta: { ...d.meta, updatedAt: UPDATED } };
+  };
+  const weighIn = { id: 'w', date: '2026-10-17', kg: 80 };
+
+  it('marks a doc with data as already onboarded', () => {
+    expect(normalize({ ...base(), bodyweights: [weighIn] }, NOW)!.profile.onboardedAt).toBe(UPDATED);
+  });
+
+  it('marks a doc with a chosen split as already onboarded', () => {
+    const d = base();
+    expect(normalize({ ...d, program: { ...d.program, splitId: 'ppl' } }, NOW)!.profile.onboardedAt).toBe(UPDATED);
+  });
+
+  it('leaves an empty doc for onboarding', () => {
+    expect(normalize(base(), NOW)!.profile.onboardedAt).toBeUndefined();
+  });
+
+  it('never overwrites an existing onboardedAt', () => {
+    const d = base();
+    const doc = { ...d, bodyweights: [weighIn], profile: { ...d.profile, onboardedAt: '2026-01-01T00:00:00.000Z' } };
+    expect(normalize(doc, NOW)!.profile.onboardedAt).toBe('2026-01-01T00:00:00.000Z');
+  });
+
+  it('a migrated v2 user counts as onboarded', () => {
+    expect(migrateV2(v2, NOW).profile.onboardedAt).toBe(NOW);
+  });
+});

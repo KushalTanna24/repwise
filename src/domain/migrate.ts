@@ -121,7 +121,7 @@ export function migrateV2(raw: unknown, now: string): AppData {
 
   return {
     ...base,
-    profile: v2Profile(v2.profile, base.profile),
+    profile: { ...v2Profile(v2.profile, base.profile), onboardedAt: now },
     customExercises: [...custom.values()],
     sessions,
     bodyweights: (v2.weights ?? [])
@@ -136,7 +136,7 @@ export function normalize(doc: unknown, now: string): AppData | null {
   if (isV4(doc)) {
     const base = emptyAppData(now);
     // The seeded stack in base must not leak into a doc that has none; seedStack decides that once.
-    const out = seedStack({
+    let out = seedStack({
       ...base,
       ...doc,
       supplements: doc.supplements ?? [],
@@ -151,6 +151,9 @@ export function normalize(doc: unknown, now: string): AppData | null {
       profile: { ...base.profile, ...doc.profile },
       program: { ...base.program, ...doc.program, rotation: { ...base.program.rotation, ...doc.program.rotation } },
     });
+    // Anyone who already trains here skips onboarding; the doc's own timestamp keeps this deterministic.
+    if (!out.profile.onboardedAt && (!isEmpty(out) || out.program.splitId || out.customSplits.length > 0))
+      out = { ...out, profile: { ...out.profile, onboardedAt: doc.meta.updatedAt } };
     // A custom split that no longer resolves would crash planning; fall back to the chooser.
     const id = out.program.splitId;
     if (id?.startsWith('custom-') && !getSplit(out, id)) return { ...out, plannedSession: null, program: { ...out.program, splitId: null } };
