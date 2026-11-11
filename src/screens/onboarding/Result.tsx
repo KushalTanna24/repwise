@@ -42,7 +42,7 @@ export function Result({ rerun }: { rerun: boolean }) {
       return res.data;
     });
     useOnboarding.getState().reset();
-    if (!activated) toast('Saved. Applies after this workout');
+    if (!activated) toast('Saved to your splits. Switch to it after this workout');
     const saved = useApp.getState().data.customSplits.find((s) => s.id === result.split.id);
     if (edit && saved) {
       // The editor works on a draft; without one it closes straight away.
