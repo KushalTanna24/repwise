@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { fromDisplay, parseNumber, toDisplay } from '@/domain/stats';
+import { fromDisplay, latestWeight, parseNumber, toDisplay } from '@/domain/stats';
+import { EnergyCard } from '@/screens/onboarding/EnergyCard';
 import { Sheet } from '@/components/ui/sheet';
 import { List } from '@/components/ui/card';
 import { FieldRow, Select, TextInput } from '@/components/ui/field';
@@ -13,8 +14,21 @@ export function BodySheet({ open, onClose }: { open: boolean; onClose: () => voi
   // (after a cloud take or a restore too). Keyed on units so a kg target is never read back as lb.
   return (
     <Sheet open={open} onClose={onClose} tall title="Body & water" right={<Done onClose={onClose} />}>
+      <Energy />
       <BodyForm key={units} />
     </Sheet>
+  );
+}
+
+/** Needs a height and a weigh-in; the card hides calories itself when sex or age is missing. */
+function Energy() {
+  const data = useData();
+  const kg = latestWeight(data)?.kg;
+  if (!data.profile.heightCm || !kg) return null;
+  return (
+    <div className="mb-3">
+      <EnergyCard profile={data.profile} kg={kg} />
+    </div>
   );
 }
 

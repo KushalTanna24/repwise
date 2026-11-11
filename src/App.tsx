@@ -37,6 +37,8 @@ import { RunDetailSheet } from '@/screens/challenges/RunDetailSheet';
 import { Splash } from '@/components/Splash';
 import { DailyBanner } from '@/components/DailyBanner';
 import { AuthBanner } from '@/components/AuthBanner';
+import { needsOnboarding } from '@/domain/plan';
+import { Onboarding } from '@/screens/onboarding/Onboarding';
 
 const queryClient = new QueryClient();
 // Charts are the heaviest dependency; load them only when Progress opens.
@@ -75,7 +77,9 @@ function Sheets() {
 function Shell() {
   useSyncEngine();
   const tab = useRoute((r) => r.tab);
+  const sheet = useRoute((r) => r.sheet);
   const hydrated = useApp((s) => s.hydrated);
+  const onboarding = useApp((s) => s.hydrated && needsOnboarding(s.data));
 
   useEffect(() => {
     void boot();
@@ -83,8 +87,17 @@ function Shell() {
 
   return (
     <>
-      {hydrated && (
+      {onboarding && (
         <>
+          <Onboarding />
+          <ConfirmHost />
+          <Toaster />
+          <AuthBanner />
+        </>
+      )}
+      {hydrated && !onboarding && (
+        <>
+          {sheet === 'plan' && <Onboarding rerun onClose={closeSheet} />}
           {tab === 'today' && <Today />}
           {tab === 'history' && <History />}
           {tab === 'progress' && (
