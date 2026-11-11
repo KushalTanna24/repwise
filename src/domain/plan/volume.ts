@@ -2,7 +2,7 @@ import { exerciseMuscles, type Muscle } from '../muscles';
 import { MAX_EXERCISES, prescription } from '../training';
 import type { Exercise, FocusArea, Profile } from '../types';
 
-/** Muscle groups that carry a weekly set target. Rear delts, lower back and forearms are trained indirectly. */
+/** Muscle groups that carry a weekly set target. Rear delts count as shoulders; lower back and forearms are trained indirectly. */
 export type Group = 'chest' | 'back' | 'shoulders' | 'biceps' | 'triceps' | 'quads' | 'hamstrings' | 'glutes' | 'calves' | 'abs';
 
 export const GROUPS: Group[] = ['chest', 'back', 'shoulders', 'biceps', 'triceps', 'quads', 'hamstrings', 'glutes', 'calves', 'abs'];
@@ -35,6 +35,7 @@ export const MUSCLE_GROUP: Partial<Record<Muscle, Group>> = {
   chest: 'chest',
   lats: 'back',
   traps: 'back',
+  'rear-delts': 'shoulders',
   shoulders: 'shoulders',
   biceps: 'biceps',
   triceps: 'triceps',
@@ -76,6 +77,15 @@ export const FLOOR = 6;
 
 const BASE: Record<Profile['experience'], number> = { beginner: 10, intermediate: 12, advanced: 14 };
 
+/** Targets before fitting them into the user's time. */
+export function idealTargets(p: Profile): Record<Group, number> {
+  const focus = focusGroups(p.focus);
+  const cap = p.experience === 'beginner' ? 14 : 20;
+  const factor = p.bodyGoal === 'lose' ? 1.25 : 1.5;
+  const base = (g: Group) => BASE[p.experience] - (MAJOR.has(g) ? 0 : 2);
+  return Object.fromEntries(GROUPS.map((g) => [g, focus.has(g) ? Math.min(cap, Math.round(base(g) * factor)) : base(g)])) as Record<Group, number>;
+}
+
 export interface Targets {
   sets: Record<Group, number>;
   focus: Set<Group>;
@@ -90,11 +100,8 @@ export interface Targets {
 export function weeklyTargets(p: Profile): Targets {
   const focus = focusGroups(p.focus);
   const budget = weeklyBudget(p);
-  const cap = p.experience === 'beginner' ? 14 : 20;
-  const factor = p.bodyGoal === 'lose' ? 1.25 : 1.5;
   const base = (g: Group) => BASE[p.experience] - (MAJOR.has(g) ? 0 : 2);
-
-  const sets = Object.fromEntries(GROUPS.map((g) => [g, focus.has(g) ? Math.min(cap, Math.round(base(g) * factor)) : base(g)])) as Record<Group, number>;
+  const sets = idealTargets(p);
   const total = () => GROUPS.reduce((a, g) => a + sets[g], 0);
 
   const trim = (pool: Group[], min: (g: Group) => number) => {
