@@ -14,15 +14,15 @@ export function StreakHeader({ data, today }: { data: AppData; today: string }) 
     <button
       onClick={() => openSheet('badges')}
       aria-label={`${s.current}-day streak, best ${s.best}. Open badges`}
-      className="press mt-3 flex w-full items-center gap-4 rounded-card bg-card p-4 text-left shadow-card"
+      className="press mt-3 flex w-full items-center gap-3 rounded-card bg-card px-4 py-3 text-left shadow-card"
     >
-      <Flame lit={s.current > 0} size={56} />
+      <Flame lit={s.current > 0} size={40} />
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-1.5">
-          <span className="text-[34px] font-black leading-none tabular">{s.current}</span>
+          <span className="text-[28px] font-black leading-none tabular">{s.current}</span>
           <span className="text-headline font-semibold text-label-2">day streak</span>
         </div>
-        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-subhead text-label-2">
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-footnote text-label-2">
           <span className="tabular">Best {s.best}</span>
           <span className="flex items-center gap-0.5" aria-label={`${s.freezes} freezes`}>
             {s.freezes === 0 ? 'No freezes' : Array.from({ length: s.freezes }, (_, i) => <Snowflake key={i} className="size-4 text-blue" />)}

@@ -77,7 +77,7 @@ export function Calendar({ data, today, selected, onSelect, filter, kinds }: Pro
           dragConstraints={{ left: 0, right: 0 }}
           dragElastic={0.2}
           onDragEnd={(_, i) => (i.offset.x < -50 ? shift(1) : i.offset.x > 50 ? shift(-1) : undefined)}
-          className="mt-1 grid grid-cols-7 gap-y-1"
+          className="mt-1 grid grid-cols-7 gap-y-0.5"
         >
           {monthCells(month).map((c) => {
             const done: Goal[] = goalsAt(c.date).filter((g) => g.status.done);
@@ -93,11 +93,11 @@ export function Calendar({ data, today, selected, onSelect, filter, kinds }: Pro
                 aria-label={`${dayjs(c.date).format('D MMMM')}${state && state !== 'missed' ? `, ${state}` : ''}${done.map((g) => `, ${g.label}`).join('')}${goalDay ? `, goal: ${deadlines.join(', ')}` : ''}`}
                 aria-pressed={isSel}
                 onClick={() => onSelect(c.date)}
-                className={cn('flex h-12 flex-col items-center justify-start gap-0.5 pt-1 transition-opacity', !c.inMonth && 'opacity-30', c.inMonth && dimmed && 'opacity-35')}
+                className={cn('flex h-10 flex-col items-center justify-start gap-0.5 transition-opacity', !c.inMonth && 'opacity-30', c.inMonth && dimmed && 'opacity-35')}
               >
                 <span
                   className={cn(
-                    'relative grid size-8 place-items-center rounded-full text-subhead tabular',
+                    'relative grid size-[30px] place-items-center rounded-full text-subhead tabular',
                     isSel ? 'bg-label text-white' : state ? FILL[state] : '',
                     isToday && !isSel && 'font-bold text-pink',
                     goalDay && !isSel ? 'ring-2 ring-orange' : isToday && !isSel && 'ring-2 ring-pink',

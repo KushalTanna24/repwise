@@ -45,7 +45,8 @@ export function Profile() {
               key={id}
               leading={<Icon className="size-5 shrink-0 text-blue" />}
               title={title}
-              value={summaries[id]}
+              // Short summaries sit on the right; long ones (split names) get their own line so nothing is cut off.
+              {...((summaries[id] ?? '').length > 10 ? { subtitle: summaries[id] } : { value: summaries[id] })}
               onClick={() => openSheet(id === 'supps' || id === 'challenges' || id === 'leave' ? id : `profile:${id}`)}
               chevron
             />

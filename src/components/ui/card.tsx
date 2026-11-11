@@ -37,11 +37,12 @@ export function Row({ title, subtitle, value, leading, onClick, chevron, destruc
     <>
       {leading}
       <div className="flex min-w-0 flex-1 items-center gap-3 py-2.5 pr-4">
-        <div className="min-w-0 flex-1">
+        {/* The title is the row's name, so it keeps its width; a long value truncates instead. */}
+        <div className={value != null ? 'min-w-0 max-w-[65%] shrink-0' : 'min-w-0 flex-1'}>
           <div className={cn('truncate text-body', destructive && 'text-red')}>{title}</div>
           {subtitle && <div className="truncate text-footnote text-label-2">{subtitle}</div>}
         </div>
-        {value != null && <div className="shrink-0 text-body text-label-2 tabular">{value}</div>}
+        {value != null && <div className="min-w-0 flex-1 truncate text-right text-body text-label-2 tabular">{value}</div>}
         {chevron && <ChevronRight className="size-4 shrink-0 text-label-3" strokeWidth={2.5} />}
       </div>
     </>
