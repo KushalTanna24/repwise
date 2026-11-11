@@ -132,6 +132,7 @@ export function emptyAppData(now: string): AppData {
     customSplits: [],
     customExercises: [],
     archivedExerciseIds: [],
+    exerciseNotes: {},
     plannedSession: null,
     activeSession: null,
     sessions: [],

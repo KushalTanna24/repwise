@@ -1,4 +1,6 @@
 import { Check, Copy, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react';
+import { COMFORT_LABELS, splitComfort } from '@/domain/comfort';
+import type { ComfortScore } from '@/domain/types';
 import { currentRotation, deleteCustomSplit, getSplit, listSplits, newCustomSplit, setSplit, type CustomSplit, type SplitId } from '@/domain/training';
 import { Sheet } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -57,7 +59,9 @@ export function SplitChooser({ onPicked }: { onPicked?: () => void }) {
     toast(`${s.name} deleted`);
   }
 
-  const card = (s: CustomSplit | (typeof builtIn)[number]) => (
+  const card = (s: CustomSplit | (typeof builtIn)[number]) => {
+    const comfort = splitComfort(data, s.id);
+    return (
     <button
       onClick={() => pick(s.id)}
       className={cn('press w-full rounded-card bg-card p-4 text-left shadow-card ring-2', s.id === current ? 'ring-blue' : 'ring-transparent', s.custom && 'pr-14')}
@@ -66,18 +70,28 @@ export function SplitChooser({ onPicked }: { onPicked?: () => void }) {
         <div className="min-w-0">
           <div className="truncate text-headline font-semibold">{s.name}</div>
           <div className="text-footnote text-label-2">{s.blurb}</div>
+          {comfort && (
+            <div className="mt-1 text-footnote font-semibold text-label-2">
+              Feels {COMFORT_LABELS[Math.round(comfort.avg) as ComfortScore].toLowerCase()} · {comfort.avg.toFixed(1)}/5 from {comfort.count} {comfort.count === 1 ? 'rating' : 'ratings'}
+            </div>
+          )}
         </div>
         {s.id === current && <Check className="size-5 shrink-0 text-blue" strokeWidth={3} />}
       </div>
       <div className="mt-3 flex flex-wrap gap-1.5">
-        {s.sessions.map((x, i) => (
-          <span key={i} className="rounded-full bg-fill px-2.5 py-1 text-caption font-semibold text-label-2">
-            {x.title}
-          </span>
-        ))}
+        {s.sessions.map((x, i) => {
+          const day = comfort?.days[i];
+          return (
+            <span key={i} className="rounded-full bg-fill px-2.5 py-1 text-caption font-semibold text-label-2">
+              {x.title}
+              {day && <span className={cn('ml-1 tabular', day.avg < 3 ? 'text-[#C93400]' : day.avg >= 4 ? 'text-[#248A3D]' : '')}>· {day.avg.toFixed(1)}</span>}
+            </span>
+          );
+        })}
       </div>
     </button>
-  );
+    );
+  };
 
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-3">

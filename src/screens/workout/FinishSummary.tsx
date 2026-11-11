@@ -5,6 +5,7 @@ import type { AppData, WorkoutSession } from '@/domain/types';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { exName, fmtDuration, fmtLoad } from '@/lib/fmt';
+import { ComfortCard } from './Comfort';
 
 export interface Summary {
   session: WorkoutSession;
@@ -69,6 +70,8 @@ export function FinishSummary({ data, summary, onDone }: { data: AppData; summar
           </ul>
         </Card>
       )}
+
+      <ComfortCard data={data} sessionId={session.id} className="mt-4" />
 
       {next && <p className="mt-6 text-subhead text-label-2">Next up: <span className="font-semibold text-label">{next}</span>. Targets are updated from today.</p>}
       <Button size="lg" className="mt-6" onClick={onDone}>

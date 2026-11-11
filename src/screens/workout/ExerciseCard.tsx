@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
-import { ArrowDown, ArrowDownRight, ArrowUp, ArrowUpRight, ChevronDown, Ellipsis, Minus, Plus, Repeat, Sparkles, SkipForward, Target } from 'lucide-react';
+import { AlertTriangle, ArrowDown, ArrowDownRight, ArrowUp, ArrowUpRight, ChevronDown, CircleCheck, Ellipsis, Minus, NotebookPen, Plus, Repeat, Sparkles, SkipForward, Target } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { getExercise } from '@/domain/catalogue';
 import { lastDoneMs, region, suggestNext } from '@/domain/flow';
+import { noteLines } from '@/domain/exerciseNotes';
 import { exerciseHistory } from '@/domain/stats';
 import { addSet, confirmSet, moveExercise, removeSet, skipExercise, skipSet, uncheckSet, updateSet } from '@/domain/session';
 import type { Recommendation } from '@/domain/training';
-import type { AppData, SessionExercise, SetRecord } from '@/domain/types';
+import type { AppData, ExerciseNote, SessionExercise, SetRecord } from '@/domain/types';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Menu } from '@/components/ui/menu';
@@ -16,7 +17,7 @@ import { toast } from '@/lib/toast';
 import { act, useApp } from '@/store/app';
 import { SetRow } from './SetRow';
 import { useHighlight } from './highlight';
-import { GuideButton } from '../Guide';
+import { GuideButton, openGuide } from '../Guide';
 import { startRest } from './RestTimer';
 import { useDoneCollapse } from '../today/DoneRow';
 
@@ -56,6 +57,7 @@ export function ExerciseCard({ data, entry, index, count, onSwap }: Props) {
   // A finished or skipped exercise folds to one line so the open ones stay in reach.
   const finished = allDone || !!entry.skipped;
   const [collapsed, expand, fold] = useDoneCollapse(finished);
+  const note = data.exerciseNotes[entry.exerciseId];
 
   if (!entry.exerciseId) {
     return (
@@ -128,6 +130,7 @@ export function ExerciseCard({ data, entry, index, count, onSwap }: Props) {
           items={[
             { label: 'Swap exercise', icon: <Repeat className="size-4" />, onSelect: onSwap, disabled: anyDone },
             { label: 'Add set', icon: <Plus className="size-4" />, onSelect: () => act((d) => addSet(d, index)) },
+            { label: note ? 'Edit your notes' : 'Add your notes', icon: <NotebookPen className="size-4" />, onSelect: () => openGuide(entry.exerciseId, { notes: true }) },
             ...(ex?.kind === 'bodyweight'
               ? [
                   {
@@ -162,6 +165,7 @@ export function ExerciseCard({ data, entry, index, count, onSwap }: Props) {
                 <span>{rec.reason}</span>
               </div>
             )}
+            {note && <MyCues note={note} onEdit={() => openGuide(entry.exerciseId, { notes: true })} />}
             {last && (
               <div className="mt-2 px-1 text-footnote text-label-2">
                 Last · {timed ? '' : `${fmtLoad(last.bestKg, units)} × `}
@@ -229,6 +233,29 @@ function doneSummary(sets: SetRecord[], timed: boolean, assist: boolean, units: 
   const same = done.every((s) => load(s) === load(done[0]));
   const body = same ? `${fmt(load(done[0]))}${reps.join(' · ')}` : done.map((s, i) => `${fmt(load(s))}${reps[i]}`).join(' · ');
   return `${done.length} ${done.length === 1 ? 'set' : 'sets'} · ${body}${tail}`;
+}
+
+/** The user's own cues and mistakes for this exercise; tap to edit them in the guide. */
+function MyCues({ note, onEdit }: { note: ExerciseNote; onEdit: () => void }) {
+  const think = noteLines(note.think);
+  const mistakes = noteLines(note.mistakes);
+  if (!think.length && !mistakes.length) return null;
+  return (
+    <button onClick={onEdit} aria-label="Edit your notes" className="press mt-2 grid w-full gap-1 rounded-[12px] bg-fill-2 px-3 py-2 text-left text-footnote">
+      {think.map((t, i) => (
+        <span key={`t${i}`} className="flex gap-2">
+          <CircleCheck className="mt-[1px] size-4 shrink-0 text-green" />
+          <span>{t}</span>
+        </span>
+      ))}
+      {mistakes.map((m, i) => (
+        <span key={`m${i}`} className="flex gap-2">
+          <AlertTriangle className="mt-[1px] size-4 shrink-0 text-orange" />
+          <span>{m}</span>
+        </span>
+      ))}
+    </button>
+  );
 }
 
 /** "Rested 1:12" while recovering, green "Ready" once this exercise's rest has passed. */

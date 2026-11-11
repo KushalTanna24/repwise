@@ -14,6 +14,7 @@ import { exName, fmtDuration, fmtLoad } from '@/lib/fmt';
 import { toast } from '@/lib/toast';
 import { act, useData } from '@/store/app';
 import { NumberCell } from './workout/SetRow';
+import { ComfortCard } from './workout/Comfort';
 
 export function SessionSheet({ sessionId, onClose }: { sessionId: string | null; onClose: () => void }) {
   const data = useData();
@@ -72,6 +73,7 @@ function Detail({ data, s, editing, onDelete }: { data: AppData; s: WorkoutSessi
           <div className="text-headline font-semibold">{v.sets}</div>
         </div>
       </Card>
+      <ComfortCard data={data} sessionId={s.id} />
       {editing && <p className="px-1 text-footnote text-label-2">Fix what you actually lifted. Editing history never changes your split rotation.</p>}
 
       {s.exercises.map((e, ei) => {

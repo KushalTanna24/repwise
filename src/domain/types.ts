@@ -66,6 +66,24 @@ export interface WorkoutSession {
   finishedAt: string | null;
   exercises: SessionExercise[];
   note?: string;
+  /** How comfortable the day's exercise order felt, logged after finishing. */
+  comfort?: SessionComfort;
+}
+
+/** 1 = awkward, 5 = spot on. */
+export type ComfortScore = 1 | 2 | 3 | 4 | 5;
+
+export interface SessionComfort {
+  score: ComfortScore;
+  note?: string;
+}
+
+/** The user's own reminders for one exercise, shown next to the written guide. */
+export interface ExerciseNote {
+  /** Cues to think about, one per line. */
+  think?: string;
+  /** Mistakes the user tends to make, one per line. */
+  mistakes?: string;
 }
 
 export interface ExtraSession {
@@ -189,6 +207,8 @@ export interface AppData {
   customSplits: CustomSplit[];
   customExercises: Exercise[];
   archivedExerciseIds: string[];
+  /** Personal notes per exercise id. */
+  exerciseNotes: Record<string, ExerciseNote>;
   plannedSession: PlannedSession | null;
   activeSession: WorkoutSession | null;
   sessions: WorkoutSession[];
