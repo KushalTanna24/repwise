@@ -156,8 +156,8 @@ Screens import only from `domain/plan/index.ts` and `domain/training/index.ts`. 
 ## Error and edge states
 
 - Missing or out-of-range height or weight: the step blocks Next with an inline message (height 100 to 250 cm, weight 30 to 300 kg).
-- Equipment too limited to fill a group: the slot uses the closest eligible pattern, and the why lines say "Limited equipment: some {group} work uses bodyweight."
-- No eligible exercise for an anchor: the slot is skipped and the group's achieved sets show the shortfall. The plan is still saved.
+- Equipment too limited to fill a group: the group is skipped, other groups use the room, and a why line starts "Limited equipment:" and names the group. The plan is still saved.
+- Too little time for every group to reach 6 sets (for example 2 days × 45 min): focus groups are served first, and a why line starts "Short on time:", names the groups below 6 sets and ends "Add a day or longer sessions."
 - Rerun from Profile: creates a new custom split and activates it. The old split remains in the user's list.
 
 ## Testing
