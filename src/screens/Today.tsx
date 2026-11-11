@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Card, List, Row, SectionHeader } from '@/components/ui/card';
 import { Menu } from '@/components/ui/menu';
 import { confirm } from '@/components/ui/alert';
-import { exName, fmtClock, fmtDay, fmtDuration, fmtLoad, fmtRange, nowIso } from '@/lib/fmt';
+import { exName, fmtDay, fmtDuration, fmtLoad, fmtRange, nowIso } from '@/lib/fmt';
 import { go, openSheet } from '@/lib/route';
 import { toast } from '@/lib/toast';
 import { act, useApp, useData } from '@/store/app';
@@ -32,6 +32,8 @@ import { FastCard } from './today/FastCard';
 import { activeFast, elapsedHours } from '@/domain/fasting';
 import type { MenuItem } from '@/components/ui/menu';
 import { ChallengeCard } from './today/ChallengeCard';
+import { LivePanel, LiveProgress, ResumeButton } from './today/LiveWorkout';
+import { estimatePlanMs } from '@/domain/eta';
 import { ackChallengeFail, restartChallenge, runsForToday } from '@/domain/challenges';
 
 const RING = { workouts: '#FF2D55', sets: '#34C759', water: '#007AFF' };
@@ -137,7 +139,11 @@ function UpNext({ data }: { data: AppData }) {
 
   const today = dayjs().format('YYYY-MM-DD');
   const doneToday = !active ? [...data.sessions].reverse().find((s) => s.finishedAt && dayjs(s.startedAt).format('YYYY-MM-DD') === today) : undefined;
-  const [open, setOpen] = useUpNextOpen(today);
+  const [planOpen, setPlanOpen] = useUpNextOpen(today, OPEN_KEY, true);
+  // A running workout folds to its progress bar; open it for the clock and finish time.
+  const [liveOpen, setLiveOpen] = useUpNextOpen(today, LIVE_KEY, false);
+  const [open, setOpen] = active ? [liveOpen, setLiveOpen] : [planOpen, setPlanOpen];
+  const exCount = plan.exercises.filter((e) => e.exerciseId).length;
 
   // Today's work is done: celebrate it, show what's next, keep a second session one tap away.
   if (doneToday)
@@ -170,21 +176,23 @@ function UpNext({ data }: { data: AppData }) {
     <>
       <Card className="mt-4 overflow-hidden">
       <div className="flex items-start justify-between gap-3 px-4 pt-4">
-        <button
-          className="min-w-0 flex-1 text-left"
-          aria-expanded={active ? true : open}
-          onClick={() => !active && setOpen(!open)}
-        >
+        <button className="min-w-0 flex-1 text-left" aria-expanded={open} onClick={() => setOpen(!open)}>
           <div className="text-footnote font-semibold uppercase tracking-wide text-pink">{active ? 'In progress' : 'Up next'}</div>
           <div className="mt-0.5 flex items-center gap-1.5 text-title2 font-bold">
             <span className="truncate">{active ? active.title : plan.title}</span>
-            {!active && (
-              <motion.span animate={{ rotate: open ? 90 : 0 }} transition={{ type: 'spring', stiffness: 500, damping: 35 }} className="shrink-0 text-label-3">
-                <ChevronRight className="size-5" strokeWidth={3} />
-              </motion.span>
-            )}
+            <motion.span animate={{ rotate: open ? 90 : 0 }} transition={{ type: 'spring', stiffness: 500, damping: 35 }} className="shrink-0 text-label-3">
+              <ChevronRight className="size-5" strokeWidth={3} />
+            </motion.span>
           </div>
-          <RotationStrip titles={split.sessions.map((x) => x.title)} current={plan.sessionIndex} cycle={plan.cycle} count={plan.exercises.length} />
+          {open ? (
+            <RotationStrip titles={split.sessions.map((x) => x.title)} current={active?.sessionIndex ?? plan.sessionIndex} cycle={active?.cycle ?? plan.cycle} />
+          ) : active ? (
+            <LiveProgress data={data} s={active} />
+          ) : (
+            <div className="mt-0.5 text-subhead text-label-2">
+              {exCount} exercises · ~{fmtDuration(estimatePlanMs(plan, data.sessions, data.customExercises))}
+            </div>
+          )}
         </button>
         {!active && (
           <Menu
@@ -208,6 +216,18 @@ function UpNext({ data }: { data: AppData }) {
       {!active && plan.returnTier && <ReturnNote tier={plan.returnTier} days={daysOff(data.sessions, nowIso())} />}
 
       <AnimatePresence initial={false}>
+        {active && open && (
+          <motion.div
+            key="live"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 380, damping: 38 }}
+            className="overflow-hidden"
+          >
+            <LivePanel data={data} s={active} />
+          </motion.div>
+        )}
         {!active && open && (
           <motion.ol
             key="list"
@@ -226,7 +246,7 @@ function UpNext({ data }: { data: AppData }) {
 
       <div className="p-4">
         {active ? (
-          <ResumeButton startedAt={active.startedAt} done={active.exercises.reduce((n, e) => n + e.sets.filter((s) => s.status === 'done').length, 0)} />
+          <ResumeButton startedAt={active.startedAt} showClock={!open} />
         ) : (
           <Button size="lg" aria-label="Start workout" onClick={start} disabled={plan.exercises.every((e) => !e.exerciseId)}>
             <Play className="size-5 fill-current" />
@@ -255,25 +275,26 @@ function ReturnNote({ tier, days }: { tier: 1 | 2 | 3; days: number | null }) {
 }
 
 const OPEN_KEY = 'repwise_upnext';
+const LIVE_KEY = 'repwise_upnext_live';
 
-/** Open by default; a manual toggle sticks for the day. */
-function useUpNextOpen(today: string, fallback = true): [boolean, (v: boolean) => void] {
+/** A manual toggle sticks for the day; until then `fallback`. */
+function useUpNextOpen(today: string, key: string, fallback: boolean): [boolean, (v: boolean) => void] {
   const read = () => {
     try {
-      const v = JSON.parse(localStorage.getItem(OPEN_KEY) ?? 'null') as { date: string; open: boolean } | null;
+      const v = JSON.parse(localStorage.getItem(key) ?? 'null') as { date: string; open: boolean } | null;
       return v?.date === today ? v.open : fallback;
     } catch {
       return fallback;
     }
   };
   const [open, setOpen] = useState(read);
-  useEffect(() => setOpen(read()), [today, fallback]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => setOpen(read()), [today, key, fallback]); // eslint-disable-line react-hooks/exhaustive-deps
   return [
     open,
     (v) => {
       setOpen(v);
       try {
-        localStorage.setItem(OPEN_KEY, JSON.stringify({ date: today, open: v }));
+        localStorage.setItem(key, JSON.stringify({ date: today, open: v }));
       } catch {
         /* per-session only */
       }
@@ -282,7 +303,7 @@ function useUpNextOpen(today: string, fallback = true): [boolean, (v: boolean) =
 }
 
 /** Where you are in the split: one chip per session, current one filled. Not a weekly count. */
-function RotationStrip({ titles, current, cycle, count }: { titles: string[]; current: number; cycle: number; count: number }) {
+function RotationStrip({ titles, current, cycle }: { titles: string[]; current: number | null; cycle: number | null }) {
   const short = (t: string) => t.replace(/^Full Body /, '');
   return (
     <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-footnote text-label-2">
@@ -291,13 +312,13 @@ function RotationStrip({ titles, current, cycle, count }: { titles: string[]; cu
           key={i}
           className={cn(
             'rounded-full px-2 py-0.5 text-caption font-bold',
-            i === current ? 'bg-pink text-white' : i < current ? 'bg-pink/15 text-pink' : 'bg-fill text-label-2',
+            i === current ? 'bg-pink text-white' : current != null && i < current ? 'bg-pink/15 text-pink' : 'bg-fill text-label-2',
           )}
         >
           {short(t)}
         </span>
       ))}
-      <span>· Cycle {cycle} · {count} exercises</span>
+      {cycle != null && <span>· Cycle {cycle}</span>}
     </div>
   );
 }
@@ -345,19 +366,6 @@ function PlanLine({ data, e, index }: { data: AppData; e: PlannedExercise; index
         <GuideButton id={e.exerciseId} />
       </div>
     </motion.li>
-  );
-}
-
-function ResumeButton({ startedAt, done }: { startedAt: string; done: number }) {
-  const [now, setNow] = useState(Date.now());
-  useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(t);
-  }, []);
-  return (
-    <Button size="lg" variant="success" onClick={() => openSheet('workout')}>
-      Resume · {fmtClock(now - Date.parse(startedAt))} · {done} sets
-    </Button>
   );
 }
 

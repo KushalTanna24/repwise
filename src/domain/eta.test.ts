@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { emptyAppData } from './catalogue';
-import { estimateFinish, historyPaceMs } from './eta';
+import { estimateFinish, estimatePlanMs, historyPaceMs } from './eta';
 import { ensurePlan } from './training';
 import { confirmSet, skipExercise, startSession, updateSet } from './session';
 import type { AppData, WorkoutSession } from './types';
@@ -32,6 +32,22 @@ function past(id: string, minutes: number, sets: number, dayOffset: number): Wor
     exercises: [{ exerciseId: 'back-squat', slotId: null, plan: null, rec: null, sets: Array.from({ length: sets }, () => ({ targetKg: null, targetReps: null, actualKg: 40, actualReps: 8, status: 'done' as const })) }],
   };
 }
+
+describe('estimatePlanMs', () => {
+  const planned = () => ensurePlan({ ...emptyAppData(T0), program: { ...emptyAppData(T0).program, splitId: 'full-body-abc' } });
+
+  it('matches the estimate of the same workout just started', () => {
+    const d = planned();
+    const started = startSession(d, T0, 'w1');
+    expect(estimatePlanMs(d.plannedSession!, [])).toBe(estimateFinish(started.activeSession!, [], ms(0)).remainingMs);
+  });
+
+  it('uses past pace when there is history', () => {
+    const d = planned();
+    const sets = d.plannedSession!.exercises.reduce((n, e) => n + (e.exerciseId ? e.sets : 0), 0);
+    expect(estimatePlanMs(d.plannedSession!, [past('a', 50, 20, 1)])).toBe(sets * 150_000);
+  });
+});
 
 describe('historyPaceMs', () => {
   it('is null with no usable history', () => {

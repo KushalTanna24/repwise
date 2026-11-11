@@ -1,4 +1,5 @@
 import { getExercise } from './catalogue';
+import type { PlannedSession } from './training/types';
 import type { Exercise, SessionExercise, WorkoutSession } from './types';
 
 /** A set plus its rest, as the user actually trains: anything outside this is noise. */
@@ -80,4 +81,27 @@ export function estimateFinish(session: WorkoutSession, history: WorkoutSession[
   const spent = Math.min(Math.max(0, now - anchor), perSet);
   const remainingMs = Math.round(total - spent);
   return { setsDone, setsLeft, remainingMs, endsAt: now + remainingMs, basis: w >= 0.5 ? 'session' : past != null ? 'history' : 'plan' };
+}
+
+/** How long a planned workout should take, before it starts. */
+export function estimatePlanMs(plan: PlannedSession, history: WorkoutSession[], custom: Exercise[] = []): number {
+  const session: WorkoutSession = {
+    id: 'plan',
+    planKey: plan.key,
+    splitId: plan.splitId,
+    sessionIndex: plan.sessionIndex,
+    cycle: plan.cycle,
+    title: plan.title,
+    startedAt: new Date(0).toISOString(),
+    finishedAt: null,
+    exercises: plan.exercises.map((e) => ({
+      exerciseId: e.exerciseId,
+      slotId: e.slotId,
+      role: e.role,
+      plan: { sets: e.sets, repMin: e.repMin, repMax: e.repMax, restSec: e.restSec },
+      rec: e.rec,
+      sets: Array.from({ length: e.sets }, () => ({ targetReps: e.repMin, targetKg: null, actualReps: null, actualKg: null, status: 'pending' as const })),
+    })),
+  };
+  return estimateFinish(session, history, 0, custom).remainingMs;
 }

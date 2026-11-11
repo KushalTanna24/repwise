@@ -84,6 +84,8 @@ export interface ExerciseNote {
   think?: string;
   /** Mistakes the user tends to make, one per line. */
   mistakes?: string;
+  /** Extra steps of the user's own, appended after the guide's steps, one per line. */
+  steps?: string;
 }
 
 export interface ExtraSession {

@@ -7,7 +7,9 @@ import { Sheet } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Empty } from '@/components/ui/card';
 import { confirm } from '@/components/ui/alert';
-import { fmtClock, fmtDuration, nowIso } from '@/lib/fmt';
+import { fmtClock, nowIso } from '@/lib/fmt';
+import type { AppData, WorkoutSession } from '@/domain/types';
+import { fmtClockTime, leftLabel, useEta } from './today/LiveWorkout';
 import { toast } from '@/lib/toast';
 import { act, useApp, useData } from '@/store/app';
 import { ExerciseCard } from './workout/ExerciseCard';
@@ -19,7 +21,6 @@ import { closeSheet } from '@/lib/route';
 import { suggestNext } from '@/domain/flow';
 import { getExercise } from '@/domain/catalogue';
 import { exName, fmtLoad } from '@/lib/fmt';
-import { estimateFinish } from '@/domain/eta';
 
 type Mode = { kind: 'log' } | { kind: 'swap'; index: number } | { kind: 'add' };
 
@@ -158,20 +159,17 @@ export function WorkoutSheet({ open, onClose }: { open: boolean; onClose: () => 
 /** How far through the workout you are and roughly when it ends, from your pace. */
 function SessionEta() {
   const data = useData();
-  const [now, setNow] = useState(Date.now());
-  useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 15_000);
-    return () => clearInterval(t);
-  }, []);
   const s = data.activeSession;
-  if (!s) return null;
-  const eta = estimateFinish(s, data.sessions, now, data.customExercises);
+  return s ? <EtaLine data={data} s={s} /> : null;
+}
+
+function EtaLine({ data, s }: { data: AppData; s: WorkoutSession }) {
+  const eta = useEta(data, s);
   const total = eta.setsDone + eta.setsLeft;
   if (!total) return null;
   const pct = eta.setsDone / total;
-  const at = new Date(eta.endsAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-  const left = eta.setsLeft === 0 ? 'All sets done' : eta.remainingMs < 60_000 ? 'Almost done' : `~${fmtDuration(eta.remainingMs)} left`;
-  const hint = eta.basis === 'session' ? 'from your pace today' : eta.basis === 'history' ? 'from your recent workouts' : 'from the planned rests';
+  const at = fmtClockTime(eta.endsAt);
+  const left = leftLabel(eta);
   return (
     <div className="px-1" role="status" aria-label={`${eta.setsDone} of ${total} sets done. ${left}${eta.setsLeft ? `, ends around ${at}` : ''}.`}>
       <div className="flex items-baseline justify-between gap-3 text-footnote">
@@ -186,7 +184,6 @@ function SessionEta() {
       <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-fill">
         <div className="h-full rounded-full bg-green transition-[width] duration-500 ease-out" style={{ width: `${pct * 100}%` }} />
       </div>
-      {eta.setsLeft > 0 && <div className="mt-1 text-caption text-label-3">Estimated {hint}</div>}
     </div>
   );
 }

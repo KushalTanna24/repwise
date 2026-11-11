@@ -1,7 +1,29 @@
 import { describe, expect, it } from 'vitest';
 import { emptyAppData } from './catalogue';
-import { noteLines, setExerciseNote } from './exerciseNotes';
+import { addNoteLine, exerciseNoteLines, noteLines, setExerciseNote, updateNoteLine } from './exerciseNotes';
 import { normalize } from './migrate';
+
+describe('note lines', () => {
+  const T = '2026-10-17T08:00:00.000Z';
+  it('appends bullets per section, steps included', () => {
+    let d = addNoteLine(emptyAppData(T), 'back-squat', 'think', 'Brace');
+    d = addNoteLine(d, 'back-squat', 'think', '  Knees   out ');
+    d = addNoteLine(d, 'back-squat', 'steps', 'Two warm-up sets');
+    expect(d.exerciseNotes['back-squat']).toEqual({ think: 'Brace\nKnees out', steps: 'Two warm-up sets' });
+    expect(addNoteLine(d, 'back-squat', 'think', '   ')).toBe(d);
+  });
+
+  it('edits one bullet and removes it when blank', () => {
+    let d = addNoteLine(addNoteLine(emptyAppData(T), 'x', 'mistakes', 'A'), 'x', 'mistakes', 'B');
+    d = updateNoteLine(d, 'x', 'mistakes', 0, 'A2');
+    expect(exerciseNoteLines(d, 'x', 'mistakes')).toEqual(['A2', 'B']);
+    d = updateNoteLine(d, 'x', 'mistakes', 1, '');
+    expect(exerciseNoteLines(d, 'x', 'mistakes')).toEqual(['A2']);
+    d = updateNoteLine(d, 'x', 'mistakes', 0, ' ');
+    expect(d.exerciseNotes).toEqual({});
+    expect(updateNoteLine(d, 'x', 'mistakes', 5, 'nope')).toBe(d);
+  });
+});
 
 const T0 = '2026-10-17T08:00:00.000Z';
 
