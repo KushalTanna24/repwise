@@ -56,7 +56,8 @@ export function exerciseGroups(ex: Exercise): Partial<Record<Group, number>> {
     if (g) out[g] = Math.max(out[g] ?? 0, w);
   };
   primary.forEach((m) => add(m, 1));
-  secondary.forEach((m) => add(m, 0.5));
+  // Rear delts count toward shoulders only as the main target (face pulls); every row would otherwise add half a shoulder set.
+  secondary.filter((m) => m !== 'rear-delts').forEach((m) => add(m, 0.5));
   return out;
 }
 

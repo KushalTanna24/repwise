@@ -4,7 +4,7 @@ import { MAX_EXERCISES, isEligible, validateSplit } from '../training';
 import type { AppData, FocusArea, Profile } from '../types';
 import { generatePlan, maxExercisesPerGroup } from './generate';
 import { TEMPLATES, alternativesFor, templateFor } from './template';
-import { GROUPS, exerciseGroups, setsPerExercise, weeklyTargets, type Group } from './volume';
+import { GROUPS, exerciseGroups, idealTargets, setsPerExercise, weeklyTargets, type Group } from './volume';
 
 const NOW = '2026-11-11T08:00:00.000Z';
 const EXPERIENCE = ['beginner', 'intermediate', 'advanced'] as const;
@@ -68,7 +68,8 @@ describe('generatePlan invariants', () => {
 
             const targets = r.targets;
             for (const g of GROUPS) expect(targets.sets[g]).toBeLessThanOrEqual(weeklyTargets(p).sets[g]);
-            const ample = targets.budget >= GROUPS.reduce((a, g) => a + targets.sets[g], 0);
+            // Main lifts carry fewer sets than the budget assumes, so 'ample' needs 10% headroom.
+            const ample = targets.budget >= 1.1 * GROUPS.reduce((a, g) => a + targets.sets[g], 0);
             if (ample) {
               for (const g of GROUPS) {
                 expect(r.achieved[g], g).toBeGreaterThanOrEqual(targets.sets[g] - spe);
@@ -79,6 +80,9 @@ describe('generatePlan invariants', () => {
             }
             // Focus groups are served first, so they are never the ones left short.
             for (const f of targets.focus) expect(r.short).not.toContain(f);
+            // Filling spare time never buries the focus under extra non-focus work.
+            const ideal = idealTargets(p);
+            for (const g of GROUPS) if (!targets.focus.has(g)) expect(r.achieved[g], `${g} (non-focus)`).toBeLessThanOrEqual(Math.max(20, ideal[g] * 1.5));
           });
         }
       }

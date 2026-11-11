@@ -233,7 +233,9 @@ export function generatePlan(data: AppData, template: TemplateId, now: string): 
   for (const day of days) {
     const tried = new Set<Group>();
     while (day.placed.length < minimum) {
-      const g = day.groups.filter((h) => !tried.has(h)).sort((a, b) => achieved[a] / goal[a] - achieved[b] / goal[b] || GROUPS.indexOf(a) - GROUPS.indexOf(b))[0];
+      // Focus groups first; a non-focus group only while it is still below its ideal target.
+      const open = day.groups.filter((h) => !tried.has(h) && (targets.focus.has(h) || achieved[h] < goal[h]));
+      const g = open.sort((a, b) => Number(targets.focus.has(b)) - Number(targets.focus.has(a)) || achieved[a] / goal[a] - achieved[b] / goal[b] || GROUPS.indexOf(a) - GROUPS.indexOf(b))[0];
       if (!g) break;
       const o = pick(day, g);
       if (o) add(day, g, o);
