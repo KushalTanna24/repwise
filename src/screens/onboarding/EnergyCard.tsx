@@ -1,18 +1,10 @@
 import dayjs from 'dayjs';
-import { energy, type Energy } from '@/domain/plan';
+import { energy, intakeAdvice } from '@/domain/plan';
 import type { Profile } from '@/domain/types';
 import { Card } from '@/components/ui/card';
 
 const fmt = (n: number) => n.toLocaleString();
 
-function intakeLine(e: Energy, goal: Profile['bodyGoal']): string | null {
-  if (!e.intake) return null;
-  const { label, delta } = e.intake;
-  const where = label === 'about' ? 'You eat about what you burn.' : `You eat about ${fmt(Math.abs(delta))} kcal ${label} maintenance.`;
-  const fits = (goal === 'lose' && label === 'below') || (goal === 'gain' && label === 'above') || ((goal ?? 'maintain') === 'maintain' && label === 'about');
-  const aim = goal === 'lose' ? 'to lose fat' : goal === 'gain' ? 'to build' : 'to hold your weight';
-  return fits ? `${where} That fits your goal.` : `${where} Aim for about ${fmt(e.target)} kcal ${aim}.`;
-}
 
 function Stat({ label, value, unit }: { label: string; value: string; unit: string }) {
   return (
@@ -30,7 +22,7 @@ export function EnergyCard({ profile, kg }: { profile: Profile; kg: number }) {
   const r = energy(profile, kg, dayjs().year());
   if (!r.proteinG) return null;
   const e = r.energy;
-  const line = e ? intakeLine(e, profile.bodyGoal) : null;
+  const line = e ? intakeAdvice(e, profile) : null;
   return (
     <Card className="p-4">
       <div className="flex gap-3">

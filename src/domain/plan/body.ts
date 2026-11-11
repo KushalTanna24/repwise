@@ -82,3 +82,21 @@ export function energy(p: Profile, kg: number, nowYear: number): { proteinG: num
   }
   return { proteinG, energy: out };
 }
+
+const kcal = (n: number) => n.toLocaleString('en-US');
+
+/**
+ * One line on the intake the user typed. It only says "fits" near the target, so a
+ * guard (under 18, low BMI) or a crash diet is never praised, and it warns below the floor.
+ */
+export function intakeAdvice(e: Energy, p: Pick<Profile, 'bodyGoal' | 'sex'>): string | null {
+  if (!e.intake) return null;
+  const { kcal: eaten, label, delta } = e.intake;
+  const floor = p.sex ? FLOOR[p.sex] : 1200;
+  if (eaten < floor) return `You eat about ${kcal(eaten)} kcal a day, below a safe minimum of ${kcal(floor)} kcal. Eat at least ${kcal(floor)} kcal.`;
+  const where = label === 'about' ? 'You eat about what you burn.' : `You eat about ${kcal(Math.abs(delta))} kcal ${label} maintenance.`;
+  if (Math.abs(eaten - e.target) <= e.target * 0.1) return `${where} That fits your goal.`;
+  const goal = e.note ? 'maintain' : (p.bodyGoal ?? 'maintain');
+  const aim = goal === 'lose' ? 'to lose fat and keep your muscle' : goal === 'gain' ? 'to build' : 'to hold your weight';
+  return `${where} Aim for about ${kcal(e.target)} kcal ${aim}.`;
+}

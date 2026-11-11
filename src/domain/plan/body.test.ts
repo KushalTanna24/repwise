@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { emptyAppData } from '../catalogue';
 import type { Profile } from '../types';
-import { activityFactor, bmiBand, bmr, energy, proteinGrams, suggestedGoal } from './body';
+import { activityFactor, bmiBand, bmr, energy, intakeAdvice, proteinGrams, suggestedGoal } from './body';
 
 const YEAR = 2026;
 const round50 = (n: number) => Math.round(n / 50) * 50;
@@ -11,6 +11,39 @@ function profile(over: Partial<Profile>): Profile {
 }
 
 const man = profile({ sex: 'male', birthYear: 1996, heightCm: 180, activity: 'sitting', daysPerWeek: 4, bodyGoal: 'lose' });
+
+describe('intakeAdvice', () => {
+  const at = (p: Profile, kg = 80) => energy(p, kg, YEAR).energy!;
+
+  it('never says a teen eating below maintenance fits their goal', () => {
+    const teen = { ...man, birthYear: 2010, intakeKcal: 1900 };
+    const line = intakeAdvice(at(teen), teen)!;
+    expect(line).not.toMatch(/fits/);
+    expect(line).toContain(at(teen).target.toLocaleString());
+  });
+
+  it('warns below the safe minimum', () => {
+    const p = { ...man, intakeKcal: 1000 };
+    expect(intakeAdvice(at(p), p)).toBe('You eat about 1,000 kcal a day, below a safe minimum of 1,500 kcal. Eat at least 1,500 kcal.');
+  });
+
+  it('says a cut fits only near the target', () => {
+    const near = { ...man, intakeKcal: at(man).target };
+    expect(intakeAdvice(at(near), near)).toMatch(/That fits your goal\.$/);
+    const deep = { ...man, intakeKcal: 1600 };
+    const line = intakeAdvice(at(deep), deep)!;
+    expect(line).not.toMatch(/fits/);
+    expect(line).toContain(`Aim for about ${at(man).target.toLocaleString()} kcal`);
+  });
+
+  it('says a gain fits near its target', () => {
+    const p = { ...man, bodyGoal: 'gain' as const };
+    const q = { ...p, intakeKcal: at(p).target };
+    expect(intakeAdvice(at(q), q)).toMatch(/That fits your goal\.$/);
+  });
+
+  it('is null without an intake', () => expect(intakeAdvice(at(man), man)).toBeNull());
+});
 
 describe('bmr (Mifflin-St Jeor)', () => {
   it('matches known values', () => {
