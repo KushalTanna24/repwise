@@ -62,6 +62,14 @@ const openRow = async (title) => {
   await sleep(500);
 };
 const noSplash = () => page.waitForFunction(() => !document.querySelector('[data-splash]'), { timeout: 8000 });
+/** A fresh device opens on onboarding; most checks start from the plain app, so skip it. */
+const skipOnboarding = async (p = page) => {
+  const skip = await p.$('::-p-xpath(//button[normalize-space(.)="Skip, I\'ll pick a split"])');
+  if (skip) {
+    await skip.click();
+    await sleep(600);
+  }
+};
 const reload = async () => {
   await page.reload({ waitUntil: 'networkidle0' });
   await noSplash();
@@ -98,6 +106,11 @@ await page.evaluate(() => {
   indexedDB.deleteDatabase('keyval-store');
 });
 await reload();
+check('Onboarding shows on a fresh device', (await text()).includes('Build my plan'));
+await shot('00-onboarding-welcome');
+await skipOnboarding();
+await reload();
+check('Skipping onboarding sticks after refresh', !(await text()).includes('Build my plan'));
 await shot('01-empty-today');
 check('Empty state asks for a split', (await text()).includes('Pick how you train'));
 
@@ -386,6 +399,7 @@ check('Ending early says so', (await text()).includes('Fast ended at 0h'));
   }, target);
   await p2.goto(APP, { waitUntil: 'domcontentloaded' });
   await sleep(1500);
+  await skipOnboarding(p2);
   const t2 = await p2.evaluate(() => document.body.textContent.replace(/\s+/g, ' '));
   check('loud water card when behind', t2.includes("You're 4 behind"), t2.includes('behind') ? '' : 'copy missing');
   await ctx.close();
@@ -399,6 +413,7 @@ check('Ending early says so', (await text()).includes('Fast ended at 0h'));
   p3.on('pageerror', (e) => errors.push(`pageerror: ${e.message.split('\n')[0]}`));
   await p3.goto(APP, { waitUntil: 'domcontentloaded' });
   await sleep(1500);
+  await skipOnboarding(p3);
   const body = () => p3.evaluate(() => document.body.textContent.replace(/\s+/g, ' '));
   for (let i = 0; i < 8; i++) {
     await p3.click('button[aria-label="Add a glass of water"]');
@@ -487,6 +502,87 @@ check('Ending early says so', (await text()).includes('Fast ended at 0h'));
   await sleep(800);
   st = JSON.parse(await dumpState());
   check('Custom rotation advanced to day 2 of cycle 1', st.rotation?.sessionIndex === 1 && st.rotation?.cycle === 1, JSON.stringify(st.rotation));
+}
+
+// Onboarding: a fresh user answers every step, starts the plan, then adds an Abs + focus day
+{
+  // Choice rows hold a label and a hint, so match the button or its label line.
+  const tap = async (label) => {
+    const el = await page.waitForSelector(`::-p-xpath(//button[normalize-space(.)="${label}" or .//div[normalize-space(.)="${label}"]])`, { visible: true, timeout: 5000 });
+    await el.click();
+    await sleep(550);
+  };
+  const fill = async (label, value) => {
+    await page.click(`input[aria-label="${label}"]`, { clickCount: 3 });
+    await page.type(`input[aria-label="${label}"]`, value);
+  };
+  const plan = () =>
+    page.evaluate(() => new Promise((res) => { const r = indexedDB.open('keyval-store'); r.onsuccess = () => { const g = r.result.transaction('keyval').objectStore('keyval').get('repwise_v4'); g.onsuccess = () => { const d = JSON.parse(g.result).state.data; const s = d.customSplits.find((x) => x.id === d.program.splitId); res({ splitId: d.program.splitId, customSplits: d.customSplits.length, days: s?.sessions.length ?? 0, onboardedAt: d.profile.onboardedAt ?? null, focus: d.profile.focus ?? [] }); }; }; }));
+
+  await page.evaluate(() => {
+    localStorage.clear();
+    indexedDB.deleteDatabase('keyval-store');
+  });
+  await reload();
+  await tap('Build my plan');
+  await fill('Height in cm', '180');
+  await fill('Weight in kg', '80');
+  await fill('Age', '30');
+  await tap('Male');
+  await tap('Next');
+  await tap('Build muscle');
+  await tap('Next');
+  await tap('Mostly sitting');
+  await tap('Next');
+  await fill('Calories a day', '2200');
+  await tap('Next');
+  await tap('Intermediate');
+  await tap('Next');
+  await tap('4');
+  await tap('60 min');
+  await tap('Next');
+  await tap('Next');
+  await tap('Chest');
+  await tap('Abs');
+  await tap('See my plan');
+  await shot('20-onboarding-result');
+  t = await text();
+  check('Result shows a plan', t.includes('Your plan · Upper / Lower') && t.includes('Chest:'), t.slice(0, 200));
+  check('Result shows the energy estimate', t.includes('Maintenance') && t.includes('Estimate, not medical advice.'));
+  await tap('Start with this');
+  await sleep(600);
+  let ob = await plan();
+  check('Plan is active', String(ob.splitId).startsWith('custom-') && ob.days === 4 && !!ob.onboardedAt, JSON.stringify(ob));
+  check('Focus is saved', JSON.stringify(ob.focus) === '["chest","abs"]');
+  check('Today shows the first day', (await text()).includes('Upper'));
+  await reload();
+  check('No onboarding after finishing', !(await text()).includes('Build my plan') || !(await page.$('[data-onboarding]')));
+
+  // Rerun from Profile: answers come prefilled, so Next walks straight through.
+  await click('nav button::-p-text(Profile)');
+  await tap('Build my plan');
+  check('Rerun opens on the body step, prefilled', (await page.$eval('input[aria-label="Height in cm"]', (i) => i.value)) === '180');
+  for (let i = 0; i < 7; i++) await tap('Next');
+  await tap('See my plan');
+  await tap('Edit days and exercises');
+  await sleep(500);
+  check('Edit opens the split editor on the new plan', (await page.$eval('input[aria-label="Split name"]', (i) => i.value)).startsWith('Your plan'));
+  await click('button::-p-text(Add day)');
+  await sleep(400);
+  await page.waitForFunction(() => [...document.querySelectorAll('button')].some((b) => b.firstElementChild?.textContent === '5'), { timeout: 5000 });
+  await page.evaluate(() => [...document.querySelectorAll('button')].find((b) => b.firstElementChild?.textContent === '5')?.click());
+  await sleep(600);
+  await click('button::-p-text(Fill this day)');
+  await tap('Abs + focus muscles');
+  await sleep(400);
+  t = await text();
+  check('Abs day opens with core work', t.includes('Plank') || t.includes('Dead bug') || t.includes('Hanging knee raise') || t.includes('Cable crunch'));
+  await click('[data-vaul-drawer] button::-p-text(Done)');
+  await sleep(500);
+  await click('button::-p-text(Save)');
+  await sleep(700);
+  ob = await plan();
+  check('Rerun adds a second plan and the abs day is saved on it', ob.customSplits === 2 && ob.days === 5, JSON.stringify(ob));
 }
 
 check('No runtime errors in console', errors.length === 0, errors.slice(0, 5).join(' / '));

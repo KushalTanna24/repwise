@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Empty, List, Row, SectionHeader } from '@/components/ui/card';
 import { closeSheet, openSheet } from '@/lib/route';
 import { toast } from '@/lib/toast';
-import { act, useData } from '@/store/app';
+import { act, useApp, useData } from '@/store/app';
+import { useSplitDraft } from '@/store/splitDraft';
 import { useOnboarding } from '@/store/onboarding';
 import { EnergyCard } from './EnergyCard';
 import { StepFooter, StepTitle } from './parts';
@@ -42,8 +43,12 @@ export function Result({ rerun }: { rerun: boolean }) {
     });
     useOnboarding.getState().reset();
     if (!activated) toast('Saved. Applies after this workout');
-    if (edit) openSheet(`split-edit:${result.split.id}`, { replace: rerun });
-    else if (rerun) closeSheet();
+    const saved = useApp.getState().data.customSplits.find((s) => s.id === result.split.id);
+    if (edit && saved) {
+      // The editor works on a draft; without one it closes straight away.
+      useSplitDraft.getState().open(saved);
+      openSheet(`split-edit:${saved.id}`, { replace: rerun });
+    } else if (rerun) closeSheet();
   }
 
   if (broken) {
