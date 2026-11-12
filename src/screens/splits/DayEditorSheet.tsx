@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { allExercises, getExercise } from '@/domain/catalogue';
 import {
-  FOCUS_LABEL, addAlternate, addEntry, dayGuide, fillDay, isEligible, moveEntry, removeAlternate, removeEntry, renameDay, setRole, suggestDay,
+  FOCUS_LABEL, addAlternate, addEntry, dayGuide, fillDay, isEligible, moveEntry, needsCoreNote, removeAlternate, removeEntry, renameDay, setRole, suggestDay,
   type CustomSplit, type DayFocus,
 } from '@/domain/training';
 import type { Exercise } from '@/domain/types';
@@ -142,6 +142,9 @@ export function DayEditorSheet({ splitId, day, onClose }: { splitId: string | nu
             <Plus className="size-5" /> Add exercise
           </Button>
           <p className={guide.over ? 'text-center text-footnote text-orange' : 'text-center text-footnote text-label-2'}>{guide.text}</p>
+          {live && needsCoreNote(live, day) && (
+            <p className="text-center text-footnote text-label-2">Abs recover fast. A few sets on other days work as well as one long abs day.</p>
+          )}
         </div>
       )}
     </Sheet>

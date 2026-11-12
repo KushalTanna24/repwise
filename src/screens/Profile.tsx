@@ -1,4 +1,4 @@
-import { Bell, Database, Dumbbell, HeartPulse, Pill, Plane, SlidersHorizontal, Target, Trophy, type LucideIcon } from 'lucide-react';
+import { Bell, Database, Dumbbell, HeartPulse, Pill, Plane, SlidersHorizontal, Sparkles, Target, Trophy, type LucideIcon } from 'lucide-react';
 import { streak } from '@/domain/streak';
 import { Flame } from '@/components/Flame';
 import { useToday } from '@/lib/useToday';
@@ -39,6 +39,17 @@ export function Profile() {
         </div>
       )}
       <div className="mt-6">
+        <List>
+          <Row
+            leading={<Sparkles className="size-5 shrink-0 text-blue" />}
+            title="Build my plan"
+            subtitle="Answer a few questions and get a split"
+            onClick={() => openSheet('plan')}
+            chevron
+          />
+        </List>
+      </div>
+      <div className="mt-3">
         <List>
           {ROWS.map(({ id, title, icon: Icon }) => (
             <Row

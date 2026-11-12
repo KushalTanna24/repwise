@@ -37,6 +37,23 @@ describe('resolveSync', () => {
     expect(resolveSync(newer, { ok: true, doc: newer }, NOW).action).toBe('keep');
   });
 
+  it('a fresh device that only finished onboarding takes cloud history even when newer', () => {
+    // Onboarding writes one weigh-in and bumps updatedAt; that must not outrank real history.
+    const local = doc('2026-11-11T08:00:00Z', true);
+    local.profile = { ...local.profile, onboardedAt: '2026-11-11T08:00:00Z' };
+    const remote = { ...doc('2026-10-01T00:00:00Z', true), sessions: [{ id: 's', planKey: null, splitId: null, sessionIndex: null, cycle: null, title: 'Push', startedAt: '2026-10-01T08:00:00Z', finishedAt: '2026-10-01T09:00:00Z', exercises: [] }] };
+    const r = resolveSync(local, { ok: true, doc: remote }, NOW);
+    expect(r.action).toBe('take');
+    expect(r.data.sessions).toHaveLength(1);
+  });
+
+  it('a newer local with real history still wins', () => {
+    const session = { id: 's', planKey: null, splitId: null, sessionIndex: null, cycle: null, title: 'Push', startedAt: '2026-10-01T08:00:00Z', finishedAt: '2026-10-01T09:00:00Z', exercises: [] };
+    const local = { ...doc('2026-11-11T08:00:00Z', true), sessions: [session] };
+    const remote = { ...doc('2026-10-01T00:00:00Z', true), sessions: [{ ...session, id: 't' }] };
+    expect(resolveSync(local, { ok: true, doc: remote }, NOW).action).toBe('push');
+  });
+
   it('resolveSync keeps local on error', () => {
     const local = doc('2026-10-01T00:00:00Z', true);
     const r = resolveSync(local, { ok: false }, NOW);

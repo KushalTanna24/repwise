@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { allExercises, emptyAppData, getExercise } from '../catalogue';
 import type { AppData, EquipmentKind } from '../types';
 import { MAX_EXERCISES, isEligible } from './planner';
-import { type DayFocus, FOCUS_LABEL, FOCUS_PATTERNS, dayGuide, suggestDay } from './splits/suggest';
+import { type DayFocus, FOCUS_LABEL, FOCUS_PATTERNS, dayGuide, needsCoreNote, suggestDay } from './splits/suggest';
+import { newCustomSplit } from './splits/custom';
 
 const NOW = '2026-10-17T08:00:00.000Z';
 const ALL: EquipmentKind[] = ['barbell', 'dumbbell', 'machine', 'cable', 'bodyweight'];
@@ -62,6 +63,52 @@ describe('suggestDay', () => {
   it('never suggests an id in existing', () => {
     const ids = suggestDay(data(), 'push', ['bench-press']).flatMap((s) => s.candidates);
     expect(ids).not.toContain('bench-press');
+  });
+});
+
+describe('abs-focus day', () => {
+  for (const m of MINUTES) {
+    it(`opens with core and then trains the focus muscles at ${m} min`, () => {
+      const d = data({ sessionMinutes: m, focus: ['chest'] });
+      const slots = suggestDay(d, 'abs-focus');
+      const core = MAX_EXERCISES[m] >= 7 ? 3 : 2;
+      expect(slots.slice(0, core).every((s) => s.pattern === 'core')).toBe(true);
+      expect(slots[core].pattern).toBe('hpush');
+      expect(slots.slice(core).some((s) => s.pattern === 'core')).toBe(false);
+    });
+  }
+
+  it('falls back to shoulders and arms with no focus', () => {
+    const slots = suggestDay(data({ sessionMinutes: 60 }), 'abs-focus');
+    expect(slots.slice(2).map((s) => s.pattern)).toEqual(expect.arrayContaining(['shoulders', 'arms']));
+  });
+
+  it('labels the focus', () => expect(FOCUS_LABEL['abs-focus']).toBe('Abs + focus muscles'));
+});
+
+describe('needsCoreNote', () => {
+  const NOTE_NOW = NOW;
+  const withAbsDay = (from: 'ppl' | 'full-body-abc') => {
+    const d = data();
+    const { split } = newCustomSplit(d, from, NOTE_NOW);
+    return { ...split, sessions: [...split.sessions, { title: 'Abs', slots: suggestDay(d, 'abs-focus') }] };
+  };
+
+  it('is true when no other day has core work', () => {
+    const s = withAbsDay('ppl');
+    // PPL legs carries a core slot; remove it to model a split without core elsewhere.
+    const bare = { ...s, sessions: s.sessions.map((x, i) => (i === s.sessions.length - 1 ? x : { ...x, slots: x.slots.filter((y) => y.pattern !== 'core') })) };
+    expect(needsCoreNote(bare, bare.sessions.length - 1)).toBe(true);
+  });
+
+  it('is false when another day already trains core', () => {
+    const s = withAbsDay('full-body-abc');
+    expect(needsCoreNote(s, s.sessions.length - 1)).toBe(false);
+  });
+
+  it('is false for a day that does not open with core', () => {
+    const s = withAbsDay('ppl');
+    expect(needsCoreNote(s, 0)).toBe(false);
   });
 });
 
