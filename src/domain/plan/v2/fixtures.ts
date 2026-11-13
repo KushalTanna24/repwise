@@ -5,6 +5,10 @@ import type { SplitId } from '../../training';
 import type { AppData, Profile, SetRecord, WorkoutSession } from '../../types';
 import { GROUPS, type Group } from './groups';
 import type { History } from './history';
+import { allocate } from './allocate';
+import { makeCtx, type Ctx } from './select';
+import { styleLayout, type FixedStyle } from './styles';
+import { weeklyTargets } from './targets';
 
 export const NOW = '2026-11-14T08:00:00.000Z';
 
@@ -65,6 +69,14 @@ export function sessionOn(startedAt: string, exercises: LoggedExercise[], opts: 
 export function hist(o: Partial<Omit<History, 'baseline'>> & { baseline?: Partial<Record<Group, number>> } = {}): History {
   const baseline = { ...(Object.fromEntries(GROUPS.map((g) => [g, 0])) as Record<Group, number>), ...o.baseline };
   return { qualifies: true, trend: {}, adherence: 1, finishRate: null, liked: new Set(), avoided: new Set(), ...o, baseline };
+}
+
+/** A selection context for one fixed style, with no history. */
+export function ctxFor(profile: Partial<Profile>, style: FixedStyle, history: History | null = null): Ctx {
+  const data = dataWith([], profile);
+  const targets = weeklyTargets(data.profile, history);
+  const layout = styleLayout(style, data.profile.daysPerWeek);
+  return makeCtx(data, targets, layout, allocate(layout, targets, data.profile.daysPerWeek), history, NOW);
 }
 
 export function dataWith(sessions: WorkoutSession[], profile: Partial<Profile> = {}): AppData {

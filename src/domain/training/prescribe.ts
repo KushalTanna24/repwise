@@ -59,7 +59,7 @@ export function prescribe(
   now?: string,
 ): { exerciseId: string; plan: Prescription; rec: Recommendation; sets: SetRecord[] } {
   const ex = getExercise(exerciseId, data.customExercises);
-  const base = prescription(data.profile, role, ex);
+  const base = prescription(data.profile, role, ex, data.profile.sessionMinutes);
   const plan = { ...base, sets: easedSets(base.sets, tierAt(data, now)) };
   const rec: Recommendation = ex
     ? recommend(ex, plan, data.sessions, now)

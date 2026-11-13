@@ -15,6 +15,12 @@ describe('cardio prescription', () => {
     expect(cardioMinutes(75)).toBe(20);
     expect(cardioMinutes(90)).toBe(20);
   });
+
+  it('the planner sizes cardio from the profile session length', () => {
+    const d = emptyAppData(NOW);
+    const out = prescribe({ ...d, profile: { ...d.profile, sessionMinutes: 45 } }, 'bike', 'accessory', NOW);
+    expect(out.plan).toMatchObject({ sets: 1, repMin: 600, repMax: 600 });
+  });
 });
 
 const NOW = '2026-10-06T08:00:00.000Z';
