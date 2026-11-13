@@ -2,6 +2,8 @@ import dayjs from 'dayjs';
 import { localDate } from '../stats';
 import { saveCustomSplit, setSplit, type CustomSplit } from '../training';
 import type { Activity, AppData, BodyGoal, EquipmentKind, FocusArea, Objective, PlanGoal, Profile } from '../types';
+import { estimateBodyFat, lookBodyGoal } from './body';
+import type { DayLayout, StyleId } from './v2/groups';
 
 export type { PlanGoal };
 
@@ -18,13 +20,27 @@ export interface PlanAnswers {
   sessionMinutes: Profile['sessionMinutes'];
   equipment: EquipmentKind[];
   focus: FocusArea[];
+  /** Tape measurements for the look goal, in cm. */
+  waistCm?: number;
+  neckCm?: number;
+  hipsCm?: number;
+  style?: StyleId | 'auto';
+  customPairs?: DayLayout[];
 }
 
 const OBJECTIVE: Record<PlanGoal, Objective> = { lose: 'hypertrophy', build: 'hypertrophy', strength: 'strength', fit: 'general', look: 'hypertrophy' };
-const BODY_GOAL: Record<PlanGoal, BodyGoal> = { lose: 'lose', build: 'gain', strength: 'maintain', fit: 'maintain', look: 'maintain' };
+const BODY_GOAL: Record<Exclude<PlanGoal, 'look'>, BodyGoal> = { lose: 'lose', build: 'gain', strength: 'maintain', fit: 'maintain' };
+
+/** Focus prefilled for the look goal; the user can change it. */
+export function lookPreset(sex?: 'male' | 'female'): FocusArea[] {
+  if (sex === 'male') return ['side-delts', 'lats', 'upper-chest'];
+  if (sex === 'female') return ['glutes', 'side-delts', 'lats'];
+  return [];
+}
 
 /** Back from a profile, for prefilling a rerun. */
 export function goalFromProfile(p: Profile): PlanGoal | undefined {
+  if (p.planGoal) return p.planGoal;
   if (p.bodyGoal === 'lose') return 'lose';
   if (p.bodyGoal === 'gain') return 'build';
   if (p.objective === 'strength') return 'strength';
@@ -43,14 +59,20 @@ export function applyAnswers(data: AppData, a: PlanAnswers, now: string): AppDat
     activity: a.activity,
     intakeKcal: a.intakeKcal,
     objective: OBJECTIVE[a.goal],
-    bodyGoal: BODY_GOAL[a.goal],
+    planGoal: a.goal,
     experience: a.experience,
     daysPerWeek: a.daysPerWeek,
     sessionMinutes: a.sessionMinutes,
     equipment: a.equipment,
     focus: a.focus,
+    waistCm: a.waistCm,
+    neckCm: a.neckCm,
+    hipsCm: a.hipsCm,
+    planStyle: a.style ?? data.profile.planStyle,
+    customPairs: a.customPairs ?? data.profile.customPairs,
     onboardedAt: now,
   };
+  profile.bodyGoal = a.goal === 'look' ? lookBodyGoal(estimateBodyFat(profile, a.weightKg, dayjs(now).year()), a.sex) : BODY_GOAL[a.goal];
   const weighIn = { id: crypto.randomUUID(), date, kg: +a.weightKg.toFixed(2) };
   return {
     ...data,

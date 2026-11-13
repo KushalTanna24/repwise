@@ -1,12 +1,10 @@
 import type { Profile } from '../../types';
+import type { BodyFatEstimate } from '../body';
 import type { PlanResultV2 } from './generate';
 import { GROUPS, GROUP_LABEL, type Group } from './groups';
 import { LOW_FREQ, STYLE_NAME } from './styles';
 
-export interface BodyFatEstimate {
-  pct: number;
-  method: 'navy' | 'rough';
-}
+export type { BodyFatEstimate };
 
 const MAX_LINES = 7;
 const NO_HISTORY = 'No training history yet. The plan adapts after a few weeks of logged workouts.';
@@ -22,8 +20,8 @@ function median(xs: number[]): number {
   return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
 }
 
-/** Up to seven plain sentences on why the plan looks the way it does. */
-export function explainV2(r: PlanResultV2, p: Profile, body: BodyFatEstimate | null): string[] {
+/** Up to seven plain sentences on why the plan looks the way it does. `deficitKcal` is the daily cut, when there is one. */
+export function explainV2(r: PlanResultV2, p: Profile, body: BodyFatEstimate | null, deficitKcal?: number): string[] {
   const sets = (g: Group) => Math.round(r.achieved[g]);
   const trained = GROUPS.filter((g) => r.targets.sets[g] > 0 && !r.limited.includes(g));
   const focus = GROUPS.filter((g) => r.targets.focus.has(g) && !r.limited.includes(g));
@@ -47,7 +45,11 @@ export function explainV2(r: PlanResultV2, p: Profile, body: BodyFatEstimate | n
     const [a, b]: Group[] = p.sex === 'male' ? ['side-delts', 'lats'] : ['glutes', 'side-delts'];
     const aim = p.sex === 'male' ? '10–15%' : '18–25%';
     const lead = p.sex === 'male' ? 'V-taper' : 'Shoulders, waist and glutes';
-    lines.push(`${lead}: ${lower(a)} ${sets(a)} sets and ${lower(b)} ${sets(b)} sets lead the week. Body fat ~${Math.round(body.pct)}% (${body.method === 'navy' ? 'tape' : 'rough'}), aim ${aim}.`);
+    const cut =
+      p.bodyGoal === 'lose' && deficitKcal && deficitKcal > 0
+        ? ` Waist stays tight through a ${Math.round(deficitKcal)} kcal deficit, about ${((deficitKcal * 7) / 7700).toFixed(1)} kg a week.`
+        : '';
+    lines.push(`${lead}: ${lower(a)} ${sets(a)} sets and ${lower(b)} ${sets(b)} sets lead the week.${cut} Body fat ~${Math.round(body.pct)}% (${body.method === 'navy' ? 'tape' : 'rough'}), aim ${aim}.`);
   }
 
   const tail = r.history ? [] : [NO_HISTORY];

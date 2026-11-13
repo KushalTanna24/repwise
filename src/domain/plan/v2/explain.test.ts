@@ -26,6 +26,12 @@ describe('explainV2', () => {
     expect(lines.some((l) => /^V-taper: side delts \d+ sets and lats \d+ sets lead the week\. Body fat ~19% \(rough\), aim 10–15%\.$/.test(l))).toBe(true);
   });
 
+  it('adds the calorie clause on a cut', () => {
+    const d = dataFor({ ...GOLDEN.maleLook, bodyGoal: 'lose' });
+    const lines = explainV2(generatePlanV2(d, { style: 'auto', seed: 1, shown: [] }, NOW), d.profile, { pct: 19, method: 'navy' }, 350);
+    expect(lines.some((l) => l.includes('lead the week. Waist stays tight through a 350 kcal deficit, about 0.3 kg a week. Body fat ~19% (tape), aim 10–15%.'))).toBe(true);
+  });
+
   it('carries history reasons and drops the no-history line', () => {
     const d = dataFor(GOLDEN.cutWithHistory);
     const lines = explainV2(generatePlanV2(d, { style: 'upper-lower', seed: 1, shown: [] }, NOW), d.profile, null);

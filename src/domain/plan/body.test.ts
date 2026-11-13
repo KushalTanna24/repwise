@@ -1,7 +1,72 @@
 import { describe, expect, it } from 'vitest';
 import { emptyAppData } from '../catalogue';
 import type { Profile } from '../types';
-import { activityFactor, bmiBand, bmr, energy, intakeAdvice, proteinGrams, suggestedGoal } from './body';
+import {
+  activityFactor,
+  bmiBand,
+  bmr,
+  deurenbergBodyFat,
+  energy,
+  estimateBodyFat,
+  intakeAdvice,
+  leannessTarget,
+  lookBodyGoal,
+  navyBodyFat,
+  proteinGrams,
+  suggestedGoal,
+} from './body';
+
+describe('body fat', () => {
+  it('navy formula', () => {
+    expect(navyBodyFat('male', 180, 85, 38)).toBeCloseTo(16.1, 1);
+    expect(navyBodyFat('female', 165, 70, 32, 95)).toBeCloseTo(24.9, 1);
+    expect(navyBodyFat('female', 165, 70, 32)).toBeNull();
+    expect(navyBodyFat('male', 180, 30, 38)).toBeNull();
+  });
+
+  it('deurenberg fallback', () => {
+    expect(deurenbergBodyFat('male', 24, 30)).toBeCloseTo(19.5, 1);
+    expect(deurenbergBodyFat('female', 22, 30)).toBeCloseTo(27.9, 1);
+  });
+
+  it('estimate prefers tape, falls back to rough, needs sex and height', () => {
+    const p = (o: Partial<Profile>) => ({ ...emptyAppData('2026-11-11T08:00:00.000Z').profile, ...o }) as Profile;
+    expect(estimateBodyFat(p({ sex: 'male', heightCm: 180, waistCm: 85, neckCm: 38 }), 80, 2026)).toEqual({ pct: expect.closeTo(16.1, 1), method: 'navy' });
+    expect(estimateBodyFat(p({ sex: 'male', heightCm: 180, birthYear: 1996 }), 77.76, 2026)).toEqual({ pct: expect.closeTo(19.5, 1), method: 'rough' });
+    expect(estimateBodyFat(p({ sex: 'male', heightCm: 180 }), 77.76, 2026)?.method).toBe('rough');
+    expect(estimateBodyFat(p({ heightCm: 180 }), 80, 2026)).toBeNull();
+    expect(estimateBodyFat(p({ sex: 'female' }), 60, 2026)).toBeNull();
+  });
+
+  it('leanness targets', () => {
+    expect(leannessTarget('male')).toEqual({ min: 10, max: 15, floor: 8 });
+    expect(leannessTarget('female')).toEqual({ min: 18, max: 25, floor: 16 });
+  });
+
+  it('look goal body goal', () => {
+    expect(lookBodyGoal({ pct: 19, method: 'rough' }, 'male')).toBe('lose');
+    expect(lookBodyGoal({ pct: 12, method: 'navy' }, 'male')).toBe('maintain');
+    expect(lookBodyGoal({ pct: 9, method: 'navy' }, 'male')).toBe('gain');
+    expect(lookBodyGoal({ pct: 7, method: 'navy' }, 'male')).toBe('maintain');
+    expect(lookBodyGoal({ pct: 27, method: 'navy' }, 'female')).toBe('lose');
+    expect(lookBodyGoal(null, undefined)).toBe('maintain');
+    expect(lookBodyGoal({ pct: 30, method: 'rough' }, undefined)).toBe('maintain');
+  });
+});
+
+describe('deficit size', () => {
+  it('never exceeds 1% of body weight a week for any adult the cut applies to', () => {
+    for (const sex of ['male', 'female'] as const)
+      for (let kg = 45; kg <= 160; kg += 5)
+        for (let cm = 150; cm <= 205; cm += 5)
+          for (const age of [18, 25, 40, 60]) {
+            if (kg / (cm / 100) ** 2 < 18.5) continue;
+            const p = { ...emptyAppData('2026-11-11T08:00:00.000Z').profile, sex, heightCm: cm, birthYear: 2026 - age, activity: 'physical', daysPerWeek: 6, bodyGoal: 'lose' } as Profile;
+            const e = energy(p, kg, 2026).energy!;
+            expect(e.tdee - e.target, `${sex} ${kg}kg ${cm}cm ${age}y`).toBeLessThanOrEqual((kg * 0.01 * 7700) / 7 + 25);
+          }
+  });
+});
 
 const YEAR = 2026;
 const round50 = (n: number) => Math.round(n / 50) * 50;

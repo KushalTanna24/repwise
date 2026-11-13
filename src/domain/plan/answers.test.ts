@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { emptyAppData } from '../catalogue';
 import type { AppData, WorkoutSession } from '../types';
-import { applyAnswers, commitPlan, skipOnboarding, type PlanAnswers } from './answers';
+import { applyAnswers, commitPlan, goalFromProfile, lookPreset, skipOnboarding, type PlanAnswers } from './answers';
 import { generatePlan } from './generate';
 import { needsOnboarding } from './gate';
 
@@ -21,6 +21,38 @@ const answers: PlanAnswers = {
   equipment: ['barbell', 'dumbbell', 'machine', 'cable', 'bodyweight'],
   focus: ['chest', 'abs'],
 };
+
+describe('look goal answers', () => {
+  it('writes planGoal, tape, style and hypertrophy', () => {
+    const out = applyAnswers(emptyAppData(NOW), { ...answers, goal: 'look', sex: 'male', waistCm: 85, neckCm: 38, style: 'pairs' }, NOW);
+    expect(out.profile).toMatchObject({ planGoal: 'look', objective: 'hypertrophy', waistCm: 85, neckCm: 38, planStyle: 'pairs' });
+    expect(goalFromProfile(out.profile)).toBe('look');
+  });
+
+  it('cuts when body fat is above the leanness target', () => {
+    // 180 cm, waist 95, neck 38: about 22% by the Navy formula, above 15%.
+    expect(applyAnswers(emptyAppData(NOW), { ...answers, goal: 'look', sex: 'male', waistCm: 95, neckCm: 38 }, NOW).profile.bodyGoal).toBe('lose');
+    // 180 cm, waist 80, neck 38: about 12%, inside 10 to 15%.
+    expect(applyAnswers(emptyAppData(NOW), { ...answers, goal: 'look', sex: 'male', waistCm: 80, neckCm: 38 }, NOW).profile.bodyGoal).toBe('maintain');
+  });
+
+  it('look goal without sex has no preset and maintains', () => {
+    expect(lookPreset(undefined)).toEqual([]);
+    expect(applyAnswers(emptyAppData(NOW), { ...answers, goal: 'look', sex: undefined }, NOW).profile.bodyGoal).toBe('maintain');
+  });
+
+  it('presets by sex', () => {
+    expect(lookPreset('male')).toEqual(['side-delts', 'lats', 'upper-chest']);
+    expect(lookPreset('female')).toEqual(['glutes', 'side-delts', 'lats']);
+  });
+
+  it('saves custom pairs and records the plan goal for every goal', () => {
+    const pairs = [{ title: 'A', groups: ['chest' as const] }, { title: 'B', groups: ['quads' as const] }];
+    const out = applyAnswers(emptyAppData(NOW), { ...answers, style: 'custom', customPairs: pairs }, NOW);
+    expect(out.profile.customPairs).toEqual(pairs);
+    expect(out.profile.planGoal).toBe('lose');
+  });
+});
 
 describe('applyAnswers', () => {
   it('maps each goal to an objective and a body goal', () => {

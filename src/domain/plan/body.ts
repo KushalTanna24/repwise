@@ -17,6 +17,53 @@ export function suggestedGoal(band: BmiBand): 'lose' | 'build' | null {
   return null;
 }
 
+/** US Navy tape method (Hodgdon and Beckett 1984), about ±3–4%. Lengths in cm. */
+export function navyBodyFat(sex: 'male' | 'female', heightCm: number, waistCm: number, neckCm: number, hipsCm?: number): number | null {
+  if (sex === 'male') {
+    if (waistCm - neckCm <= 0 || heightCm <= 0) return null;
+    return 495 / (1.0324 - 0.19077 * Math.log10(waistCm - neckCm) + 0.15456 * Math.log10(heightCm)) - 450;
+  }
+  if (hipsCm == null || waistCm + hipsCm - neckCm <= 0 || heightCm <= 0) return null;
+  return 495 / (1.29579 - 0.35004 * Math.log10(waistCm + hipsCm - neckCm) + 0.221 * Math.log10(heightCm)) - 450;
+}
+
+/** Rough estimate from BMI, age and sex (Deurenberg 1991). */
+export function deurenbergBodyFat(sex: 'male' | 'female', bmiValue: number, age: number): number {
+  return 1.2 * bmiValue + 0.23 * age - 10.8 * (sex === 'male' ? 1 : 0) - 5.4;
+}
+
+export interface BodyFatEstimate {
+  pct: number;
+  method: 'navy' | 'rough';
+}
+
+/** Tape measurements win; otherwise BMI gives a rough number. Needs sex and height. */
+export function estimateBodyFat(p: Profile, kg: number, nowYear: number): BodyFatEstimate | null {
+  if (!p.sex || !p.heightCm) return null;
+  if (p.waistCm && p.neckCm) {
+    const navy = navyBodyFat(p.sex, p.heightCm, p.waistCm, p.neckCm, p.hipsCm);
+    if (navy != null) return { pct: navy, method: 'navy' };
+  }
+  const value = bmi(kg, p.heightCm);
+  if (value == null) return null;
+  return { pct: deurenbergBodyFat(p.sex, value, p.birthYear ? nowYear - p.birthYear : 30), method: 'rough' };
+}
+
+/** Healthy aesthetic ranges; the app never pushes below the floor. */
+export function leannessTarget(sex: 'male' | 'female'): { min: number; max: number; floor: number } {
+  return sex === 'male' ? { min: 10, max: 15, floor: 8 } : { min: 18, max: 25, floor: 16 };
+}
+
+/** Cut above the range, build when already lean, otherwise hold. At or under the floor, hold. */
+export function lookBodyGoal(est: BodyFatEstimate | null, sex?: 'male' | 'female'): BodyGoal {
+  if (!est || !sex) return 'maintain';
+  const t = leannessTarget(sex);
+  if (est.pct > t.max) return 'lose';
+  if (est.pct <= t.floor) return 'maintain';
+  if (est.pct <= t.min) return 'gain';
+  return 'maintain';
+}
+
 /** Mifflin-St Jeor (1990). */
 export function bmr(sex: 'male' | 'female', kg: number, cm: number, age: number): number {
   return 10 * kg + 6.25 * cm - 5 * age + (sex === 'male' ? 5 : -161);
