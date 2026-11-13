@@ -14,6 +14,8 @@ const REGION: Record<Pattern, Region> = {
   shoulders: 'other',
   arms: 'other',
   core: 'other',
+  neck: 'other',
+  cardio: 'other',
 };
 
 export const region = (p: Pattern) => REGION[p];

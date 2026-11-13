@@ -17,6 +17,8 @@ const GROUP_LABEL: Record<Pattern | 'calisthenics', string> = {
   arms: 'Arms',
   calves: 'Calves',
   core: 'Core',
+  neck: 'Neck',
+  cardio: 'Cardio',
 };
 
 interface Props {

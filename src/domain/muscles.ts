@@ -136,6 +136,8 @@ const BY_PATTERN: Record<Pattern, Targets> = {
   arms: CURL,
   calves: t(['calves']),
   core: t(['abs'], ['obliques']),
+  neck: t(['traps']),
+  cardio: t([]),
 };
 
 export function exerciseMuscles(ex: Exercise): Targets {

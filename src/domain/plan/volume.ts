@@ -29,6 +29,11 @@ export const FOCUS_GROUPS: Record<FocusArea, Group[]> = {
   legs: ['quads', 'hamstrings', 'calves'],
   glutes: ['glutes'],
   abs: ['abs'],
+  'upper-chest': ['chest'],
+  'side-delts': ['shoulders'],
+  lats: ['back'],
+  'traps-neck': ['back'],
+  forearms: [],
 };
 
 export const MUSCLE_GROUP: Partial<Record<Muscle, Group>> = {

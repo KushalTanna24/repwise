@@ -1,10 +1,9 @@
 import dayjs from 'dayjs';
 import { localDate } from '../stats';
 import { saveCustomSplit, setSplit, type CustomSplit } from '../training';
-import type { Activity, AppData, BodyGoal, EquipmentKind, FocusArea, Objective, Profile } from '../types';
+import type { Activity, AppData, BodyGoal, EquipmentKind, FocusArea, Objective, PlanGoal, Profile } from '../types';
 
-/** The goal question. Named PlanGoal because `Goal` is the dated-goal type. */
-export type PlanGoal = 'lose' | 'build' | 'strength' | 'fit';
+export type { PlanGoal };
 
 export interface PlanAnswers {
   heightCm: number;
@@ -21,8 +20,8 @@ export interface PlanAnswers {
   focus: FocusArea[];
 }
 
-const OBJECTIVE: Record<PlanGoal, Objective> = { lose: 'hypertrophy', build: 'hypertrophy', strength: 'strength', fit: 'general' };
-const BODY_GOAL: Record<PlanGoal, BodyGoal> = { lose: 'lose', build: 'gain', strength: 'maintain', fit: 'maintain' };
+const OBJECTIVE: Record<PlanGoal, Objective> = { lose: 'hypertrophy', build: 'hypertrophy', strength: 'strength', fit: 'general', look: 'hypertrophy' };
+const BODY_GOAL: Record<PlanGoal, BodyGoal> = { lose: 'lose', build: 'gain', strength: 'maintain', fit: 'maintain', look: 'maintain' };
 
 /** Back from a profile, for prefilling a rerun. */
 export function goalFromProfile(p: Profile): PlanGoal | undefined {

@@ -26,6 +26,11 @@ export const AREA_PATTERNS: Record<FocusArea, Pattern[]> = {
   legs: ['knee', 'hip'],
   glutes: ['hip'],
   abs: ['core'],
+  'upper-chest': ['hpush'],
+  'side-delts': ['shoulders'],
+  lats: ['vpull'],
+  'traps-neck': ['neck'],
+  forearms: ['arms'],
 };
 
 export const FOCUS_PATTERNS: Record<DayFocus, Pattern[]> = {

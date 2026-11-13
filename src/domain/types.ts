@@ -1,6 +1,7 @@
 /** All loads are stored in kilograms. Pounds are a display concern only. */
 
 import type { CustomSplit, PlannedSession, Prescription, Recommendation, RotationState, SplitId } from './training/types';
+import type { DayLayout, StyleId } from './plan/v2/groups';
 export type Kg = number;
 
 export type Pattern =
@@ -13,7 +14,9 @@ export type Pattern =
   | 'shoulders'
   | 'arms'
   | 'calves'
-  | 'core';
+  | 'core'
+  | 'neck'
+  | 'cardio';
 export type EquipmentKind = 'barbell' | 'dumbbell' | 'machine' | 'cable' | 'bodyweight';
 export type Objective = 'hypertrophy' | 'strength' | 'general';
 
@@ -122,7 +125,9 @@ export interface BodyWeight {
   kg: Kg;
 }
 
-export type FocusArea = 'chest' | 'back' | 'shoulders' | 'arms' | 'legs' | 'glutes' | 'abs';
+export type FocusArea = 'chest' | 'back' | 'shoulders' | 'arms' | 'legs' | 'glutes' | 'abs' | 'upper-chest' | 'side-delts' | 'lats' | 'traps-neck' | 'forearms';
+/** The goal question in the plan builder. Named PlanGoal because `Goal` is the dated-goal type. */
+export type PlanGoal = 'lose' | 'build' | 'strength' | 'fit' | 'look';
 export type Activity = 'sitting' | 'feet' | 'physical';
 export type BodyGoal = 'lose' | 'maintain' | 'gain';
 
@@ -138,6 +143,16 @@ export interface Profile {
   bodyGoal?: BodyGoal;
   /** Up to three muscles the plan gives extra volume. */
   focus?: FocusArea[];
+  /** The plan builder's goal answer, kept so a rerun can prefill it. */
+  planGoal?: PlanGoal;
+  /** Tape measurements for the body-fat estimate, in cm. */
+  waistCm?: number;
+  neckCm?: number;
+  hipsCm?: number;
+  /** Split style picked in the plan builder. */
+  planStyle?: StyleId | 'auto';
+  /** The user's own day layout for the custom pairs style. */
+  customPairs?: DayLayout[];
   /** Set when onboarding was finished or skipped. */
   onboardedAt?: string;
   units: 'kg' | 'lb';
