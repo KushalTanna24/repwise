@@ -104,8 +104,8 @@ Weekly frequency of a group = appearances in the cycle × `daysPerWeek` ÷ cycle
 | PPL | 3 or 6 | Push / Pull / Legs |
 | Hybrid PPL | 4–5 | PPL + Upper / Lower (5); PPL + Arms & delts (4) |
 | Arnold | 3 or 6 | Chest + Back / Shoulders + Arms / Legs |
-| Pairs | 4–5 | Chest + Biceps / Back + Triceps / Shoulders + Legs / Cardio + Abs; 5-day version splits Shoulders and Legs |
-| Bro split | 5 | Chest / Back / Shoulders / Arms / Legs |
+| Pairs | 4–6 | Chest + Biceps / Back + Triceps / Shoulders + Legs / Cardio + Abs; 5-day version (used at 5 and 6 days) splits Shoulders and Legs |
+| Bro split | 5–6 | Chest / Back / Shoulders / Arms / Legs |
 | Custom pairs | 2–7 | User-defined days of groups (and optional cardio) |
 
 A day is a list of groups plus an optional `cardio` flag. Abs may be added to any day by `allocate`.
@@ -114,7 +114,7 @@ A day is a list of groups plus an optional `cardio` flag. Abs may be added to an
 
 **Custom pairs editor (sheet):** 2–7 days; each day takes group chips (the 17 groups plus Cardio) and a name. A group with a target above 0 that appears on no day is shown in red and Save is disabled. Groups under 1.3 times a week get an amber note. The saved layout lives in `profile.customPairs` so a rerun can reuse it.
 
-**Cardio + Abs day:** a `cardio` slot logged as minutes (10, 15 or 20 for 30, 45 and 60+ minute sessions). Modalities: incline walk, bike, rower, stairs, run, each gated by equipment. Abs fill the rest.
+**Cardio + Abs day:** a `cardio` slot logged as minutes (10 for 45-minute sessions, 15 for 60, 20 for 75 and 90). Modalities: incline walk, bike, rower, stairs, run, each gated by equipment. Abs fill the rest.
 
 ### Allocation (`allocate.ts`)
 
@@ -203,7 +203,7 @@ Also changed:
 - `src/domain/plan/answers.ts`: `PlanGoal` gains `look`; `PlanAnswers` gains tape fields, `style` and `customPairs`.
 - `src/domain/catalogue.ts` and `src/domain/guides.ts`: new exercises with guides.
 - `src/domain/training`: `cardio` pattern and prescription in minutes, reusing the existing `timed` kind.
-- `src/domain/types.ts`: optional `Profile` fields `waistCm`, `neckCm`, `hipsCm`, `planStyle`, `customPairs`; `FocusArea` gains the new values.
+- `src/domain/types.ts`: optional `Profile` fields `planGoal`, `waistCm`, `neckCm`, `hipsCm`, `planStyle`, `customPairs`; `FocusArea` gains the new values.
 - `src/domain/migrate.ts`: defaults for the new optional fields only. Older synced copies load unchanged.
 - `src/screens/onboarding/`: goal option, tape step, style step, custom pairs sheet, result screen with Regenerate, Back and Use this plan.
 
