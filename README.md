@@ -32,6 +32,14 @@ Recommendations are **rules-based**, not AI.
   - An iOS-style banner greets you on the first open of each day.
   - Water reminders arrive as Web Push, even with the app closed. Turn them on in Profile → Reminders → Water reminders and pick the window (From/To hours) and how often (every 1–4 h). They need sign-in, and work on Android (the home-screen install, or Chrome). Not on iPhone yet: iOS only delivers push to a home-screen install, and that install can't be signed in with a magic link. In-app sign-in is planned. See "Push deploy" below.
   - Today also shows loud water-pace and supplement-overdue nudges.
+- **Groups** (sign-in needed), for family, gym friends or any crew of up to 12 people:
+  - **Joining:** create a group and share the invite link or 6-character code. The owner can remove people; that also changes the code.
+  - **What members see:** each other's training read-only (split, history, streak, strength). Weight, BMI, photos, fasting and supplements stay hidden unless each person switches on "Share body data" for that group.
+  - **Weekly board:** ranks by workouts against each person's own weekly target, then streak, never by kilos. Strength change is a second column, and last week's top member gets a crown.
+  - **Nudges:** one per person per day.
+    - They buzz Android phones that turned on "Nudges on this phone": at most twice a day, never outside 08:00–21:00 (or the water-reminder hours).
+    - Someone who already trained gets a silent cheer instead.
+    - Every nudge also lands in the in-app list, including on iPhone.
 - **History**: workouts and extras grouped by week, with a filter by exercise. The detail view shows target vs actual for every set. You can edit actuals or delete a workout; neither changes the rotation.
 - **Progress → Strength**: per-exercise best set, last vs previous, a top-set or volume chart, and a session list. Only done sets count.
 - **Progress → Body**: weigh-ins (add, edit, delete; same date asks before replacing), a 1M–All chart, and BMI with the formula, the weigh-in it used, and a note on its limits.
@@ -202,6 +210,24 @@ Water reminders need these one-time steps:
 6. Vercel → Project → Settings → Environment Variables: `VITE_VAPID_PUBLIC_KEY` = the public key from step 1, then redeploy.
 
 To check it, run `select * from cron.job_run_details order by start_time desc limit 5;` and `select * from net._http_response order by created desc limit 5;` in the SQL editor.
+
+### Groups deploy
+
+Groups reuse the push secrets above. Run these steps in this order. The new `water-nudge` reads the `kinds` column that the migration adds, so the migration must go first.
+
+1. `supabase db push`: creates `groups`, `group_members`, `nudges` and the RPCs, and adds `push_subscriptions.kinds` (existing devices become `{reminders}`).
+2. `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/groups_check.sql`: seven security checks in a transaction that rolls back. Every line should say `PASS`.
+3. `supabase functions deploy group-nudge member-photos`: both verify the caller's JWT.
+4. `supabase functions deploy water-nudge --no-verify-jwt`: it now skips nudge-only devices.
+5. Deploy the app (`vercel --prod`).
+
+**Manual test (two accounts, one Android phone):**
+1. Account A creates a group and shares the invite.
+2. Account B opens the link signed out, signs in, and lands on the join sheet.
+3. Both see each other on the board and can open each other's member view read-only.
+4. Turn off B's body sharing: A's Body section shows "Not shared with this group".
+5. B turns on "Nudges on this phone". A nudges B between 08:00 and 21:00: B's phone buzzes and the nudge appears in B's list.
+6. A second nudge from A the same day is refused with "Already nudged today".
 
 ## Rollback
 
