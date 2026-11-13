@@ -48,13 +48,17 @@ export function SessionSheet({ sessionId, onClose }: { sessionId: string | null;
       {!s ? (
         <Empty title="Workout not found" body="It may have been deleted." />
       ) : (
-        <Detail data={data} s={s} editing={editing} onDelete={remove} />
+        <SessionDetailBody data={data} s={s} editing={editing} onDelete={remove} />
       )}
     </Sheet>
   );
 }
 
-function Detail({ data, s, editing, onDelete }: { data: AppData; s: WorkoutSession; editing: boolean; onDelete: () => void }) {
+/**
+ * One finished workout. Without `onDelete` it is someone else's: no comfort rating, no edits, no delete.
+ */
+export function SessionDetailBody({ data, s, editing = false, onDelete }: { data: AppData; s: WorkoutSession; editing?: boolean; onDelete?: () => void }) {
+  const readOnly = !onDelete;
   const v = sessionVolume(s);
   const units = data.profile.units;
   return (
@@ -73,8 +77,8 @@ function Detail({ data, s, editing, onDelete }: { data: AppData; s: WorkoutSessi
           <div className="text-headline font-semibold">{v.sets}</div>
         </div>
       </Card>
-      <ComfortCard data={data} sessionId={s.id} />
-      {editing && <p className="px-1 text-footnote text-label-2">Fix what you actually lifted. Editing history never changes your split rotation.</p>}
+      {!readOnly && <ComfortCard data={data} sessionId={s.id} />}
+      {editing && !readOnly && <p className="px-1 text-footnote text-label-2">Fix what you actually lifted. Editing history never changes your split rotation.</p>}
 
       {s.exercises.map((e, ei) => {
         const timed = getExercise(e.exerciseId, data.customExercises)?.kind === 'timed';
@@ -92,7 +96,7 @@ function Detail({ data, s, editing, onDelete }: { data: AppData; s: WorkoutSessi
               <div key={si} className="grid grid-cols-[28px_1fr_1fr_28px] items-center gap-2 border-t border-sep py-2 first-of-type:border-0">
                 <span className="text-center text-subhead font-bold tabular text-label-2">{si + 1}</span>
                 <span className="text-subhead tabular text-label-2">{fmtSet(x.targetKg, x.targetReps, units, timed) ?? '—'}</span>
-                {editing && x.status === 'done' ? (
+                {editing && !readOnly && x.status === 'done' ? (
                   <div className="grid grid-cols-2 gap-1">
                     {!timed && (
                       <NumberCell
@@ -120,9 +124,11 @@ function Detail({ data, s, editing, onDelete }: { data: AppData; s: WorkoutSessi
           </Card>
         );
       })}
-      <Button variant="destructive" size="lg" className="mt-2" onClick={onDelete}>
-        Delete workout
-      </Button>
+      {onDelete && (
+        <Button variant="destructive" size="lg" className="mt-2" onClick={onDelete}>
+          Delete workout
+        </Button>
+      )}
     </div>
   );
 }

@@ -5,16 +5,20 @@ import { streak } from '@/domain/streak';
 import type { AppData } from '@/domain/types';
 import { Flame } from '@/components/Flame';
 import { openSheet } from '@/lib/route';
+import { cn } from '@/lib/cn';
+import { useDoc } from '@/store/docContext';
 
-/** Flame, count, best and freezes. Opens the badges sheet. */
+/** Flame, count, best and freezes. Opens the badges sheet, except on someone else's history. */
 export function StreakHeader({ data, today }: { data: AppData; today: string }) {
   const s = streak(data, today);
   const leave = currentLeave(data, today);
+  const { readOnly } = useDoc();
+  const Box = readOnly ? 'div' : 'button';
   return (
-    <button
-      onClick={() => openSheet('badges')}
-      aria-label={`${s.current}-day streak, best ${s.best}. Open badges`}
-      className="press mt-3 flex w-full items-center gap-3 rounded-card bg-card px-4 py-3 text-left shadow-card"
+    <Box
+      onClick={readOnly ? undefined : () => openSheet('badges')}
+      aria-label={readOnly ? undefined : `${s.current}-day streak, best ${s.best}. Open badges`}
+      className={cn('mt-3 flex w-full items-center gap-3 rounded-card bg-card px-4 py-3 text-left shadow-card', !readOnly && 'press')}
     >
       <Flame lit={s.current > 0} size={40} />
       <div className="min-w-0 flex-1">
@@ -34,7 +38,7 @@ export function StreakHeader({ data, today }: { data: AppData; today: string }) 
           )}
         </div>
       </div>
-      <ChevronRight className="size-5 shrink-0 text-label-3" />
-    </button>
+      {!readOnly && <ChevronRight className="size-5 shrink-0 text-label-3" />}
+    </Box>
   );
 }
