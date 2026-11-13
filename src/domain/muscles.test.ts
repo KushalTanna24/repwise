@@ -31,7 +31,8 @@ const withSessions = (sessions: WorkoutSession[]): AppData => ({ ...emptyAppData
 
 describe('exerciseMuscles', () => {
   it('every built-in exercise names at least one primary muscle', () => {
-    for (const e of BUILTIN_EXERCISES) expect(exerciseMuscles(e).primary.length, e.id).toBeGreaterThan(0);
+    for (const e of BUILTIN_EXERCISES.filter((x) => x.pattern !== 'cardio')) expect(exerciseMuscles(e).primary.length, e.id).toBeGreaterThan(0);
+    for (const e of BUILTIN_EXERCISES.filter((x) => x.pattern === 'cardio')) expect(exerciseMuscles(e).primary, e.id).toEqual([]);
   });
 
   it('only uses known muscles', () => {

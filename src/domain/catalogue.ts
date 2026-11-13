@@ -66,6 +66,34 @@ const rows: Row[] = [
   ['dead-bug', 'Dead bug', 'Core', 'core', 'bodyweight', 'bodyweight', ['Dead bug']],
 ];
 
+/** Added for plan v2: aesthetic isolation work, neck, forearms and timed cardio. */
+const v2Rows: Row[] = [
+  ['incline-barbell-press', 'Incline barbell press', 'Upper chest', 'hpush', 'barbell'],
+  ['incline-machine-press', 'Incline machine press', 'Upper chest', 'hpush', 'machine'],
+  ['pec-deck', 'Pec deck', 'Chest', 'hpush', 'machine'],
+  ['db-shrug', 'Dumbbell shrug', 'Traps', 'shoulders', 'dumbbell'],
+  ['barbell-shrug', 'Barbell shrug', 'Traps', 'shoulders', 'barbell'],
+  ['assisted-pull-up', 'Assisted pull-up', 'Lats', 'vpull', 'machine'],
+  ['plate-neck-curl', 'Plate neck curl', 'Neck', 'neck', 'bodyweight'],
+  ['plate-neck-extension', 'Plate neck extension', 'Neck', 'neck', 'bodyweight'],
+  ['wrist-curl', 'Wrist curl', 'Forearms', 'arms', 'dumbbell'],
+  ['reverse-curl', 'Reverse curl', 'Forearms & biceps', 'arms', 'dumbbell'],
+  ['preacher-curl', 'Preacher curl', 'Biceps', 'arms', 'machine'],
+  ['incline-db-curl', 'Incline dumbbell curl', 'Biceps', 'arms', 'dumbbell'],
+  ['skull-crusher', 'Skull crusher', 'Triceps', 'arms', 'barbell'],
+  ['hip-abduction', 'Hip abduction', 'Glutes', 'hip', 'machine'],
+  ['cable-glute-kickback', 'Cable glute kickback', 'Glutes', 'hip', 'cable'],
+  ['incline-walk', 'Incline walk', 'Cardio', 'cardio', 'machine', 'timed'],
+  ['bike', 'Bike', 'Cardio', 'cardio', 'machine', 'timed'],
+  ['rower', 'Rower', 'Cardio', 'cardio', 'machine', 'timed'],
+  ['stairs', 'Stair climber', 'Cardio', 'cardio', 'machine', 'timed'],
+  ['run', 'Run', 'Cardio', 'cardio', 'bodyweight', 'timed'],
+];
+rows.push(...v2Rows);
+
+/** Ids plan v1 must not pick, so its output stays unchanged until it is removed. */
+export const V2_ONLY_IDS: ReadonlySet<string> = new Set(v2Rows.map(([id]) => id));
+
 /** Calisthenics skills. Holds are timed in seconds; never picked by the planner, only added by hand. */
 const calisthenics: Row[] = [
   ['muscle-up', 'Muscle-up', 'Lats, chest & triceps', 'vpull', 'bodyweight', 'bodyweight'],

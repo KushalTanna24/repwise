@@ -1,4 +1,4 @@
-import { allExercises } from '../catalogue';
+import { V2_ONLY_IDS, allExercises } from '../catalogue';
 import { BEGINNER_ORDER, MAX_EXERCISES, isEligible, newCustomSplit, newSlotId, prescription, splitBlurb } from '../training';
 import type { CustomSplit, Slot } from '../training';
 import type { AppData, Exercise, Pattern } from '../types';
@@ -80,7 +80,7 @@ export function generatePlan(data: AppData, template: TemplateId, now: string): 
   const beginner = p.experience === 'beginner';
 
   const pool: Option[] = allExercises(data)
-    .filter((e) => isEligible(e, data) && !e.calisthenics)
+    .filter((e) => isEligible(e, data) && !e.calisthenics && !V2_ONLY_IDS.has(e.id))
     .map((ex, order) => ({ ex, groups: exerciseGroups(ex), order }));
   const limited = GROUPS.filter((g) => !pool.some((o) => o.groups[g] === 1));
   const achieved = Object.fromEntries(GROUPS.map((g) => [g, 0])) as Record<Group, number>;

@@ -1,7 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import { emptyAppData } from '../catalogue';
+import { emptyAppData, getExercise } from '../catalogue';
 import type { AppData, SetRecord, WorkoutSession } from '../types';
-import { prescribe } from './prescribe';
+import { cardioMinutes, prescribe, prescription } from './prescribe';
+
+describe('cardio prescription', () => {
+  const p = { objective: 'hypertrophy', experience: 'intermediate' } as const;
+  it('cardio is one timed block sized by session length', () => {
+    const ex = getExercise('incline-walk', [])!;
+    expect(ex.pattern).toBe('cardio');
+    expect(prescription(p, 'accessory', ex, 45)).toEqual({ sets: 1, repMin: 600, repMax: 600, restSec: 0 });
+    expect(prescription(p, 'accessory', ex)).toEqual({ sets: 1, repMin: 900, repMax: 900, restSec: 0 });
+    expect(cardioMinutes(45)).toBe(10);
+    expect(cardioMinutes(60)).toBe(15);
+    expect(cardioMinutes(75)).toBe(20);
+    expect(cardioMinutes(90)).toBe(20);
+  });
+});
 
 const NOW = '2026-10-06T08:00:00.000Z';
 const FIFTEEN_DAYS_AFTER_LAST = '2026-10-20T08:00:00.000Z';

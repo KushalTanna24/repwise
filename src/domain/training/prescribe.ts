@@ -10,7 +10,21 @@ const RX: Record<Profile['objective'], Record<Slot['role'], Omit<Prescription, '
 };
 const REST: Record<Slot['role'], number> = { anchor: 150, accessory: 90 };
 
-export function prescription(profile: Pick<Profile, 'objective' | 'experience'>, role: Slot['role'], ex: Exercise | undefined): Prescription {
+/** Minutes of cardio that fit a session of this length. */
+export function cardioMinutes(sessionMinutes: Profile['sessionMinutes']): 10 | 15 | 20 {
+  return sessionMinutes <= 45 ? 10 : sessionMinutes <= 60 ? 15 : 20;
+}
+
+export function prescription(
+  profile: Pick<Profile, 'objective' | 'experience'>,
+  role: Slot['role'],
+  ex: Exercise | undefined,
+  sessionMinutes: Profile['sessionMinutes'] = 60,
+): Prescription {
+  if (ex?.pattern === 'cardio') {
+    const sec = cardioMinutes(sessionMinutes) * 60;
+    return { sets: 1, repMin: sec, repMax: sec, restSec: 0 };
+  }
   if (ex?.kind === 'timed') return { sets: 3, repMin: 30, repMax: 60, restSec: 60 };
   const base = RX[profile.objective][role];
   let sets = base.sets;

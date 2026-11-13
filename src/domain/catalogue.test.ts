@@ -1,6 +1,23 @@
 import { describe, expect, it } from 'vitest';
-import { BUILTIN_EXERCISES, emptyAppData, getExercise } from './catalogue';
+import { BUILTIN_EXERCISES, V2_ONLY_IDS, emptyAppData, getExercise } from './catalogue';
 import { BUILT_IN_SPLITS } from './training/splits/builtins';
+
+describe('v2 catalogue additions', () => {
+  const ADDED = ['incline-barbell-press', 'incline-machine-press', 'pec-deck', 'db-shrug', 'barbell-shrug', 'assisted-pull-up', 'plate-neck-curl', 'plate-neck-extension', 'wrist-curl', 'reverse-curl', 'preacher-curl', 'incline-db-curl', 'skull-crusher', 'hip-abduction', 'cable-glute-kickback', 'incline-walk', 'bike', 'rower', 'stairs', 'run'];
+  it('adds every v2 exercise and lists it as v2-only', () => {
+    for (const id of ADDED) {
+      expect(getExercise(id, []), id).toBeDefined();
+      expect(V2_ONLY_IDS.has(id), id).toBe(true);
+    }
+    expect(V2_ONLY_IDS.size).toBe(ADDED.length);
+  });
+  it('cardio rows are timed and neck rows use the neck pattern', () => {
+    for (const id of ['incline-walk', 'bike', 'rower', 'stairs', 'run']) expect(getExercise(id, [])).toMatchObject({ pattern: 'cardio', kind: 'timed' });
+    expect(getExercise('run', [])!.equipment).toBe('bodyweight');
+    expect(getExercise('plate-neck-curl', [])).toMatchObject({ pattern: 'neck', kind: 'weighted' });
+    expect(getExercise('hip-abduction', [])).toMatchObject({ pattern: 'hip', equipment: 'machine' });
+  });
+});
 
 describe('catalogue', () => {
   it('has unique exercise ids', () => {
