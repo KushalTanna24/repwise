@@ -15,11 +15,10 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (req.method !== 'POST') return json({ error: 'method not allowed' }, 405);
 
-  const asUser = createClient(env('SUPABASE_URL')!, env('SUPABASE_ANON_KEY')!, {
-    global: { headers: { Authorization: req.headers.get('Authorization') ?? '' } },
-    auth: { persistSession: false },
-  });
-  const { data: auth } = await asUser.auth.getUser();
+  // Deployed with --no-verify-jwt (this project's signing keys don't suit the gateway check); the auth server verifies the token here.
+  const db = createClient(env('SUPABASE_URL')!, env('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
+  const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
+  const { data: auth } = token ? await db.auth.getUser(token) : { data: { user: null } };
   if (!auth.user) return json({ error: 'Sign in to see photos' }, 401);
 
   let input: { group?: string; member?: string };
@@ -29,8 +28,6 @@ Deno.serve(async (req) => {
     return json({ error: 'Bad request' }, 400);
   }
   if (!input.group || !input.member) return json({ error: 'Missing group or member' }, 400);
-
-  const db = createClient(env('SUPABASE_URL')!, env('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
   try {
     const result = await handlePhotos(
       {
