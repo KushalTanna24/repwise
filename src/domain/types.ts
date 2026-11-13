@@ -157,6 +157,8 @@ export interface Profile {
   fastingSafetyAck?: boolean;
   /** 8 pm streak-at-risk push. Missing means on. */
   streakReminder?: boolean;
+  /** Last name used in a group; only prefills the name field. Groups never see it. */
+  displayName?: string;
 }
 
 export interface ChallengeTask {
