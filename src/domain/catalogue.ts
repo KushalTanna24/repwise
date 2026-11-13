@@ -91,8 +91,6 @@ const v2Rows: Row[] = [
 ];
 rows.push(...v2Rows);
 
-/** Ids plan v1 must not pick, so its output stays unchanged until it is removed. */
-export const V2_ONLY_IDS: ReadonlySet<string> = new Set(v2Rows.map(([id]) => id));
 
 /** Calisthenics skills. Holds are timed in seconds; never picked by the planner, only added by hand. */
 const calisthenics: Row[] = [

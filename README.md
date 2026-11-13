@@ -22,7 +22,8 @@ Recommendations are **rules-based**, not AI.
   - Assistance logging for bodyweight moves.
   - Everything is saved on each tap and survives refresh.
   - Finish shows duration, sets, volume and new bests.
-- **Exercise guides**: an ⓘ button on every exercise (Today and workout) opens setup, steps, cues and common mistakes for all 49 built-in exercises, plus a "Watch a demo" YouTube search. Works offline.
+- **Exercise guides**: an ⓘ button on every exercise (Today and workout) opens setup, steps, cues and common mistakes for all 69 built-in exercises, plus a "Watch a demo" YouTube search. Works offline.
+- **Plan builder** (first launch, or Profile → Build my plan): body, goal (including "Look better" with an optional tape-measure body-fat estimate), daily life, calories, experience, schedule, equipment, up to three focus muscles, then a split style (Let Repwise pick, Full body, Upper/Lower, PPL, Hybrid PPL, Arnold, Pairs, Bro split or Custom pairs). It builds the best of 20 candidate plans across 17 muscle groups, explains why, and Regenerate gives a properly different plan. Weekly sets adapt to your logged history.
 - **Water**: one tap logs a 250 ml glass, with undo. The daily goal is set in Profile. It feeds the Today ring and a 7-day chart on Progress → Body.
 - **Rebuild workout**: swaps in different accessories while keeping the main lifts, so their progress stays comparable. Refresh keeps the rebuilt plan.
 - **Launch splash**: logo, name, then your goal note (about 2 s; tap to skip).

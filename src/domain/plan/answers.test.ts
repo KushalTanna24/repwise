@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { emptyAppData } from '../catalogue';
 import type { AppData, WorkoutSession } from '../types';
 import { applyAnswers, commitPlan, goalFromProfile, lookPreset, skipOnboarding, type PlanAnswers } from './answers';
-import { generatePlan } from './generate';
+import { generatePlanV2 } from './v2';
 import { needsOnboarding } from './gate';
 
 const NOW = '2026-11-11T08:00:00.000Z';
@@ -103,7 +103,7 @@ describe('commitPlan', () => {
 
   it('saves and activates the split', () => {
     const d = ready();
-    const { split } = generatePlan(d, 'ul-4', NOW);
+    const { split } = generatePlanV2(d, { style: 'upper-lower', seed: 1, shown: [] }, NOW);
     const r = commitPlan(d, split, NOW);
     expect(r.activated).toBe(true);
     expect(r.data.program.splitId).toBe(split.id);
@@ -113,7 +113,7 @@ describe('commitPlan', () => {
   it('saves without switching during a workout', () => {
     const active: WorkoutSession = { id: 'a', planKey: null, splitId: 'ppl', sessionIndex: 0, cycle: 1, title: 'Push', startedAt: NOW, finishedAt: null, exercises: [] };
     const d: AppData = { ...ready(), activeSession: active, program: { ...ready().program, splitId: 'ppl' } };
-    const { split } = generatePlan(d, 'ul-4', NOW);
+    const { split } = generatePlanV2(d, { style: 'upper-lower', seed: 1, shown: [] }, NOW);
     const r = commitPlan(d, split, NOW);
     expect(r.activated).toBe(false);
     expect(r.data.program.splitId).toBe('ppl');
