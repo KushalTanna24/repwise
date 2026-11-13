@@ -1,6 +1,8 @@
 import { supabase } from '@/sync/client';
 import { requestNotifications } from './notify';
-import { sameServerKey, urlBase64ToUint8Array, withTimeout, type EnableResult } from './pushUtil';
+import { nextKinds, sameServerKey, urlBase64ToUint8Array, withTimeout, type EnableResult, type PushKind } from './pushUtil';
+
+export type { PushKind };
 
 const TABLE = 'push_subscriptions';
 /** Long enough for a cold worker install; short enough that the switch or sign-out never sticks. */
@@ -36,20 +38,27 @@ async function subscriptionFor(reg: ServiceWorkerRegistration, key: string): Pro
   return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: bytes as BufferSource });
 }
 
-/** Must be called from a tap (it may show the permission prompt). */
-export async function enableReminders(userId: string | null): Promise<EnableResult> {
+async function storedKinds(endpoint: string): Promise<string[] | null> {
+  const { data, error } = await supabase.from(TABLE).select('kinds').eq('endpoint', endpoint).maybeSingle();
+  if (error) throw error;
+  return (data?.kinds as string[] | undefined) ?? null;
+}
+
+/** Must be called from a tap (it may show the permission prompt). Adds `kind` to this device's row. */
+export async function enablePush(userId: string | null, kind: PushKind): Promise<EnableResult> {
   if (!userId) return 'signed-out';
   if (!pushSupported()) return 'unsupported';
   const key = import.meta.env.VITE_VAPID_PUBLIC_KEY;
   if (!key) {
-    console.warn('VITE_VAPID_PUBLIC_KEY is not set; water reminders cannot subscribe');
+    console.warn('VITE_VAPID_PUBLIC_KEY is not set; push cannot subscribe');
     return 'failed';
   }
   try {
     if ((await requestNotifications()) !== 'granted') return 'denied';
     const reg = await registration();
     const sub = await subscriptionFor(reg, key);
-    const { error } = await supabase.from(TABLE).upsert(rowFor(userId, sub), { onConflict: 'endpoint' });
+    const kinds = nextKinds(await storedKinds(sub.endpoint), kind, true);
+    const { error } = await supabase.from(TABLE).upsert({ ...rowFor(userId, sub), kinds }, { onConflict: 'endpoint' });
     if (error) throw error;
     return 'on';
   } catch {
@@ -57,18 +66,39 @@ export async function enableReminders(userId: string | null): Promise<EnableResu
   }
 }
 
-export async function disableReminders(): Promise<void> {
+/** Removes `kind` from this device. The row and the browser subscription go only when nothing else uses them. */
+export async function disablePush(kind: PushKind): Promise<void> {
   if (!pushSupported()) return;
   try {
     const reg = await registration();
     const sub = await reg.pushManager.getSubscription();
     if (!sub) return;
+    const kinds = nextKinds(await storedKinds(sub.endpoint), kind, false);
+    if (kinds.length) {
+      await supabase.from(TABLE).update({ kinds }).eq('endpoint', sub.endpoint);
+      return;
+    }
     await supabase.from(TABLE).delete().eq('endpoint', sub.endpoint);
     await sub.unsubscribe();
   } catch {
     /* best effort; the flag is off, the server just sends nothing useful */
   }
 }
+
+/** Whether this device currently takes `kind`. */
+export async function pushKindOn(kind: PushKind): Promise<boolean> {
+  if (!pushSupported() || Notification.permission !== 'granted') return false;
+  try {
+    const sub = await (await registration()).pushManager.getSubscription();
+    if (!sub) return false;
+    return ((await storedKinds(sub.endpoint)) ?? []).includes(kind);
+  } catch {
+    return false;
+  }
+}
+
+export const enableReminders = (userId: string | null) => enablePush(userId, 'reminders');
+export const disableReminders = () => disablePush('reminders');
 
 /**
  * Keeps the stored row (and its timezone) current when this device already has a subscription,

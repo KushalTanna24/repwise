@@ -16,7 +16,7 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-// Server-sent water reminders (Web Push). Payload: { title, body, url }.
+// Server-sent pushes: reminders and group nudges. Payload: { title, body, url, tag? }.
 self.addEventListener('push', (event) => {
   let payload = {};
   try {
@@ -25,11 +25,11 @@ self.addEventListener('push', (event) => {
   } catch {
     /* malformed payload: show the defaults */
   }
-  const { title = 'Repwise', body = '', url = '/#/today' } = payload;
+  const { title = 'Repwise', body = '', url = '/#/today', tag = 'water' } = payload;
   event.waitUntil(
     self.registration.showNotification(title, {
       body,
-      tag: 'water',
+      tag,
       renotify: true,
       icon: '/icon.svg',
       badge: '/icon.svg',
