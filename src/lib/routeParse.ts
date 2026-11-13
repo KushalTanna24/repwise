@@ -1,5 +1,5 @@
-export type Tab = 'today' | 'history' | 'progress' | 'profile';
-const TABS: Tab[] = ['today', 'history', 'progress', 'profile'];
+export type Tab = 'today' | 'history' | 'progress' | 'groups' | 'profile';
+const TABS: Tab[] = ['today', 'history', 'progress', 'groups', 'profile'];
 
 export interface Route {
   tab: Tab;
