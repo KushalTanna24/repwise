@@ -10,8 +10,8 @@ import { stripForGroup } from '@/domain/groups/privacy';
 import type { AppData } from '@/domain/types';
 import { act, useData } from '@/store/app';
 import { useGroupsUi } from '@/store/groups';
-import { go, openSheet } from './route';
-import { pendingJoin } from './pendingJoin';
+import { go, openSheet, useRoute } from './route';
+import { inviteCodeFromSheet, pendingJoin } from './pendingJoin';
 
 export interface GroupSummary { id: string; name: string; inviteCode: string; role: 'owner' | 'member'; shareBody: boolean; displayName: string }
 export interface Member { userId: string; displayName: string; role: 'owner' | 'member'; shareBody: boolean; joinedAt: string }
@@ -345,6 +345,12 @@ export function useMarkNudgesRead() {
 export function useGroupsSession() {
   const uid = useUid();
   const qc = useQueryClient();
+  // The shell runs this even during onboarding, when the join sheet can't mount yet, so the code is kept here
+  // and survives a sign-in from the onboarding welcome step. Runs before the effect below takes it.
+  useEffect(() => {
+    const code = inviteCodeFromSheet(useRoute.getState().sheet);
+    if (code) pendingJoin.save(code);
+  }, []);
   useEffect(() => {
     qc.removeQueries({ queryKey: ['groups'] });
     if (!uid) return;

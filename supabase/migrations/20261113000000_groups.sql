@@ -67,7 +67,9 @@ alter table public.groups enable row level security;
 alter table public.group_members enable row level security;
 alter table public.nudges enable row level security;
 
-revoke all on table public.groups, public.group_members, public.nudges from anon, public;
+-- Supabase's default privileges grant ALL on new public tables to authenticated. Revoke them, or the column grants below
+-- mean nothing and a member could rewrite role, group_id or invite_code.
+revoke all on table public.groups, public.group_members, public.nudges from anon, authenticated, public;
 grant select on table public.groups, public.group_members, public.nudges to authenticated;
 grant update (name) on table public.groups to authenticated;
 grant update (display_name, share_body) on table public.group_members to authenticated;
@@ -211,7 +213,8 @@ end $$;
 
 revoke all on function public.is_member(uuid, uuid), public.is_owner(uuid, uuid), public.gen_invite_code(),
   public.create_group(text, text, boolean), public.join_group(text, text, boolean), public.leave_group(uuid),
-  public.rotate_invite(uuid), public.remove_member(uuid, uuid), public.member_doc(uuid, uuid) from public, anon;
+  public.rotate_invite(uuid), public.remove_member(uuid, uuid), public.member_doc(uuid, uuid) from public, anon, authenticated;
+-- is_member/is_owner stay granted: RLS policies call them as the signed-in user.
 grant execute on function public.is_member(uuid, uuid), public.is_owner(uuid, uuid),
   public.create_group(text, text, boolean), public.join_group(text, text, boolean), public.leave_group(uuid),
   public.rotate_invite(uuid), public.remove_member(uuid, uuid), public.member_doc(uuid, uuid) to authenticated;

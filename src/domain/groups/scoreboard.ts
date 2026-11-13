@@ -41,8 +41,11 @@ function memberStreak(doc: AppData, today: string): number {
   return streak(doc, today).current;
 }
 
+/** A new user's days per week (emptyAppData), shown for a member who hasn't synced anything yet. */
+const DEFAULT_TARGET = 3;
+
 function score(m: MemberInput, now: string, today: string): Scored {
-  const target = Math.max(0, m.doc?.profile.daysPerWeek ?? 0);
+  const target = Math.max(0, m.doc ? (m.doc.profile.daysPerWeek ?? DEFAULT_TARGET) : DEFAULT_TARGET);
   if (!m.doc) return { userId: m.userId, name: m.name, done: 0, target, consistency: 0, streak: 0, improvement: null, targetHit: false };
   // periodStats, not weekStats: weekStats' week-streak walk never ends when daysPerWeek is 0.
   const done = periodStats(m.doc, now, 'week').sessions;

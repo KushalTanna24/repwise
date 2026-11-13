@@ -28,6 +28,13 @@ export function createPendingJoin(storage: KV | (() => KV | undefined)) {
   };
 }
 
-export const pendingJoin = createPendingJoin(() => (typeof localStorage === 'undefined' ? undefined : localStorage));
+/** The invite code in a `join:<code>` sheet, or null. */
+export function inviteCodeFromSheet(sheet: string | null): string | null {
+  if (!sheet?.startsWith('join:')) return null;
+  const code = sheet.slice(5).trim().toUpperCase();
+  return code || null;
+}
+
+export const pendingJoin =createPendingJoin(() => (typeof localStorage === 'undefined' ? undefined : localStorage));
 
 export const inviteUrl = (code: string, origin: string = location.origin) => `${origin}/#/groups/join:${code}`;

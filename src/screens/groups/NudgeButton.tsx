@@ -34,18 +34,16 @@ export function NudgeButton({ groupId, userId, name, size = 'sm', className }: {
     }
   }
 
+  // React events bubble through the drawer's portal to whatever contains this button; keep them here.
   return (
-    <>
+    <span className={cn('contents', className && 'block')} onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
       <Button
         variant={sentToday ? 'gray' : 'tinted'}
         size={size}
         className={cn('shrink-0', className)}
         disabled={sentToday}
         aria-label={sentToday ? `Already nudged ${name} today` : `Nudge ${name}`}
-        onClick={(e) => {
-          e.stopPropagation();
-          setOpen(true);
-        }}
+        onClick={() => setOpen(true)}
       >
         {sentToday ? <Check className="mr-1 size-4" /> : <BellRing className="mr-1 size-4" />}
         {sentToday ? 'Nudged today' : 'Nudge'}
@@ -87,6 +85,6 @@ export function NudgeButton({ groupId, userId, name, size = 'sm', className }: {
           <p className="mt-2 px-1 text-footnote text-label-2">One nudge a day each. Late at night it waits quietly until they open the app.</p>
         </div>
       </Sheet>
-    </>
+    </span>
   );
 }

@@ -602,6 +602,16 @@ check('Ending early says so', (await text()).includes('Fast ended at 0h'));
   const saved = await page.evaluate(() => localStorage.getItem('repwise_pending_join'));
   check('Invite link opens groups tab with the join sheet', active === 'Groups' && t.includes('Join a group'), active);
   check('Signed-out invite is kept for after sign-in', saved === 'ABC234', String(saved));
+
+  // A fresh install opens the link while onboarding covers the app: the code must still be kept.
+  const fresh = await (await browser.createBrowserContext()).newPage();
+  await fresh.setViewport({ width: 412, height: 915, isMobile: true });
+  await fresh.goto(`${APP}#/groups/join:XYZ789`, { waitUntil: 'networkidle0' });
+  await sleep(1500);
+  const onboarding = await fresh.evaluate(() => document.body.innerText.includes('Build my plan'));
+  const kept = await fresh.evaluate(() => localStorage.getItem('repwise_pending_join'));
+  check('Invite opened during onboarding is kept', onboarding && kept === 'XYZ789', `onboarding=${onboarding} kept=${kept}`);
+  await fresh.close();
 }
 
 check('No runtime errors in console', errors.length === 0, errors.slice(0, 5).join(' / '));

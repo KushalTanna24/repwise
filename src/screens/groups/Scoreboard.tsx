@@ -80,15 +80,18 @@ export function Scoreboard({ group, viewerId }: { group: GroupSummary; viewerId:
 
 function BoardItem({ row, groupId, me }: { row: BoardRow; groupId: string; me: boolean }) {
   const reduce = useReducedMotion();
+  // The nudge button sits beside the tappable area, not inside it, so taps in its drawer never open this member.
   return (
     <motion.div
       layout={!reduce}
       transition={{ type: 'spring', stiffness: 400, damping: 36 }}
-      role="button"
-      tabIndex={0}
+      className={cn('flex items-center gap-2 pr-4 [&:not(:last-child)]:border-b [&:not(:last-child)]:border-sep', me && 'bg-blue/6')}
+    >
+    <button
+      type="button"
       onClick={() => openSheet(`member:${groupId}:${row.userId}`)}
-      onKeyDown={(e) => e.key === 'Enter' && openSheet(`member:${groupId}:${row.userId}`)}
-      className={cn('press flex items-center gap-3 px-4 py-3 [&:not(:last-child)]:border-b [&:not(:last-child)]:border-sep', me && 'bg-blue/6')}
+      aria-label={`Open ${row.name}'s training`}
+      className="press flex min-w-0 flex-1 items-center gap-3 py-3 pl-4 text-left"
     >
       <span className="w-5 text-center text-headline font-bold tabular text-label-2">{row.rank}</span>
       <Rings rings={[{ value: row.done, max: Math.max(row.target, 1), color: '#34C759', label: 'Workouts this week' }]} size={36} stroke={5} />
@@ -114,6 +117,7 @@ function BoardItem({ row, groupId, me }: { row: BoardRow; groupId: string; me: b
           <span aria-label="Strength change">{row.improvement == null ? '–' : pct(row.improvement)}</span>
         </div>
       </div>
+    </button>
       {!me && <NudgeButton groupId={groupId} userId={row.userId} name={row.name} />}
     </motion.div>
   );

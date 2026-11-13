@@ -43,8 +43,8 @@ describe('scoreboard', () => {
 
   it('null doc shows 0 of target and a null improvement', () => {
     const [row] = scoreboard([m('a', null)], NOW, TODAY);
-    expect(row).toMatchObject({ done: 0, consistency: 0, streak: 0, improvement: null, rank: 1, targetHit: false });
-    expect(Number.isNaN(row.target)).toBe(false);
+    // A member with no data yet shows the app's default target, 0 / 3.
+    expect(row).toMatchObject({ done: 0, target: 3, consistency: 0, streak: 0, improvement: null, rank: 1, targetHit: false });
   });
 
   it('daysPerWeek 0 does not divide by zero', () => {

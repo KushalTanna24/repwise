@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { createPendingJoin, inviteUrl } from './pendingJoin';
+import { createPendingJoin, inviteCodeFromSheet, inviteUrl } from './pendingJoin';
+
+describe('inviteCodeFromSheet', () => {
+  it('reads the code from a join sheet', () => expect(inviteCodeFromSheet('join:ab3cd7')).toBe('AB3CD7'));
+  it('ignores an empty join sheet and other sheets', () => {
+    expect(inviteCodeFromSheet('join:')).toBeNull();
+    expect(inviteCodeFromSheet('member:g:u')).toBeNull();
+    expect(inviteCodeFromSheet(null)).toBeNull();
+  });
+});
 
 function memory(): Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> {
   const m = new Map<string, string>();
