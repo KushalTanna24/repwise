@@ -39,6 +39,7 @@ describe('readHistory', () => {
     const t = readHistory(d, NOW).trend['side-delts'];
     expect(t?.flatWeeks).toBe(4);
     expect(t?.change).toBeGreaterThan(0.3);
+    expect(t?.lift).toBe('db-lateral-raise');
   });
 
   it('marks a rising lift as liked', () => {

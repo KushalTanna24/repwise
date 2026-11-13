@@ -12,7 +12,7 @@ export interface History {
   /** Real weekly hard sets per group over the last 6 weeks, primary 1 and secondary 0.5. */
   baseline: Record<Group, number>;
   /** Estimated 1RM trend of each group's primary lifts over 8 weeks. */
-  trend: Partial<Record<Group, { change: number; flatWeeks: number }>>;
+  trend: Partial<Record<Group, { change: number; flatWeeks: number; lift: string }>>;
   /** Finished sessions over 8 weeks against what the weekly day count asks for, capped at 1. */
   adherence: number;
   /** Median share of planned exercises finished over the last 6 sessions; null with fewer. */
@@ -79,7 +79,7 @@ export function readHistory(data: AppData, now: string): History {
     }
   }
 
-  const lifts = new Map<string, { change: number; flatWeeks: number }>();
+  const lifts = new Map<string, { change: number; flatWeeks: number; sessions: number }>();
   for (const [id, pts] of series) {
     if (pts.length < 3) continue;
     let best = pts[0].score;
@@ -88,7 +88,7 @@ export function readHistory(data: AppData, now: string): History {
       if (p.score >= best * (1 + RISE)) lastRise = p.at;
       best = Math.max(best, p.score);
     }
-    lifts.set(id, { change: (pts.at(-1)!.score - pts[0].score) / pts[0].score, flatWeeks: Math.floor(today.diff(lastRise, 'day') / 7) });
+    lifts.set(id, { change: (pts.at(-1)!.score - pts[0].score) / pts[0].score, flatWeeks: Math.floor(today.diff(lastRise, 'day') / 7), sessions: pts.length });
   }
 
   const trend: History['trend'] = {};
@@ -101,6 +101,8 @@ export function readHistory(data: AppData, now: string): History {
     trend[g] = {
       change: mine.reduce((a, [, l]) => a + l.change, 0) / mine.length,
       flatWeeks: Math.min(...mine.map(([, l]) => l.flatWeeks)),
+      // The most-logged lift names the reason line.
+      lift: mine.reduce((a, b) => (b[1].sessions > a[1].sessions ? b : a))[0],
     };
   }
 

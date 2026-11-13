@@ -3,6 +3,8 @@ import dayjs from 'dayjs';
 import { emptyAppData } from '../../catalogue';
 import type { SplitId } from '../../training';
 import type { AppData, Profile, SetRecord, WorkoutSession } from '../../types';
+import { GROUPS, type Group } from './groups';
+import type { History } from './history';
 
 export const NOW = '2026-11-14T08:00:00.000Z';
 
@@ -57,6 +59,12 @@ export function sessionOn(startedAt: string, exercises: LoggedExercise[], opts: 
       sets: [...Array.from({ length: e.n }, () => set('done', e.kg, e.reps)), ...Array.from({ length: e.pending ?? 0 }, () => set('pending', null, null))],
     })),
   };
+}
+
+/** A qualifying history with zero baselines; override what the test needs. */
+export function hist(o: Partial<Omit<History, 'baseline'>> & { baseline?: Partial<Record<Group, number>> } = {}): History {
+  const baseline = { ...(Object.fromEntries(GROUPS.map((g) => [g, 0])) as Record<Group, number>), ...o.baseline };
+  return { qualifies: true, trend: {}, adherence: 1, finishRate: null, liked: new Set(), avoided: new Set(), ...o, baseline };
 }
 
 export function dataWith(sessions: WorkoutSession[], profile: Partial<Profile> = {}): AppData {
