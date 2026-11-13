@@ -88,6 +88,12 @@ describe('weeklyTargets', () => {
     expect(t.sets.lats).toBe(14);
   });
 
+  it('look goal keeps side and rear delts at 8 even when time is short', () => {
+    const t = weeklyTargets(p({ experience: 'beginner', daysPerWeek: 4, sessionMinutes: 60, planGoal: 'look', sex: 'female', focus: ['glutes', 'side-delts', 'lats'] }), null);
+    expect(t.sets['side-delts']).toBe(8);
+    expect(t.sets['rear-delts']).toBe(8);
+  });
+
   it('drops one exercise when sessions are usually unfinished', () => {
     const t = weeklyTargets(p({ sessionMinutes: 60 }), hist({ finishRate: 0.7 }));
     expect(t.exerciseLimit).toBe(5);

@@ -105,8 +105,10 @@ export function weeklyTargets(p: Profile, h: History | null): Targets {
     }
   };
   const floors = { ...sets };
-  trim(GROUPS.filter((g) => !focus.has(g)), (g) => Math.min(FLOOR, floors[g]));
-  trim(GROUPS.filter((g) => focus.has(g)), (g) => Math.min(baseFor(p, g, focus), floors[g]));
+  // The look goal's delt floor survives trimming; that is the point of the goal.
+  const keep = (g: Group) => (p.planGoal === 'look' && (g === 'side-delts' || g === 'rear-delts') ? Math.min(8, floors[g]) : 0);
+  trim(GROUPS.filter((g) => !focus.has(g)), (g) => Math.max(keep(g), Math.min(FLOOR, floors[g])));
+  trim(GROUPS.filter((g) => focus.has(g)), (g) => Math.max(keep(g), Math.min(baseFor(p, g, focus), floors[g])));
 
   return { sets, focus, budget, exerciseLimit, reasons };
 }

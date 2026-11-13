@@ -1,5 +1,5 @@
 import { allExercises } from '../../catalogue';
-import { isEligible, newSlotId, prescription, type Slot } from '../../training';
+import { isEligible, prescription, type Slot } from '../../training';
 import type { AppData, Exercise } from '../../types';
 import type { Allocation } from './allocate';
 import { metaFor, primaryGroups, type ExerciseMeta } from './exerciseMeta';
@@ -13,6 +13,10 @@ export interface PoolItem {
   meta: ExerciseMeta;
   primary: Group[];
   order: number;
+  /** Precomputed for the hot loop. */
+  muscles: [Group, number][];
+  clash: string;
+  quality: number;
 }
 
 export interface Ctx {
@@ -24,7 +28,14 @@ export interface Ctx {
   now: string;
   /** Eligible exercises with metadata, built once per generate call. */
   pool: PoolItem[];
+  /** Pool items by primary group. */
+  byGroup: Map<Group, PoolItem[]>;
+  /** Same-pattern, same-primary alternates for each exercise, best first. */
+  alts: Map<string, PoolItem[]>;
 }
+
+
+// Two compounds clash on a day when they share a pattern and main muscles (two flat presses, two squats).
 
 export interface Candidate {
   sessions: { title: string; slots: Slot[] }[];
@@ -45,13 +56,23 @@ export function buildPool(data: AppData): PoolItem[] {
     .filter((e) => isEligible(e, data) && !e.calisthenics)
     .map((ex, order) => {
       const meta = metaFor(ex);
-      return { ex, meta, primary: primaryGroups(meta), order };
+      const primary = primaryGroups(meta);
+      return { ex, meta, primary, order, muscles: Object.entries(meta.muscles) as [Group, number][], clash: `${ex.pattern}:${[...primary].sort().join(',')}`, quality: quality(meta) };
     })
     .filter((it) => !(beginner && it.meta.skill === 'high'));
 }
 
 export function makeCtx(data: AppData, targets: Targets, layout: DayLayout[], allocation: Allocation, history: History | null, now: string): Ctx {
-  return { data, targets, layout, allocation, history, now, pool: buildPool(data) };
+  const pool = buildPool(data);
+  const byGroup = new Map<Group, PoolItem[]>(GROUPS.map((g) => [g, pool.filter((it) => it.ex.pattern !== 'cardio' && it.primary.includes(g))]));
+  const same = (a: Group[], b: Group[]) => a.length === b.length && a.every((x) => b.includes(x));
+  const alts = new Map(
+    pool.map((it) => [
+      it.ex.id,
+      pool.filter((a) => a.ex.id !== it.ex.id && a.ex.pattern === it.ex.pattern && same(a.primary, it.primary)).sort((a, b) => quality(b.meta) - quality(a.meta) || a.order - b.order),
+    ]),
+  );
+  return { data, targets, layout, allocation, history, now, pool, byGroup, alts };
 }
 
 export function limitedGroups(data: AppData): Group[] {
@@ -70,6 +91,16 @@ interface DayState {
   placed: Placed[];
   remaining: Partial<Record<Group, number>>;
   blocked: Set<Group>;
+  /** Lifting slots placed (cardio excluded). */
+  lifts: number;
+  /** Slots per primary group. */
+  direct: Map<Group, number>;
+  used: Set<string>;
+  clashes: Set<string>;
+  heavy: number;
+  /** Groups that already have a slot, and those with an anchor. */
+  opened: Set<Group>;
+  anchored: Set<Group>;
 }
 
 /**
@@ -77,7 +108,7 @@ interface DayState {
  * furthest below its weekly target (groups under their floor first, focus before the rest),
  * on the day that has trained it least. The seed only reorders near-equal exercise choices.
  */
-export function buildCandidate(ctx: Ctx, seed: number): Candidate {
+export function buildCandidate(ctx: Ctx, seed: number, jitter = 0.3): Candidate {
   const { data, targets, layout, allocation, history, pool } = ctx;
   const p = data.profile;
   const rand = rng(seed);
@@ -88,32 +119,38 @@ export function buildCandidate(ctx: Ctx, seed: number): Candidate {
   const uses = new Map<string, number>();
   const must = (g: Group) => Math.min(targets.sets[g], look && (g === 'side-delts' || g === 'rear-delts') ? 8 : FLOOR);
 
-  const days: DayState[] = layout.map((l, i) => ({ layout: l, placed: [], remaining: { ...allocation.days[i]?.sets }, blocked: new Set() }));
-  const lifting = (d: DayState) => d.placed.filter((x) => x.item.ex.pattern !== 'cardio').length;
-  const direct = (d: DayState, g: Group) => d.placed.filter((x) => x.item.primary.includes(g)).length;
-  const hasAnchor = (d: DayState, g: Group) => d.placed.some((x) => x.group === g && x.slot.role === 'anchor');
+  const days: DayState[] = layout.map((l, i) => ({
+    layout: l,
+    placed: [],
+    remaining: { ...allocation.days[i]?.sets },
+    blocked: new Set(),
+    lifts: 0,
+    direct: new Map(),
+    used: new Set(),
+    clashes: new Set(),
+    heavy: 0,
+    opened: new Set(),
+    anchored: new Set(),
+  }));
+  const lifting = (d: DayState) => d.lifts;
+  const direct = (d: DayState, g: Group) => d.direct.get(g) ?? 0;
+  const setsFor = { anchor: prescription(p, 'anchor', undefined).sets, accessory: prescription(p, 'accessory', undefined).sets };
 
   function rank(it: PoolItem): number {
-    let s = quality(it.meta);
+    let s = it.quality;
     if (history?.liked.has(it.ex.id)) s += 0.75;
     if (history?.avoided.has(it.ex.id)) s -= 1.5;
-    return s + rand() * 0.3;
+    return s + rand() * jitter;
   }
 
   function pick(d: DayState, g: Group): PoolItem | undefined {
-    const used = new Set(d.placed.map((x) => x.item.ex.id));
-    const compoundPatterns = new Set(d.placed.filter((x) => x.item.meta.compound).map((x) => x.item.ex.pattern));
-    const heavy = d.placed.filter((x) => x.item.meta.fatigue === 'high').length;
-    const opening = MAJOR.has(g) && !d.placed.some((x) => x.group === g);
-    let options = pool.filter(
-      (it) =>
-        it.ex.pattern !== 'cardio' &&
-        it.primary.includes(g) &&
-        !used.has(it.ex.id) &&
-        !(it.meta.compound && compoundPatterns.has(it.ex.pattern)) &&
-        !(it.meta.fatigue === 'high' && heavy >= 2) &&
-        ((uses.get(it.ex.id) ?? 0) < 2 || (opening && it.meta.compound)),
-    );
+    const opening = MAJOR.has(g) && !d.opened.has(g);
+    const ok = (it: PoolItem) =>
+      !d.used.has(it.ex.id) &&
+      !(it.meta.compound && d.clashes.has(it.clash)) &&
+      !(it.meta.fatigue === 'high' && d.heavy >= 2) &&
+      ((uses.get(it.ex.id) ?? 0) < 2 || (opening && it.meta.compound));
+    let options = (ctx.byGroup.get(g) ?? []).filter(ok);
     if (opening && options.some((it) => it.meta.compound)) options = options.filter((it) => it.meta.compound);
     let best: PoolItem | undefined;
     let bestScore = -Infinity;
@@ -128,17 +165,23 @@ export function buildCandidate(ctx: Ctx, seed: number): Candidate {
   }
 
   function place(d: DayState, g: Group, it: PoolItem) {
-    const role: Slot['role'] = MAJOR.has(g) && it.meta.compound && !hasAnchor(d, g) ? 'anchor' : 'accessory';
-    const sets = prescription(p, role, it.ex, p.sessionMinutes).sets;
-    const used = new Set(d.placed.map((x) => x.item.ex.id));
-    const same = (a: Group[], b: Group[]) => a.length === b.length && a.every((x) => b.includes(x));
-    const alternates = pool
-      .filter((a) => a.ex.id !== it.ex.id && a.ex.pattern === it.ex.pattern && !used.has(a.ex.id) && same(a.primary, it.primary))
-      .sort((a, b) => quality(b.meta) - quality(a.meta) || a.order - b.order)
-      .slice(0, 2);
-    d.placed.push({ slot: { id: newSlotId(), pattern: it.ex.pattern, role, candidates: [it.ex.id, ...alternates.map((a) => a.ex.id)] }, item: it, group: g });
+    const role: Slot['role'] = MAJOR.has(g) && it.meta.compound && !d.anchored.has(g) ? 'anchor' : 'accessory';
+    const sets = it.ex.kind === 'timed' ? prescription(p, role, it.ex, p.sessionMinutes).sets : setsFor[role];
+    const alternates: string[] = [];
+    for (const a of ctx.alts.get(it.ex.id) ?? []) {
+      if (alternates.length === 2) break;
+      if (!d.used.has(a.ex.id)) alternates.push(a.ex.id);
+    }
+    d.placed.push({ slot: { id: '', pattern: it.ex.pattern, role, candidates: [it.ex.id, ...alternates] }, item: it, group: g });
+    d.used.add(it.ex.id);
+    d.opened.add(g);
+    if (role === 'anchor') d.anchored.add(g);
+    if (it.meta.compound) d.clashes.add(it.clash);
+    if (it.meta.fatigue === 'high') d.heavy += 1;
     uses.set(it.ex.id, (uses.get(it.ex.id) ?? 0) + 1);
-    for (const [h, w] of Object.entries(it.meta.muscles) as [Group, number][]) achieved[h] += sets * w * scale;
+    if (it.ex.pattern !== 'cardio') d.lifts += 1;
+    for (const h of it.primary) d.direct.set(h, (d.direct.get(h) ?? 0) + 1);
+    for (const [h, w] of it.muscles) achieved[h] += sets * w * scale;
     for (const h of it.primary) if (d.remaining[h] != null) d.remaining[h] = d.remaining[h]! - sets;
   }
 

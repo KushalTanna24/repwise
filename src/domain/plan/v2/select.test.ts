@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { META } from './exerciseMeta';
+import { META, primaryGroups } from './exerciseMeta';
 import { ctxFor, dataWith, hist } from './fixtures';
 import { buildCandidate, limitedGroups } from './select';
 
@@ -28,13 +28,22 @@ describe('buildCandidate', () => {
     }
   });
 
-  it('never repeats an exercise or a compound pattern within a day', () => {
+  it('never repeats an exercise, or a compound with the same pattern and main muscle, within a day', () => {
     const c = buildCandidate(ctxFor({ daysPerWeek: 3, sessionMinutes: 90 }, 'full'), 5);
-    for (const day of c.picks) {
+    c.picks.forEach((day, i) => {
       expect(new Set(day).size).toBe(day.length);
-      const compoundPatterns = c.sessions[c.picks.indexOf(day)].slots.filter((s) => META[s.candidates[0]].compound).map((s) => s.pattern);
-      expect(new Set(compoundPatterns).size).toBe(compoundPatterns.length);
-    }
+      const keys = c.sessions[i].slots
+        .filter((s) => META[s.candidates[0]].compound)
+        .map((s) => `${s.pattern}:${primaryGroups(META[s.candidates[0]]).sort().join(',')}`);
+      expect(new Set(keys).size).toBe(keys.length);
+    });
+  });
+
+  it('allows an incline press beside a flat press for an upper-chest focus', () => {
+    const c = buildCandidate(ctxFor({ daysPerWeek: 4, focus: ['chest'] }, 'pairs'), 1);
+    const day = c.picks[0];
+    expect(day.some((id) => META[id].muscles['upper-chest'] === 1)).toBe(true);
+    expect(day.some((id) => META[id].muscles.chest === 1 && META[id].compound)).toBe(true);
   });
 
   it('keeps high-skill lifts out of beginner plans', () => {
