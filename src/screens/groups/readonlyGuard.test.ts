@@ -5,7 +5,8 @@ import { describe, expect, it } from 'vitest';
 
 const dir = new URL('./', import.meta.url);
 const sources = readdirSync(dir).filter((f) => /\.tsx?$/.test(f) && !f.endsWith('.test.ts'));
-const WRITES = /\bact\s*\(|\buseApp\b|\.replace\s*\(|from\s+['"]@\/store\/app['"]/;
+// The store's replace is reached through useApp.getState(); a string .replace() is fine.
+const WRITES = /\bact\s*\(|\buseApp\b|getState\(\)\.replace\s*\(|from\s+['"]@\/store\/app['"]/;
 
 describe('group screens never write the viewer\'s document', () => {
   it('has group screens to check', () => {

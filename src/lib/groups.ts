@@ -8,7 +8,7 @@ import { useSyncState } from '@/sync/useSync';
 import { normalize } from '@/domain/migrate';
 import { stripForGroup } from '@/domain/groups/privacy';
 import type { AppData } from '@/domain/types';
-import { act } from '@/store/app';
+import { act, useData } from '@/store/app';
 import { useGroupsUi } from '@/store/groups';
 import { go, openSheet } from './route';
 import { pendingJoin } from './pendingJoin';
@@ -197,6 +197,9 @@ function useInvalidate() {
   const qc = useQueryClient();
   return () => qc.invalidateQueries({ queryKey: ['groups'] });
 }
+
+/** The name last used in any group, to prefill the next form. */
+export const useMyDisplayName = () => useData().profile.displayName ?? '';
 
 /** The name a person last used, kept in their own document only to prefill the next form. */
 function rememberName(name: string) {
