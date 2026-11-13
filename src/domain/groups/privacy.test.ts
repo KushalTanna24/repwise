@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { emptyAppData } from '../catalogue';
 import type { AppData } from '../types';
@@ -60,6 +61,14 @@ describe('stripForGroup', () => {
     expect(out.activeSession?.startedAt).toBe(NOW);
     expect(out.activeSession?.exercises[0].exerciseId).toBe('bench');
     expect(out.activeSession?.exercises[0].sets).toEqual([]);
+  });
+
+  it('the SQL member_doc strips exactly the same keys', () => {
+    const sql = readFileSync(new URL('../../../supabase/migrations/20261113000000_groups.sql', import.meta.url), 'utf8');
+    const profileList = sql.match(/'profile'\) - array\[([^\]]+)\]/)?.[1] ?? '';
+    const sqlProfile = [...profileList.matchAll(/'(\w+)'/g)].map((m) => m[1]).sort();
+    expect(sqlProfile).toEqual([...BODY_PROFILE_KEYS].sort());
+    for (const k of BODY_ARRAY_KEYS) expect(sql, k).toMatch(new RegExp(`'${k}', '(\\[\\]|\\{\\})'::jsonb`));
   });
 
   it('does not mutate its input', () => {
