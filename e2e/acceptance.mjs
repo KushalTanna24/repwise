@@ -517,7 +517,7 @@ check('Ending early says so', (await text()).includes('Fast ended at 0h'));
     await page.type(`input[aria-label="${label}"]`, value);
   };
   const plan = () =>
-    page.evaluate(() => new Promise((res) => { const r = indexedDB.open('keyval-store'); r.onsuccess = () => { const g = r.result.transaction('keyval').objectStore('keyval').get('repwise_v4'); g.onsuccess = () => { const d = JSON.parse(g.result).state.data; const s = d.customSplits.find((x) => x.id === d.program.splitId); res({ splitId: d.program.splitId, customSplits: d.customSplits.length, days: s?.sessions.length ?? 0, onboardedAt: d.profile.onboardedAt ?? null, focus: d.profile.focus ?? [] }); }; }; }));
+    page.evaluate(() => new Promise((res) => { const r = indexedDB.open('keyval-store'); r.onsuccess = () => { const g = r.result.transaction('keyval').objectStore('keyval').get('repwise_v4'); g.onsuccess = () => { const d = JSON.parse(g.result).state.data; const s = d.customSplits.find((x) => x.id === d.program.splitId); res({ splitId: d.program.splitId, customSplits: d.customSplits.length, days: s?.sessions.length ?? 0, firstDay: s?.sessions[0]?.title ?? '', onboardedAt: d.profile.onboardedAt ?? null, focus: d.profile.focus ?? [], planGoal: d.profile.planGoal ?? null, planStyle: d.profile.planStyle ?? null }); }; }; }));
 
   await page.evaluate(() => {
     localStorage.clear();
@@ -544,17 +544,18 @@ check('Ending early says so', (await text()).includes('Fast ended at 0h'));
   await tap('Next');
   await tap('Chest');
   await tap('Abs');
+  await tap('Next');
   await tap('See my plan');
   await shot('20-onboarding-result');
   t = await text();
-  check('Result shows a plan', t.includes('Your plan · Upper / Lower') && t.includes('Chest:'), t.slice(0, 200));
+  check('Result shows a plan', t.includes('Your plan · ') && t.includes('Chest:'), t.slice(0, 200));
   check('Result shows the energy estimate', t.includes('Maintenance') && t.includes('Estimate, not medical advice.'));
-  await tap('Start with this');
+  await tap('Use this plan');
   await sleep(600);
   let ob = await plan();
   check('Plan is active', String(ob.splitId).startsWith('custom-') && ob.days === 4 && !!ob.onboardedAt, JSON.stringify(ob));
   check('Focus is saved', JSON.stringify(ob.focus) === '["chest","abs"]');
-  check('Today shows the first day', (await text()).includes('Upper'));
+  check('Today shows the first day', !!ob.firstDay && (await text()).includes(ob.firstDay), ob.firstDay);
   await reload();
   check('No onboarding after finishing', !(await text()).includes('Build my plan') || !(await page.$('[data-onboarding]')));
 
@@ -562,7 +563,7 @@ check('Ending early says so', (await text()).includes('Fast ended at 0h'));
   await click('nav button::-p-text(Profile)');
   await tap('Build my plan');
   check('Rerun opens on the body step, prefilled', (await page.$eval('input[aria-label="Height in cm"]', (i) => i.value)) === '180');
-  for (let i = 0; i < 7; i++) await tap('Next');
+  for (let i = 0; i < 8; i++) await tap('Next');
   await tap('See my plan');
   await tap('Edit days and exercises');
   await sleep(500);
@@ -583,6 +584,27 @@ check('Ending early says so', (await text()).includes('Fast ended at 0h'));
   await sleep(700);
   ob = await plan();
   check('Rerun adds a second plan and the abs day is saved on it', ob.customSplits === 2 && ob.days === 5, JSON.stringify(ob));
+
+  // Look goal: skip the tape, pick the Pairs split, regenerate once, then use it.
+  await click('nav button::-p-text(Profile)');
+  await tap('Build my plan');
+  await tap('Next');
+  await tap('Look better (aesthetics)');
+  await tap('Next');
+  await tap('Skip, use rough estimate');
+  for (let i = 0; i < 6; i++) await tap('Next');
+  await tap('Pairs');
+  await tap('See my plan');
+  const before = await text();
+  check('Look plan uses the Pairs split', before.includes('Your plan · Pairs') && before.includes('Cardio + Abs'), before.slice(0, 200));
+  await tap('Regenerate');
+  const after = await text();
+  check('Regenerate changes the plan', after !== before && after.includes('Your plan · Pairs'));
+  await shot('21-onboarding-look-regenerated');
+  await tap('Use this plan');
+  await sleep(600);
+  ob = await plan();
+  check('Look goal and Pairs style are saved', ob.planGoal === 'look' && ob.planStyle === 'pairs' && ob.days === 4, JSON.stringify(ob));
 }
 
 check('No runtime errors in console', errors.length === 0, errors.slice(0, 5).join(' / '));

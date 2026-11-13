@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ALL_EQUIPMENT } from '@/domain/catalogue';
-import { bmiBand, suggestedGoal, type PlanGoal } from '@/domain/plan';
+import { bmiBand, lookPreset, suggestedGoal, type PlanGoal } from '@/domain/plan';
 import { bmi, fromDisplay, parseNumber, toDisplay } from '@/domain/stats';
 import type { Activity, EquipmentKind, FocusArea, Profile } from '@/domain/types';
 import { Button } from '@/components/ui/button';
@@ -127,6 +127,7 @@ const GOALS: Choice<PlanGoal>[] = [
   { value: 'build', label: 'Build muscle', hint: 'Grow, with a small calorie surplus' },
   { value: 'strength', label: 'Get stronger', hint: 'Heavier lifts, fewer reps' },
   { value: 'fit', label: 'Stay fit', hint: 'Balanced training, steady weight' },
+  { value: 'look', label: 'Look better (aesthetics)', hint: 'Shoulders, waist and lean, built by the numbers' },
 ];
 
 export function Goal() {
@@ -147,6 +148,68 @@ export function Goal() {
             next();
           }}
         />
+      </StepFooter>
+    </>
+  );
+}
+
+/** Tape measurements for a body-fat estimate; only shown for the look goal. */
+export function Tape() {
+  const a = useDraft();
+  const female = a.sex === 'female';
+  const [waist, setWaist] = useState(a.waistCm ? String(a.waistCm) : '');
+  const [neck, setNeck] = useState(a.neckCm ? String(a.neckCm) : '');
+  const [hips, setHips] = useState(a.hipsCm ? String(a.hipsCm) : '');
+  const [tried, setTried] = useState(false);
+  const w = parseNumber(waist);
+  const n = parseNumber(neck);
+  const h = parseNumber(hips);
+  const errors = [
+    !inRange(w, 40, 200) && 'Waist must be 40–200 cm.',
+    !inRange(n, 20, 70) && 'Neck must be 20–70 cm.',
+    female && !inRange(h, 50, 200) && 'Hips must be 50–200 cm.',
+    w != null && n != null && w <= n && 'Waist must be bigger than neck.',
+  ].filter(Boolean) as string[];
+
+  function submit() {
+    setTried(true);
+    if (errors.length) return;
+    setDraft({ waistCm: w!, neckCm: n!, hipsCm: female ? h! : undefined });
+    next();
+  }
+
+  return (
+    <>
+      <StepTitle
+        title="Measure with a tape"
+        subtitle={`Waist at your belly button, neck just below the Adam's apple${female ? ', hips at the widest point' : ''}. It estimates body fat within about 3 to 4%.`}
+      />
+      <List>
+        <FieldRow label="Waist (cm)">
+          <TextInput aria-label="Waist in cm" inputMode="decimal" placeholder="82" value={waist} onChange={(e) => setWaist(e.target.value)} className="w-24" />
+        </FieldRow>
+        <FieldRow label="Neck (cm)">
+          <TextInput aria-label="Neck in cm" inputMode="decimal" placeholder="38" value={neck} onChange={(e) => setNeck(e.target.value)} className="w-24" />
+        </FieldRow>
+        {female && (
+          <FieldRow label="Hips (cm)">
+            <TextInput aria-label="Hips in cm" inputMode="decimal" placeholder="96" value={hips} onChange={(e) => setHips(e.target.value)} className="w-24" />
+          </FieldRow>
+        )}
+      </List>
+      {!a.sex && <p className="px-4 pt-2 text-footnote text-label-2">Body fat needs your sex. Go back to add it, or skip.</p>}
+      {tried && <FieldError>{errors[0]}</FieldError>}
+      <StepFooter>
+        <NextButton disabled={!a.sex} onClick={submit} />
+        <Button
+          variant="plain"
+          onClick={() => {
+            setDraft({ waistCm: undefined, neckCm: undefined, hipsCm: undefined });
+            next();
+          }}
+        >
+          Skip, use rough estimate
+        </Button>
       </StepFooter>
     </>
   );
@@ -308,11 +371,17 @@ const AREAS: { value: FocusArea; label: string }[] = [
   { value: 'legs', label: 'Legs' },
   { value: 'glutes', label: 'Glutes' },
   { value: 'abs', label: 'Abs' },
+  { value: 'upper-chest', label: 'Upper chest' },
+  { value: 'side-delts', label: 'Side delts' },
+  { value: 'lats', label: 'Lats' },
+  { value: 'traps-neck', label: 'Traps & neck' },
+  { value: 'forearms', label: 'Forearms' },
 ];
 
 export function Focus() {
   const a = useDraft();
-  const focus = a.focus ?? [];
+  // The look goal starts from a preset the user can change.
+  const focus = a.focus ?? (a.goal === 'look' ? lookPreset(a.sex) : []);
   const toggle = (f: FocusArea) => {
     if (focus.includes(f)) setDraft({ focus: focus.filter((x) => x !== f) });
     else if (focus.length < 3) setDraft({ focus: [...focus, f] });
@@ -335,7 +404,7 @@ export function Focus() {
       </div>
       <StepFooter>
         <NextButton
-          label="See my plan"
+          label="Next"
           onClick={() => {
             setDraft({ focus });
             next();

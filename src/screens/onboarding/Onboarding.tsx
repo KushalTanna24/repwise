@@ -7,9 +7,10 @@ import { latestWeight } from '@/domain/stats';
 import type { AppData } from '@/domain/types';
 import { Button } from '@/components/ui/button';
 import { useData } from '@/store/app';
-import { LAST_STEP, useOnboarding, type Draft } from '@/store/onboarding';
+import { LAST_STEP, STEP, useOnboarding, type Draft } from '@/store/onboarding';
 import { Result } from './Result';
-import { Body, Calories, DailyLife, Equipment, Experience, Focus, Goal, Schedule, Welcome } from './steps';
+import { StyleStep } from './StyleStep';
+import { Body, Calories, DailyLife, Equipment, Experience, Focus, Goal, Schedule, Tape, Welcome } from './steps';
 
 /** A rerun starts from what the profile already knows. */
 function prefill(data: AppData): Draft {
@@ -27,6 +28,11 @@ function prefill(data: AppData): Draft {
     sessionMinutes: p.sessionMinutes,
     equipment: p.equipment,
     focus: p.focus ?? [],
+    waistCm: p.waistCm,
+    neckCm: p.neckCm,
+    hipsCm: p.hipsCm,
+    style: p.planStyle,
+    customPairs: p.customPairs,
     units: p.units,
   };
 }
@@ -86,16 +92,18 @@ export function Onboarding({ rerun = false, onClose }: { rerun?: boolean; onClos
             exit={reduce ? { opacity: 0 } : { opacity: 0, x: -24 }}
             transition={{ duration: 0.2 }}
           >
-            {step === 0 && <Welcome rerun={rerun} />}
-            {step === 1 && <Body defaultUnits={data.profile.units} />}
-            {step === 2 && <Goal />}
-            {step === 3 && <DailyLife />}
-            {step === 4 && <Calories />}
-            {step === 5 && <Experience />}
-            {step === 6 && <Schedule />}
-            {step === 7 && <Equipment fallback={data.profile.equipment} />}
-            {step === 8 && <Focus />}
-            {step === 9 && <Result rerun={rerun} />}
+            {step === STEP.welcome && <Welcome rerun={rerun} />}
+            {step === STEP.body && <Body defaultUnits={data.profile.units} />}
+            {step === STEP.goal && <Goal />}
+            {step === STEP.tape && <Tape />}
+            {step === STEP.daily && <DailyLife />}
+            {step === STEP.calories && <Calories />}
+            {step === STEP.experience && <Experience />}
+            {step === STEP.schedule && <Schedule />}
+            {step === STEP.equipment && <Equipment fallback={data.profile.equipment} />}
+            {step === STEP.focus && <Focus />}
+            {step === STEP.style && <StyleStep />}
+            {step === STEP.result && <Result rerun={rerun} />}
           </motion.div>
         </AnimatePresence>
       </div>
