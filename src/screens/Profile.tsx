@@ -8,7 +8,7 @@ import { openSheet } from '@/lib/route';
 import { useNotifyPermission } from '@/lib/notify';
 import { useData } from '@/store/app';
 import { useSyncState } from '@/sync/useSync';
-import { SignInCard } from './profile/SignInCard';
+import { AccountRow } from './profile/SignInCard';
 import { profileSummaries, type ProfileRow } from './profile/summaries';
 
 const ROWS: { id: ProfileRow; title: string; icon: LucideIcon }[] = [
@@ -32,7 +32,7 @@ export function Profile() {
   const s = streak(data, today);
   return (
     <Screen title="Profile">
-      <SignInCard />
+      <AccountRow />
       {s.current > 0 && (
         <div className="flex items-center gap-2 px-4 pt-3 text-subhead text-label-2">
           <Flame lit size={16} /> {s.current}-day streak

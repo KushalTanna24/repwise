@@ -3,6 +3,7 @@ import dayjs from 'dayjs';
 import { Cloud, CloudOff, LoaderCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, List, Row } from '@/components/ui/card';
+import { Sheet } from '@/components/ui/sheet';
 import { cn } from '@/lib/cn';
 import { toast } from '@/lib/toast';
 import { LAST_EMAIL_KEY } from '@/sync/authUrl';
@@ -25,8 +26,8 @@ function writeEmail(v: string) {
   }
 }
 
-export function SignInCard() {
-  const { user, status, message, lastSyncedAt, retry } = useSyncState();
+/** The magic-link form on its own: email field, Send link, then the "check your email" state. */
+export function SignInForm() {
   const [email, setEmail] = useState(readEmail);
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
@@ -50,6 +51,65 @@ export function SignInCard() {
     setWait(RESEND_SECONDS);
   }
 
+  return sent ? (
+    <div className="mt-3 grid gap-2">
+      <p className="rounded-[12px] bg-green/12 px-3 py-2 text-subhead text-[#248A3D]">Open the link in the email, then come back to Repwise.</p>
+      <div className="flex gap-2">
+        <Button variant="plain" onClick={send} disabled={sending || wait > 0}>
+          {wait > 0 ? `Resend (${wait}s)` : 'Resend'}
+        </Button>
+        <Button variant="plain" onClick={() => setSent(false)}>
+          Change email
+        </Button>
+      </div>
+    </div>
+  ) : (
+    <div className="mt-3 flex gap-2">
+      <input
+        type="email"
+        autoComplete="email"
+        aria-label="Email"
+        placeholder="you@example.com"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        className="h-10 min-w-0 flex-1 rounded-[10px] bg-fill px-3 text-body outline-none focus:ring-2 focus:ring-blue"
+      />
+      <Button onClick={send} disabled={sending}>
+        {sending ? <LoaderCircle className="size-4 animate-spin" /> : 'Send link'}
+      </Button>
+    </div>
+  );
+}
+
+/** Profile's account row: the same compact row signed in or out; signed out, it opens the form in a sheet. */
+export function AccountRow() {
+  const { user } = useSyncState();
+  const [open, setOpen] = useState(false);
+  if (user) return <SignInCard />;
+  return (
+    <>
+      <List>
+        <Row
+          leading={<CloudOff className="size-5 text-label-2" />}
+          title="Not signed in"
+          subtitle="Saved on this phone only"
+          value="Sign in"
+          chevron
+          onClick={() => setOpen(true)}
+        />
+      </List>
+      <Sheet open={open} onClose={() => setOpen(false)} title="Back up to the cloud">
+        <p className="text-subhead text-label-2">Sign in with a magic link to back up your workouts and restore them on a new phone. No password needed.</p>
+        <SignInForm />
+      </Sheet>
+    </>
+  );
+}
+
+/** Inline card for places that sign in on the spot (onboarding, Groups); signed in, the backup status row. */
+export function SignInCard() {
+  const { user, status, message, lastSyncedAt, retry } = useSyncState();
+
   if (!user)
     return (
       <Card className="p-4">
@@ -57,33 +117,7 @@ export function SignInCard() {
           <CloudOff className="size-5 text-label-2" /> Saved on this phone only
         </div>
         <p className="mt-1 text-subhead text-label-2">Sign in with a magic link to back up to the cloud and restore on a new phone.</p>
-        {sent ? (
-          <div className="mt-3 grid gap-2">
-            <p className="rounded-[12px] bg-green/12 px-3 py-2 text-subhead text-[#248A3D]">Open the link in the email, then come back to Repwise.</p>
-            <div className="flex gap-2">
-              <Button variant="plain" onClick={send} disabled={sending || wait > 0}>
-                {wait > 0 ? `Resend (${wait}s)` : 'Resend'}
-              </Button>
-              <Button variant="plain" onClick={() => setSent(false)}>
-                Change email
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="mt-3 flex gap-2">
-            <input
-              type="email"
-              autoComplete="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="h-10 min-w-0 flex-1 rounded-[10px] bg-fill px-3 text-body outline-none focus:ring-2 focus:ring-blue"
-            />
-            <Button onClick={send} disabled={sending}>
-              {sending ? <LoaderCircle className="size-4 animate-spin" /> : 'Send link'}
-            </Button>
-          </div>
-        )}
+        <SignInForm />
       </Card>
     );
 
