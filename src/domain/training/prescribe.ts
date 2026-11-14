@@ -16,7 +16,7 @@ export function cardioMinutes(sessionMinutes: Profile['sessionMinutes']): 10 | 1
 }
 
 export function prescription(
-  profile: Pick<Profile, 'objective' | 'experience'>,
+  profile: Pick<Profile, 'objective' | 'experience' | 'strengthBias'>,
   role: Slot['role'],
   ex: Exercise | undefined,
   sessionMinutes: Profile['sessionMinutes'] = 60,
@@ -26,6 +26,12 @@ export function prescription(
     return { sets: 1, repMin: sec, repMax: sec, restSec: 0 };
   }
   if (ex?.kind === 'timed') return { sets: 3, repMin: 30, repMax: 60, restSec: 60 };
+  // Powerbuilding: heavy main lifts, hypertrophy everywhere else.
+  const heavy = role === 'anchor' && profile.strengthBias && profile.objective !== 'strength';
+  if (heavy) {
+    const sets = profile.experience === 'beginner' ? RX.strength.anchor.sets - 1 : RX.strength.anchor.sets;
+    return { ...RX.strength.anchor, sets, restSec: 180 };
+  }
   const base = RX[profile.objective][role];
   let sets = base.sets;
   if (profile.experience === 'beginner' && role === 'anchor') sets = Math.max(2, sets - 1);

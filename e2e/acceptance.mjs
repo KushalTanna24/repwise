@@ -517,7 +517,7 @@ check('Ending early says so', (await text()).includes('Fast ended at 0h'));
     await page.type(`input[aria-label="${label}"]`, value);
   };
   const plan = () =>
-    page.evaluate(() => new Promise((res) => { const r = indexedDB.open('keyval-store'); r.onsuccess = () => { const g = r.result.transaction('keyval').objectStore('keyval').get('repwise_v4'); g.onsuccess = () => { const d = JSON.parse(g.result).state.data; const s = d.customSplits.find((x) => x.id === d.program.splitId); res({ splitId: d.program.splitId, customSplits: d.customSplits.length, days: s?.sessions.length ?? 0, firstDay: s?.sessions[0]?.title ?? '', onboardedAt: d.profile.onboardedAt ?? null, focus: d.profile.focus ?? [], planGoal: d.profile.planGoal ?? null, planStyle: d.profile.planStyle ?? null }); }; }; }));
+    page.evaluate(() => new Promise((res) => { const r = indexedDB.open('keyval-store'); r.onsuccess = () => { const g = r.result.transaction('keyval').objectStore('keyval').get('repwise_v4'); g.onsuccess = () => { const d = JSON.parse(g.result).state.data; const s = d.customSplits.find((x) => x.id === d.program.splitId); res({ splitId: d.program.splitId, customSplits: d.customSplits.length, days: s?.sessions.length ?? 0, firstDay: s?.sessions[0]?.title ?? '', onboardedAt: d.profile.onboardedAt ?? null, focus: d.profile.focus ?? [], planGoal: d.profile.planGoal ?? null, planStyle: d.profile.planStyle ?? null, strengthBias: !!d.profile.strengthBias }); }; }; }));
 
   await page.evaluate(() => {
     localStorage.clear();
@@ -590,6 +590,8 @@ check('Ending early says so', (await text()).includes('Fast ended at 0h'));
   await tap('Build my plan');
   await tap('Next');
   await tap('Look better (aesthetics)');
+  await page.click('[role="switch"][aria-label="Also get stronger"]');
+  await sleep(300);
   await tap('Next');
   await tap('Skip, use rough estimate');
   for (let i = 0; i < 6; i++) await tap('Next');
@@ -605,6 +607,7 @@ check('Ending early says so', (await text()).includes('Fast ended at 0h'));
   await sleep(600);
   ob = await plan();
   check('Look goal and Pairs style are saved', ob.planGoal === 'look' && ob.planStyle === 'pairs' && ob.days === 4, JSON.stringify(ob));
+  check('Also get stronger is saved', ob.strengthBias === true, JSON.stringify(ob));
 }
 
 // Groups (signed out: the signed-in flow needs a real account and the migrated project; see README "Groups").

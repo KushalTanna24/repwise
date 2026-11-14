@@ -43,6 +43,13 @@ describe('look goal answers', () => {
     expect(applyAnswers(emptyAppData(NOW), { ...answers, goal: 'look', sex: undefined }, NOW).profile.bodyGoal).toBe('maintain');
   });
 
+  it('"also get stronger" applies to the look and build goals only', () => {
+    expect(applyAnswers(emptyAppData(NOW), { ...answers, goal: 'look', alsoStrength: true }, NOW).profile.strengthBias).toBe(true);
+    expect(applyAnswers(emptyAppData(NOW), { ...answers, goal: 'build', alsoStrength: true }, NOW).profile.strengthBias).toBe(true);
+    expect(applyAnswers(emptyAppData(NOW), { ...answers, goal: 'fit', alsoStrength: true }, NOW).profile.strengthBias).toBe(false);
+    expect(applyAnswers(emptyAppData(NOW), { ...answers, goal: 'look' }, NOW).profile.strengthBias).toBe(false);
+  });
+
   it('presets by sex', () => {
     expect(lookPreset('male')).toEqual(['side-delts', 'lats', 'upper-chest']);
     expect(lookPreset('female')).toEqual(['glutes', 'side-delts', 'lats']);

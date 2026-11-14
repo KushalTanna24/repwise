@@ -140,6 +140,15 @@ export function Goal() {
       <StepTitle title="What do you want most?" />
       <ChoiceList options={GOALS} selected={goal ? [goal] : []} onToggle={(g) => setDraft({ goal: g })} />
       {suggestion && <p className="px-4 pt-2 text-footnote text-label-2">Suggested from your BMI. BMI can misread muscular builds, so pick what you want.</p>}
+      {(goal === 'look' || goal === 'build') && (
+        <div className="mt-6">
+          <List>
+            <FieldRow label="Also get stronger" hint="Main lifts go heavy (4–6 reps). Everything else still builds size.">
+              <Switch label="Also get stronger" checked={!!a.alsoStrength} onChange={(on) => setDraft({ alsoStrength: on })} />
+            </FieldRow>
+          </List>
+        </div>
+      )}
       <StepFooter>
         <NextButton
           disabled={!goal}

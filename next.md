@@ -8,7 +8,11 @@ A checklist tracker for skincare, posture, sleep and grooming with streaks, buil
 
 Evidence-graded guides on skin, hair, posture, body fat, style and face basics, in the exercise-guide format. Needs its own spec.
 
-## Plan generator v2 and "Look better" goal (shipped in 4.8.0)
+## Version 1.0.0
+
+Versioning restarts at 1.0.0 with this release (the previous build was 4.8.0). It adds an "Also get stronger" switch on the Look better and Build muscle goals (main lifts at 4 × 4–6, everything else unchanged) and the final-review fixes for the plan builder.
+
+## Plan generator v2 and "Look better" goal (shipped in 1.0.0; first went live as 4.8.0)
 
 The plan builder was rebuilt as a pipeline in `domain/plan/v2`: 17 muscle groups (upper chest, side and rear delts, lats vs upper back, traps, neck, forearms), scored exercise choice, split styles (Full body, Upper/Lower, PPL, Hybrid PPL, Arnold, Pairs, Bro split and Custom pairs), best of 20 candidates with a Regenerate that gives a properly different plan, and weekly volume that adapts to logged history. A "Look better (aesthetics)" goal adds a tape-measure body-fat estimate, a leanness target and V-taper or shoulders-waist-glutes presets. Spec: `docs/superpowers/specs/2026-11-13-plan-generator-v2-design.md`.
 

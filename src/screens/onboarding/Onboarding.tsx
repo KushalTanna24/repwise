@@ -29,6 +29,7 @@ function prefill(data: AppData): Draft {
     equipment: p.equipment,
     focus: p.focus ?? [],
     style: p.planStyle,
+    alsoStrength: p.strengthBias,
     customPairs: p.customPairs,
     units: p.units,
   };

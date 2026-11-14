@@ -14,7 +14,7 @@ const VERSION_KEY = 'repwise_seen_version';
 const WHATS_NEW = {
   version: __APP_VERSION__,
   title: 'Repwise updated',
-  body: 'Sign-in now confirms itself, supplement library, tidier Profile, water reminders.',
+  body: 'A new plan builder: Look better goal, split styles including Pairs and Custom pairs, Regenerate, and an Also get stronger option.',
 };
 
 function read(key: string) {

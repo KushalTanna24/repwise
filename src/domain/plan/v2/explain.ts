@@ -41,6 +41,7 @@ export function explainV2(r: PlanResultV2, p: Profile, body: BodyFatEstimate | n
     );
   }
 
+  if (p.strengthBias && p.objective !== 'strength') lines.push('Main lifts go heavy (4–6 reps) for strength; everything else builds size.');
   for (const g of focus.slice(0, 3)) lines.push(`${GROUP_LABEL[g]}: ${sets(g)} sets a week across ${r.daysHit[g]} days (focus).`);
   for (const reason of r.targets.reasons) lines.push(reason.text);
   if (r.short.length) lines.push(`Short on time: ${list(r.short.map(lower))} get under their target. Add a day or longer sessions.`);

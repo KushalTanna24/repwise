@@ -33,6 +33,13 @@ describe('explainV2', () => {
     expect(lines.some((l) => l.startsWith('V-taper:'))).toBe(false);
   });
 
+  it('explains heavy main lifts when "also get stronger" is on', () => {
+    const d = dataFor(GOLDEN.maleLook);
+    const p = { ...d.profile, strengthBias: true };
+    const lines = explainV2(generatePlanV2({ ...d, profile: p }, { style: 'auto', seed: 1, shown: [] }, NOW), p, null);
+    expect(lines).toContain('Main lifts go heavy (4–6 reps) for strength; everything else builds size.');
+  });
+
   it('adds the calorie clause on a cut', () => {
     const d = dataFor({ ...GOLDEN.maleLook, bodyGoal: 'lose' });
     const lines = explainV2(generatePlanV2(d, { style: 'auto', seed: 1, shown: [] }, NOW), d.profile, { pct: 19, method: 'navy' }, 350);

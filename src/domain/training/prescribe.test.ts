@@ -16,6 +16,15 @@ describe('cardio prescription', () => {
     expect(cardioMinutes(90)).toBe(20);
   });
 
+  it('"also get stronger" makes main lifts heavy and leaves the rest alone', () => {
+    const strong = { objective: 'hypertrophy', experience: 'intermediate', strengthBias: true } as const;
+    const bench = getExercise('bench-press', [])!;
+    expect(prescription(strong, 'anchor', bench)).toEqual({ sets: 4, repMin: 4, repMax: 6, restSec: 180 });
+    expect(prescription(strong, 'accessory', bench)).toEqual(prescription(p, 'accessory', bench));
+    expect(prescription({ ...strong, experience: 'beginner' }, 'anchor', bench).sets).toBe(3);
+    expect(prescription(strong, 'anchor', getExercise('plank', [])!)).toEqual(prescription(p, 'anchor', getExercise('plank', [])!));
+  });
+
   it('the planner sizes cardio from the profile session length', () => {
     const d = emptyAppData(NOW);
     const out = prescribe({ ...d, profile: { ...d.profile, sessionMinutes: 45 } }, 'bike', 'accessory', NOW);

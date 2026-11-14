@@ -24,6 +24,8 @@ export interface PlanAnswers {
   waistCm?: number;
   neckCm?: number;
   hipsCm?: number;
+  /** "Also get stronger" on the look or build goal. */
+  alsoStrength?: boolean;
   style?: StyleId | 'auto';
   customPairs?: DayLayout[];
 }
@@ -65,6 +67,7 @@ export function applyAnswers(data: AppData, a: PlanAnswers, now: string): AppDat
     sessionMinutes: a.sessionMinutes,
     equipment: a.equipment,
     focus: a.focus,
+    strengthBias: (a.goal === 'look' || a.goal === 'build') && !!a.alsoStrength,
     planStyle: a.style ?? data.profile.planStyle,
     customPairs: a.customPairs ?? data.profile.customPairs,
     onboardedAt: now,

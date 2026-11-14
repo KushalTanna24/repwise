@@ -145,6 +145,8 @@ export interface Profile {
   focus?: FocusArea[];
   /** The plan builder's goal answer, kept so a rerun can prefill it. */
   planGoal?: PlanGoal;
+  /** "Also get stronger": main lifts use strength sets while the rest stays hypertrophy (look and build goals). */
+  strengthBias?: boolean;
   /** Split style picked in the plan builder. */
   planStyle?: StyleId | 'auto';
   /** The user's own day layout for the custom pairs style. */
