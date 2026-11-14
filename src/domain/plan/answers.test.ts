@@ -25,7 +25,9 @@ const answers: PlanAnswers = {
 describe('look goal answers', () => {
   it('writes planGoal, tape, style and hypertrophy', () => {
     const out = applyAnswers(emptyAppData(NOW), { ...answers, goal: 'look', sex: 'male', waistCm: 85, neckCm: 38, style: 'pairs' }, NOW);
-    expect(out.profile).toMatchObject({ planGoal: 'look', objective: 'hypertrophy', waistCm: 85, neckCm: 38, planStyle: 'pairs' });
+    expect(out.profile).toMatchObject({ planGoal: 'look', objective: 'hypertrophy', planStyle: 'pairs' });
+    // Tape measurements shape the calorie goal but are never stored: the synced profile is visible to groups.
+    expect(Object.keys(out.profile).filter((k) => /waist|neck|hips/i.test(k))).toEqual([]);
     expect(goalFromProfile(out.profile)).toBe('look');
   });
 

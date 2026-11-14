@@ -65,14 +65,11 @@ export function applyAnswers(data: AppData, a: PlanAnswers, now: string): AppDat
     sessionMinutes: a.sessionMinutes,
     equipment: a.equipment,
     focus: a.focus,
-    waistCm: a.waistCm,
-    neckCm: a.neckCm,
-    hipsCm: a.hipsCm,
     planStyle: a.style ?? data.profile.planStyle,
     customPairs: a.customPairs ?? data.profile.customPairs,
     onboardedAt: now,
   };
-  profile.bodyGoal = a.goal === 'look' ? lookBodyGoal(estimateBodyFat(profile, a.weightKg, dayjs(now).year()), a.sex) : BODY_GOAL[a.goal];
+  profile.bodyGoal = a.goal === 'look' ? lookBodyGoal(estimateBodyFat(profile, a.weightKg, dayjs(now).year(), a), a.sex) : BODY_GOAL[a.goal];
   const weighIn = { id: crypto.randomUUID(), date, kg: +a.weightKg.toFixed(2) };
   return {
     ...data,

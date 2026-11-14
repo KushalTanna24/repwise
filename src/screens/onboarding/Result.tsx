@@ -40,7 +40,7 @@ export function Result({ rerun }: { rerun: boolean }) {
     const p = built.applied.profile;
     const e = energy(p, answers.weightKg, dayjs(now).year()).energy;
     const deficit = e && p.bodyGoal === 'lose' ? e.tdee - e.target : undefined;
-    return explainV2(result, p, estimateBodyFat(p, answers.weightKg, dayjs(now).year()), deficit);
+    return explainV2(result, p, estimateBodyFat(p, answers.weightKg, dayjs(now).year(), answers), deficit);
   }, [result, built, answers.weightKg, now]);
   if (!built || !result) return null;
   const { applied, first } = built;

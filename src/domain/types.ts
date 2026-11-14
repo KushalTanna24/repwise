@@ -145,10 +145,6 @@ export interface Profile {
   focus?: FocusArea[];
   /** The plan builder's goal answer, kept so a rerun can prefill it. */
   planGoal?: PlanGoal;
-  /** Tape measurements for the body-fat estimate, in cm. */
-  waistCm?: number;
-  neckCm?: number;
-  hipsCm?: number;
   /** Split style picked in the plan builder. */
   planStyle?: StyleId | 'auto';
   /** The user's own day layout for the custom pairs style. */

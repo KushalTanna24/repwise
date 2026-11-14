@@ -31,7 +31,7 @@ describe('body fat', () => {
 
   it('estimate prefers tape, falls back to rough, needs sex and height', () => {
     const p = (o: Partial<Profile>) => ({ ...emptyAppData('2026-11-11T08:00:00.000Z').profile, ...o }) as Profile;
-    expect(estimateBodyFat(p({ sex: 'male', heightCm: 180, waistCm: 85, neckCm: 38 }), 80, 2026)).toEqual({ pct: expect.closeTo(16.1, 1), method: 'navy' });
+    expect(estimateBodyFat(p({ sex: 'male', heightCm: 180 }), 80, 2026, { waistCm: 85, neckCm: 38 })).toEqual({ pct: expect.closeTo(16.1, 1), method: 'navy' });
     expect(estimateBodyFat(p({ sex: 'male', heightCm: 180, birthYear: 1996 }), 77.76, 2026)).toEqual({ pct: expect.closeTo(19.5, 1), method: 'rough' });
     expect(estimateBodyFat(p({ sex: 'male', heightCm: 180 }), 77.76, 2026)?.method).toBe('rough');
     expect(estimateBodyFat(p({ heightCm: 180 }), 80, 2026)).toBeNull();

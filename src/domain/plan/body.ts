@@ -37,11 +37,18 @@ export interface BodyFatEstimate {
   method: 'navy' | 'rough';
 }
 
+/** Tape measurements in cm. Used once and never stored: the synced profile is visible to groups. */
+export interface Tape {
+  waistCm?: number;
+  neckCm?: number;
+  hipsCm?: number;
+}
+
 /** Tape measurements win; otherwise BMI gives a rough number. Needs sex and height. */
-export function estimateBodyFat(p: Profile, kg: number, nowYear: number): BodyFatEstimate | null {
+export function estimateBodyFat(p: Profile, kg: number, nowYear: number, tape: Tape = {}): BodyFatEstimate | null {
   if (!p.sex || !p.heightCm) return null;
-  if (p.waistCm && p.neckCm) {
-    const navy = navyBodyFat(p.sex, p.heightCm, p.waistCm, p.neckCm, p.hipsCm);
+  if (tape.waistCm && tape.neckCm) {
+    const navy = navyBodyFat(p.sex, p.heightCm, tape.waistCm, tape.neckCm, tape.hipsCm);
     if (navy != null) return { pct: navy, method: 'navy' };
   }
   const value = bmi(kg, p.heightCm);
