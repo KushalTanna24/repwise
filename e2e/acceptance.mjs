@@ -607,6 +607,35 @@ check('Ending early says so', (await text()).includes('Fast ended at 0h'));
   check('Look goal and Pairs style are saved', ob.planGoal === 'look' && ob.planStyle === 'pairs' && ob.days === 4, JSON.stringify(ob));
 }
 
+// Groups (signed out: the signed-in flow needs a real account and the migrated project; see README "Groups").
+{
+  await page.goto(`${APP}#/today`, { waitUntil: 'networkidle0' });
+  await sleep(800);
+  const tabs = await page.$$eval('nav button', (bs) => bs.map((b) => b.textContent?.trim()));
+  check('Groups tab present', tabs.includes('Groups') && tabs.length === 5, tabs.join(','));
+  await page.evaluate(() => [...document.querySelectorAll('nav button')].find((b) => b.textContent?.includes('Groups'))?.click());
+  await sleep(600);
+  let t = await page.evaluate(() => document.body.innerText);
+  check('Signed-out Groups shows sign-in', t.includes('Train with family or friends') && t.includes('Send link'));
+  await page.goto(`${APP}#/groups/join:ABC234`, { waitUntil: 'networkidle0' });
+  await sleep(1200);
+  t = await page.evaluate(() => document.body.innerText);
+  const active = await page.$eval('nav button[aria-current="page"]', (b) => b.textContent?.trim());
+  const saved = await page.evaluate(() => localStorage.getItem('repwise_pending_join'));
+  check('Invite link opens groups tab with the join sheet', active === 'Groups' && t.includes('Join a group'), active);
+  check('Signed-out invite is kept for after sign-in', saved === 'ABC234', String(saved));
+
+  // A fresh install opens the link while onboarding covers the app: the code must still be kept.
+  const fresh = await (await browser.createBrowserContext()).newPage();
+  await fresh.setViewport({ width: 412, height: 915, isMobile: true });
+  await fresh.goto(`${APP}#/groups/join:XYZ789`, { waitUntil: 'networkidle0' });
+  await sleep(1500);
+  const onboarding = await fresh.evaluate(() => document.body.innerText.includes('Build my plan'));
+  const kept = await fresh.evaluate(() => localStorage.getItem('repwise_pending_join'));
+  check('Invite opened during onboarding is kept', onboarding && kept === 'XYZ789', `onboarding=${onboarding} kept=${kept}`);
+  await fresh.close();
+}
+
 check('No runtime errors in console', errors.length === 0, errors.slice(0, 5).join(' / '));
 console.log(results.join('\n'));
 await browser.close();

@@ -1,5 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { reminderToggle, sameServerKey, urlBase64ToUint8Array, withTimeout } from './pushUtil';
+import { nextKinds, reminderToggle, sameServerKey, urlBase64ToUint8Array, withTimeout } from './pushUtil';
+
+describe('nextKinds', () => {
+  it('adds nudges to reminders', () => expect(nextKinds(['reminders'], 'nudges', true)).toEqual(['nudges', 'reminders']));
+  it('removing reminders keeps nudges', () => expect(nextKinds(['reminders', 'nudges'], 'reminders', false)).toEqual(['nudges']));
+  it('removing the last kind leaves nothing', () => expect(nextKinds(['nudges'], 'nudges', false)).toEqual([]));
+  it('treats a missing row as empty', () => expect(nextKinds(null, 'reminders', true)).toEqual(['reminders']));
+  it('adding twice does not duplicate', () => expect(nextKinds(['nudges'], 'nudges', true)).toEqual(['nudges']));
+  it('drops unknown kinds the server would reject', () => expect(nextKinds(['old', 'reminders'], 'nudges', true)).toEqual(['nudges', 'reminders']));
+});
 
 // A real-shaped VAPID public key: 65 bytes, uncompressed point, first byte 0x04.
 const KEY = 'BEl62iUYgUivxIkv69yViEuiBIa-ib37J8xQmh7PJhkUCGqJWMfI0IuLZtv3WzgbVJj1fcvS_8VtGYuDQKp0AGE';

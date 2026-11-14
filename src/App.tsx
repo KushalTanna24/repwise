@@ -39,10 +39,16 @@ import { DailyBanner } from '@/components/DailyBanner';
 import { AuthBanner } from '@/components/AuthBanner';
 import { needsOnboarding } from '@/domain/plan';
 import { Onboarding } from '@/screens/onboarding/Onboarding';
+import { Groups } from '@/screens/groups/Groups';
+import { GroupFormSheet } from '@/screens/groups/GroupFormSheet';
+import { GroupSettingsSheet } from '@/screens/groups/GroupSettingsSheet';
+import { NudgesSheet } from '@/screens/groups/NudgesSheet';
+import { useGroupsSession } from '@/lib/groups';
 
 const queryClient = new QueryClient();
-// Charts are the heaviest dependency; load them only when Progress opens.
+// Charts are the heaviest dependency; load them only when Progress (or a group member's progress) opens.
 const Progress = lazy(() => import('@/screens/Progress').then((m) => ({ default: m.Progress })));
+const MemberSheet = lazy(() => import('@/screens/groups/MemberSheet').then((m) => ({ default: m.MemberSheet })));
 
 function Sheets() {
   const sheet = useRoute((r) => r.sheet) ?? '';
@@ -70,12 +76,21 @@ function Sheets() {
       <ChallengesSheet open={kind === 'challenges'} onClose={closeSheet} />
       <NewChallengeSheet templateId={kind === 'challenge-new' ? (arg as '75-day' | 'habit-stack' | 'custom') : null} onClose={closeSheet} />
       <RunDetailSheet runId={kind === 'challenge' ? arg : null} onClose={closeSheet} />
+      <GroupFormSheet mode={kind === 'group-new' ? { kind: 'create' } : kind === 'join' ? { kind: 'join', code: arg ?? '' } : null} onClose={closeSheet} />
+      <GroupSettingsSheet open={kind === 'group-settings'} onClose={closeSheet} />
+      <NudgesSheet open={kind === 'nudges'} onClose={closeSheet} />
+      {kind === 'member' && (
+        <Suspense fallback={null}>
+          <MemberSheet groupId={arg ?? null} userId={third ?? null} onClose={closeSheet} />
+        </Suspense>
+      )}
     </>
   );
 }
 
 function Shell() {
   useSyncEngine();
+  useGroupsSession();
   const tab = useRoute((r) => r.tab);
   const sheet = useRoute((r) => r.sheet);
   const hydrated = useApp((s) => s.hydrated);
@@ -105,6 +120,7 @@ function Shell() {
               <Progress />
             </Suspense>
           )}
+          {tab === 'groups' && <Groups />}
           {tab === 'profile' && <Profile />}
           <TabBar />
           <Sheets />
