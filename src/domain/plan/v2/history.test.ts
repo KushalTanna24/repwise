@@ -53,6 +53,10 @@ describe('readHistory', () => {
     for (const v of Object.values(h.baseline)) expect(Number.isFinite(v)).toBe(true);
     expect(h.baseline.chest).toBe(0);
     expect(Object.keys(h.trend)).toEqual([]);
+    // Finished but empty sessions are not training history.
+    expect(h.qualifies).toBe(false);
+    expect(h.finishRate).toBeNull();
+    expect(h.adherence).toBe(0);
   });
 
   it('marks skipped-three-times exercises as avoided', () => {

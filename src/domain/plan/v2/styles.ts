@@ -114,12 +114,14 @@ export interface PairsCheck {
   ok: boolean;
 }
 
-export function validateCustomPairs(days: DayLayout[], targets: Targets, daysPerWeek: number): PairsCheck {
+/** `cardioOk` is false when no cardio exercise fits the equipment, so a cardio-only day would be empty. */
+export function validateCustomPairs(days: DayLayout[], targets: Targets, daysPerWeek: number, cardioOk = true): PairsCheck {
   const f = frequency(days, daysPerWeek);
   const listed = new Set(days.flatMap((d) => d.groups));
   const missing = GROUPS.filter((g) => targets.sets[g] > 0 && !listed.has(g));
   const lowFrequency = GROUPS.filter((g) => targets.sets[g] > 0 && listed.has(g) && f[g] < LOW_FREQ);
-  const emptyDays = days.flatMap((d, i) => (d.groups.length === 0 && !d.cardio ? [i] : []));
+  // A day of muscles with no weekly target builds no exercises.
+  const emptyDays = days.flatMap((d, i) => (!d.groups.some((g) => targets.sets[g] > 0) && !(d.cardio && cardioOk) ? [i] : []));
   const ok = days.length >= 2 && days.length <= 7 && missing.length === 0 && emptyDays.length === 0;
   return { missing, lowFrequency, emptyDays, ok };
 }

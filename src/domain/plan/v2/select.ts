@@ -147,7 +147,8 @@ export function buildCandidate(ctx: Ctx, seed: number, jitter = 0.3): Candidate 
     const opening = MAJOR.has(g) && !d.opened.has(g);
     const ok = (it: PoolItem) =>
       !d.used.has(it.ex.id) &&
-      !(it.meta.compound && d.clashes.has(it.clash)) &&
+      // A second similar compound is fine only when it is light (a machine incline after a dumbbell incline).
+      !(it.meta.compound && it.meta.fatigue !== 'low' && d.clashes.has(it.clash)) &&
       !(it.meta.fatigue === 'high' && d.heavy >= 2) &&
       ((uses.get(it.ex.id) ?? 0) < 2 || (opening && it.meta.compound));
     let options = (ctx.byGroup.get(g) ?? []).filter(ok);
@@ -193,7 +194,9 @@ export function buildCandidate(ctx: Ctx, seed: number, jitter = 0.3): Candidate 
       for (const g of d.layout.groups) {
         if (targets.sets[g] <= 0 || d.blocked.has(g) || (d.remaining[g] ?? 0) <= 0 || achieved[g] >= targets.sets[g]) continue;
         const focus = targets.focus.has(g);
-        const urgent = achieved[g] < must(g) ? (focus ? 2 : 1) : 0;
+        // Focus muscles reach their floor, then 90% of target, before other muscles get their floor.
+        const below = achieved[g] < must(g);
+        const urgent = focus ? (below ? 3 : achieved[g] < 0.9 * targets.sets[g] ? 2 : 0) : below ? 1 : 0;
         const score = urgent + (targets.sets[g] - achieved[g]) / targets.sets[g] + (focus ? 0.25 : 0);
         const dir = direct(d, g);
         if (!best || score > best.score || (score === best.score && (dir < best.direct || (dir === best.direct && di < best.di)))) best = { d, g, score, direct: dir, di };

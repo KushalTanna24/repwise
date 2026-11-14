@@ -49,7 +49,8 @@ export function estimateBodyFat(p: Profile, kg: number, nowYear: number, tape: T
   if (!p.sex || !p.heightCm) return null;
   if (tape.waistCm && tape.neckCm) {
     const navy = navyBodyFat(p.sex, p.heightCm, tape.waistCm, tape.neckCm, tape.hipsCm);
-    if (navy != null) return { pct: navy, method: 'navy' };
+    // Outside 3–60% the tape was misread; the rough estimate is closer to the truth.
+    if (navy != null && navy >= 3 && navy <= 60) return { pct: navy, method: 'navy' };
   }
   const value = bmi(kg, p.heightCm);
   if (value == null) return null;

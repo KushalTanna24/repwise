@@ -79,6 +79,14 @@ describe('styles', () => {
     expect(validateCustomPairs(styleLayout('pairs', 4), t, 4).ok).toBe(true);
   });
 
+  it('treats a day of only untargeted muscles, or cardio with no cardio equipment, as empty', () => {
+    const t = targetsFor({ daysPerWeek: 4 });
+    const days = [...styleLayout('pairs', 4), { title: 'Neck', groups: ['neck' as const] }];
+    expect(validateCustomPairs(days, t, 4).emptyDays).toEqual([4]);
+    expect(validateCustomPairs(styleLayout('pairs', 4), t, 4, false).emptyDays).toEqual([]);
+    expect(validateCustomPairs([...styleLayout('pairs', 4).slice(0, 3), { title: 'Cardio', groups: [], cardio: true }], t, 4, false).emptyDays).toEqual([3]);
+  });
+
   it('rejects fewer than 2 or more than 7 days', () => {
     const t = targetsFor({ daysPerWeek: 4 });
     expect(validateCustomPairs([{ title: 'All', groups: [...GROUPS] }], t, 4).ok).toBe(false);

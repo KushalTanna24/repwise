@@ -38,9 +38,12 @@ export function readHistory(data: AppData, now: string): History {
   const monday = mondayOf(today);
   const baselineFrom = monday.subtract(BASELINE_WEEKS * 7, 'day');
   const trendFrom = today.subtract(TREND_WEEKS * 7, 'day');
-  const finished = data.sessions.filter((s) => s.finishedAt).sort((a, b) => a.startedAt.localeCompare(b.startedAt));
-  const exercise = (id: string) => getExercise(id, data.customExercises);
   const doneSets = (e: WorkoutSession['exercises'][number]) => e.sets.filter((x) => x.status === 'done');
+  // A finished session with nothing ticked is not training history.
+  const finished = data.sessions
+    .filter((s) => s.finishedAt && s.exercises.some((e) => doneSets(e).length > 0))
+    .sort((a, b) => a.startedAt.localeCompare(b.startedAt));
+  const exercise = (id: string) => getExercise(id, data.customExercises);
 
   // Weeks with 2+ sessions, and the baseline over the same 6 complete weeks.
   const perWeek = new Map<string, number>();
@@ -65,7 +68,8 @@ export function readHistory(data: AppData, now: string): History {
   const series = new Map<string, { at: Dayjs; score: number }[]>();
   const skips = new Map<string, number>();
   const swaps = new Map<string, number>();
-  for (const s of recent) {
+  const recentAll = data.sessions.filter((s) => s.finishedAt && !dayjs(s.startedAt).isBefore(trendFrom));
+  for (const s of recentAll) {
     for (const e of s.exercises) {
       if (e.skipped) skips.set(e.exerciseId, (skips.get(e.exerciseId) ?? 0) + 1);
       const slot = findSlot(data, s.splitId, e.slotId);

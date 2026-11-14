@@ -38,6 +38,14 @@ describe('body fat', () => {
     expect(estimateBodyFat(p({ sex: 'female' }), 60, 2026)).toBeNull();
   });
 
+  it('ignores tape readings outside 3 to 60% and falls back to the rough estimate', () => {
+    const p = (o: Partial<Profile>) => ({ ...emptyAppData('2026-11-11T08:00:00.000Z').profile, ...o }) as Profile;
+    const man = p({ sex: 'male', heightCm: 178, birthYear: 1996 });
+    expect(estimateBodyFat(man, 75, 2026, { waistCm: 68, neckCm: 38 })?.method).toBe('rough');
+    expect(estimateBodyFat(man, 75, 2026, { waistCm: 41, neckCm: 40 })?.method).toBe('rough');
+    expect(estimateBodyFat(man, 75, 2026, { waistCm: 85, neckCm: 38 })?.method).toBe('navy');
+  });
+
   it('leanness targets', () => {
     expect(leannessTarget('male')).toEqual({ min: 10, max: 15, floor: 8 });
     expect(leannessTarget('female')).toEqual({ min: 18, max: 25, floor: 16 });

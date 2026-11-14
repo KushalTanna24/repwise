@@ -55,8 +55,8 @@ export function returnTier(days: number | null): ReturnTier {
 }
 const EASE: Record<ReturnTier, number> = { 0: 0, 1: 0, 2: 0.15, 3: 0.3 };
 
-/** From three weeks off, one set fewer, never below two. */
-export const easedSets = (sets: number, tier: ReturnTier) => (tier >= 2 ? Math.max(2, sets - 1) : sets);
+/** From three weeks off, one set fewer, never below two, and never more than prescribed (a cardio block stays one). */
+export const easedSets = (sets: number, tier: ReturnTier) => (tier >= 2 ? Math.max(Math.min(2, sets), sets - 1) : sets);
 
 /**
  * Rules-based double progression. Only finished sessions and sets the user

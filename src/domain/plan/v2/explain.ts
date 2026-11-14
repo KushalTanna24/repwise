@@ -1,5 +1,5 @@
 import type { Profile } from '../../types';
-import type { BodyFatEstimate } from '../body';
+import { leannessTarget, type BodyFatEstimate } from '../body';
 import type { PlanResultV2 } from './generate';
 import { GROUPS, GROUP_LABEL, type Group } from './groups';
 import { LOW_FREQ, STYLE_NAME } from './styles';
@@ -28,6 +28,11 @@ export function explainV2(r: PlanResultV2, p: Profile, body: BodyFatEstimate | n
   const typical = Math.round(median(trained.map((g) => r.frequency[g])) * 2) / 2;
   const lines: string[] = [`${STYLE_NAME[r.style]}. Each muscle trained about ${times(typical)} a week.`];
 
+  if (r.fallback) {
+    const why = r.fallback.missing.length ? `leave out ${list(r.fallback.missing.map(lower))}` : 'have a day with nothing to train';
+    lines.push(`Your custom pairs ${why}, so Repwise picked ${STYLE_NAME[r.style]}. Edit them in the split step.`);
+  }
+
   const rare = focus.filter((g) => r.frequency[g] < LOW_FREQ);
   if (rare.length) {
     const f = Math.round(r.frequency[rare[0]] * 2) / 2;
@@ -49,7 +54,12 @@ export function explainV2(r: PlanResultV2, p: Profile, body: BodyFatEstimate | n
       p.bodyGoal === 'lose' && deficitKcal && deficitKcal > 0
         ? ` Waist stays tight through a ${Math.round(deficitKcal)} kcal deficit, about ${((deficitKcal * 7) / 7700).toFixed(1)} kg a week.`
         : '';
-    lines.push(`${lead}: ${lower(a)} ${sets(a)} sets and ${lower(b)} ${sets(b)} sets lead the week.${cut} Body fat ~${Math.round(body.pct)}% (${body.method === 'navy' ? 'tape' : 'rough'}), aim ${aim}.`);
+    const how = body.method === 'navy' ? 'tape' : 'rough';
+    if (body.pct <= leannessTarget(p.sex).floor) {
+      lines.push(`Body fat ~${Math.round(body.pct)}% (${how}) is at the healthy floor for ${p.sex === 'male' ? 'men' : 'women'}. Maintaining is the healthy choice, so calories stay at maintenance.`);
+    } else {
+      lines.push(`${lead}: ${lower(a)} ${sets(a)} sets and ${lower(b)} ${sets(b)} sets lead the week.${cut} Body fat ~${Math.round(body.pct)}% (${how}), aim ${aim}.`);
+    }
   }
 
   const tail = r.history ? [] : [NO_HISTORY];

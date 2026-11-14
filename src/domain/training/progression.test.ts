@@ -189,5 +189,7 @@ describe('return after a gap', () => {
 
   it('easedSets drops one set from 21 days off, never below 2', () => {
     expect([easedSets(3, 1), easedSets(3, 2), easedSets(4, 3), easedSets(2, 2)]).toEqual([3, 2, 3, 2]);
+    // A single block (cardio) never grows after a break.
+    expect([easedSets(1, 2), easedSets(1, 3)]).toEqual([1, 1]);
   });
 });

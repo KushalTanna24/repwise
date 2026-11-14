@@ -4,7 +4,7 @@ import { allocate } from './allocate';
 import { GROUPS, type DayLayout, type Group, type StyleId } from './groups';
 import { readHistory } from './history';
 import { planDistance, scorePlan } from './score';
-import { buildCandidate, limitedGroups, makeCtx, type Candidate } from './select';
+import { buildCandidate, buildPool, limitedGroups, makeCtx, type Candidate } from './select';
 import { STYLE_NAME, frequency, pickStyle, styleLayout, validateCustomPairs } from './styles';
 import { weeklyTargets, type Targets } from './targets';
 
@@ -39,6 +39,8 @@ export interface PlanResultV2 {
   score: number;
   /** Whether the history was long enough to adjust targets. */
   history: boolean;
+  /** Custom pairs were asked for but could not be used as saved; another style was picked. */
+  fallback: { missing: Group[]; emptyDays: number[] } | null;
 }
 
 /**
@@ -52,18 +54,22 @@ export function generatePlanV2(data: AppData, req: PlanRequest, now: string): Pl
 
   let style: StyleId;
   let layout: DayLayout[];
+  let fallback: PlanResultV2['fallback'] = null;
   const pairs = req.customPairs ?? p.customPairs;
-  if (req.style === 'custom' && pairs && validateCustomPairs(pairs, targets, p.daysPerWeek).ok) {
+  const cardioOk = buildPool(data).some((it) => it.ex.pattern === 'cardio');
+  const check = req.style === 'custom' && pairs ? validateCustomPairs(pairs, targets, p.daysPerWeek, cardioOk) : null;
+  if (check?.ok && pairs) {
     style = 'custom';
     layout = pairs.map((d) => ({ ...d, groups: [...d.groups] }));
   } else {
     style = req.style === 'auto' || req.style === 'custom' ? pickStyle(p.daysPerWeek, targets) : req.style;
     layout = styleLayout(style as Exclude<StyleId, 'custom'>, p.daysPerWeek);
+    if (req.style === 'custom') fallback = { missing: check?.missing ?? [], emptyDays: check?.emptyDays ?? [] };
   }
 
   const allocation = allocate(layout, targets, p.daysPerWeek);
   const ctx = makeCtx(data, targets, layout, allocation, history, now);
-  const limited = limitedGroups(data);
+  const limited = limitedGroups(data).filter((g) => targets.sets[g] > 0);
 
   let best: { c: Candidate; score: number } | null = null;
   let chosen: { c: Candidate; score: number } | null = null;
@@ -85,24 +91,30 @@ export function generatePlanV2(data: AppData, req: PlanRequest, now: string): Pl
     (g) => targets.sets[g] > 0 && !limited.includes(g) && (allocation.short.includes(g) || (c.achieved[g] < 0.9 * targets.sets[g] && full(g))),
   );
 
+  // A day the equipment cannot fill at all is dropped, not allowed to sink the whole plan.
+  const keep = c.sessions.flatMap((s, i) => (s.slots.length > 0 ? [i] : []));
+  const kept = keep.length ? keep : c.sessions.map((_, i) => i);
+  const finalLayout = kept.map((i) => layout[i]);
+
   // Candidates skip slot ids to stay fast; only the plan shown gets real ones.
-  const sessions = c.sessions.map((s) => ({ ...s, slots: s.slots.map((slot) => ({ ...slot, id: newSlotId() })) }));
+  const sessions = kept.map((i) => ({ ...c.sessions[i], slots: c.sessions[i].slots.map((slot) => ({ ...slot, id: newSlotId() })) }));
   const split: CustomSplit = { ...newCustomSplit(data, null, now).split, name: `Your plan · ${STYLE_NAME[style]}`, sessions };
   split.blurb = splitBlurb(split);
 
   return {
     split,
     style,
-    layout,
+    layout: finalLayout,
     targets,
     achieved: c.achieved,
     daysHit: c.daysHit,
-    frequency: frequency(layout, p.daysPerWeek),
+    frequency: frequency(finalLayout, p.daysPerWeek),
     short,
     limited,
-    picks: c.picks,
+    picks: kept.map((i) => c.picks[i]),
     exhausted,
     score,
     history: history.qualifies,
+    fallback,
   };
 }
