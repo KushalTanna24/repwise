@@ -53,7 +53,7 @@ const LAYOUTS: Record<FixedStyle, { days: number[]; layout: (days: number) => Da
     layout: (n) =>
       n === 4
         ? [chestBiceps, backTriceps, day('Shoulders + Legs', ['side-delts', 'rear-delts', 'quads', 'hamstrings', 'glutes', 'calves']), cardioAbs]
-        : [chestBiceps, backTriceps, day('Shoulders', ['side-delts', 'rear-delts', 'neck']), day('Legs', ['quads', 'hamstrings', 'glutes', 'calves']), cardioAbs],
+        : [chestBiceps, backTriceps, day('Shoulders', ['side-delts', 'rear-delts', 'traps', 'neck', 'abs']), day('Legs', ['quads', 'hamstrings', 'glutes', 'calves']), cardioAbs],
   },
   bro: {
     days: [5, 6],

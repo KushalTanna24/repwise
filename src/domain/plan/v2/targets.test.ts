@@ -42,7 +42,7 @@ describe('evidenceTargets', () => {
 describe('weeklyTargets', () => {
   it('trims non-focus groups first to fit the time budget', () => {
     const t = weeklyTargets(p({ experience: 'intermediate', focus: ['chest'] }), null);
-    expect(t.budget).toBe(5 * 8 * 3);
+    expect(t.budget).toBe(5 * 10 * 3);
     expect(Object.values(t.sets).reduce((a, b) => a + b, 0)).toBeLessThanOrEqual(t.budget);
     expect(t.sets.chest).toBe(17);
     expect(t.sets['upper-chest']).toBe(11);
@@ -96,8 +96,8 @@ describe('weeklyTargets', () => {
 
   it('drops one exercise when sessions are usually unfinished', () => {
     const t = weeklyTargets(p({ sessionMinutes: 60 }), hist({ finishRate: 0.7 }));
-    expect(t.exerciseLimit).toBe(5);
+    expect(t.exerciseLimit).toBe(6);
     expect(t.reasons.some((r) => r.text === 'Days have 1 fewer exercise: you usually finish about 70% of them.')).toBe(true);
-    expect(weeklyTargets(p({ sessionMinutes: 60 }), null).exerciseLimit).toBe(6);
+    expect(weeklyTargets(p({ sessionMinutes: 60 }), null).exerciseLimit).toBe(7);
   });
 });

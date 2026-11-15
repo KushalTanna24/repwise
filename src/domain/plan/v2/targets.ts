@@ -1,5 +1,6 @@
 import { BUILTIN_EXERCISES } from '../../catalogue';
-import { MAX_EXERCISES, prescription } from '../../training';
+import { prescription } from '../../training';
+import { exerciseLimit as timeLimit } from './timing';
 import type { Profile } from '../../types';
 import { GROUPS, GROUP_LABEL, MAJOR, focusGroups, type Group } from './groups';
 import type { History } from './history';
@@ -91,7 +92,7 @@ export function weeklyTargets(p: Profile, h: History | null): Targets {
   }
 
   const unfinished = h?.finishRate != null && h.finishRate < 0.8;
-  const exerciseLimit = MAX_EXERCISES[p.sessionMinutes] - (unfinished ? 1 : 0);
+  const exerciseLimit = timeLimit(p) - (unfinished ? 1 : 0);
   if (unfinished) reasons.push({ group: 'abs', delta: 0, text: `Days have 1 fewer exercise: you usually finish about ${Math.round(h!.finishRate! * 100)}% of them.` });
   const budget = p.daysPerWeek * exerciseLimit * prescription(p, 'accessory', undefined).sets;
 

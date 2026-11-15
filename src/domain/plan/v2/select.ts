@@ -1,12 +1,13 @@
 import { allExercises } from '../../catalogue';
-import { isEligible, prescription, type Slot } from '../../training';
+import { cardioMinutes, isEligible, prescription, type Slot } from '../../training';
 import type { AppData, Exercise } from '../../types';
 import type { Allocation } from './allocate';
 import { metaFor, primaryGroups, type ExerciseMeta } from './exerciseMeta';
 import { GROUPS, MAJOR, type DayLayout, type Group } from './groups';
 import type { History } from './history';
 import { rng } from './rng';
-import { FLOOR, type Targets } from './targets';
+import { FLOOR, SESSION_CAP, type Targets } from './targets';
+import { dayBudgetSec, slotSeconds } from './timing';
 
 export interface PoolItem {
   ex: Exercise;
@@ -101,6 +102,9 @@ interface DayState {
   /** Groups that already have a slot, and those with an anchor. */
   opened: Set<Group>;
   anchored: Set<Group>;
+  /** Estimated seconds placed, and what the day may hold. */
+  seconds: number;
+  budget: number;
 }
 
 /**
@@ -117,6 +121,10 @@ export function buildCandidate(ctx: Ctx, seed: number, jitter = 0.3): Candidate 
   const look = p.planGoal === 'look';
   const achieved = Object.fromEntries(GROUPS.map((g) => [g, 0])) as Record<Group, number>;
   const uses = new Map<string, number>();
+  const cardioOk = pool.some((it) => it.ex.pattern === 'cardio');
+  const cardioSec = cardioMinutes(p.sessionMinutes) * 60;
+  const accSec = slotSeconds(p, 'accessory');
+  const cap = p.experience === 'beginner' ? 14 : 20;
   const must = (g: Group) => Math.min(targets.sets[g], look && (g === 'side-delts' || g === 'rear-delts') ? 8 : FLOOR);
 
   const days: DayState[] = layout.map((l, i) => ({
@@ -131,8 +139,13 @@ export function buildCandidate(ctx: Ctx, seed: number, jitter = 0.3): Candidate 
     heavy: 0,
     opened: new Set(),
     anchored: new Set(),
+    seconds: 0,
+    // A cardio day keeps its cardio block in the budget.
+    budget: dayBudgetSec(p) - (l.cardio && cardioOk ? cardioSec : 0),
   }));
-  const lifting = (d: DayState) => d.lifts;
+  const roleFor = (d: DayState, g: Group, it: PoolItem): Slot['role'] => (MAJOR.has(g) && it.meta.compound && !d.anchored.has(g) ? 'anchor' : 'accessory');
+  const fits = (d: DayState, g: Group, it: PoolItem) => d.seconds + slotSeconds(p, roleFor(d, g, it), it.ex) <= d.budget;
+  const room = (d: DayState) => d.lifts < limit && d.seconds + accSec <= d.budget;
   const direct = (d: DayState, g: Group) => d.direct.get(g) ?? 0;
   const setsFor = { anchor: prescription(p, 'anchor', undefined).sets, accessory: prescription(p, 'accessory', undefined).sets };
 
@@ -166,7 +179,8 @@ export function buildCandidate(ctx: Ctx, seed: number, jitter = 0.3): Candidate 
   }
 
   function place(d: DayState, g: Group, it: PoolItem) {
-    const role: Slot['role'] = MAJOR.has(g) && it.meta.compound && !d.anchored.has(g) ? 'anchor' : 'accessory';
+    const role = roleFor(d, g, it);
+    if (it.ex.pattern !== 'cardio') d.seconds += slotSeconds(p, role, it.ex);
     const sets = it.ex.kind === 'timed' ? prescription(p, role, it.ex, p.sessionMinutes).sets : setsFor[role];
     const alternates: string[] = [];
     for (const a of ctx.alts.get(it.ex.id) ?? []) {
@@ -190,7 +204,7 @@ export function buildCandidate(ctx: Ctx, seed: number, jitter = 0.3): Candidate 
   for (;;) {
     let best: { d: DayState; g: Group; score: number; direct: number; di: number } | null = null;
     days.forEach((d, di) => {
-      if (lifting(d) >= limit) return;
+      if (!room(d)) return;
       for (const g of d.layout.groups) {
         if (targets.sets[g] <= 0 || d.blocked.has(g) || (d.remaining[g] ?? 0) <= 0 || achieved[g] >= targets.sets[g]) continue;
         const focus = targets.focus.has(g);
@@ -205,21 +219,21 @@ export function buildCandidate(ctx: Ctx, seed: number, jitter = 0.3): Candidate 
     if (!best) break;
     const { d, g } = best as { d: DayState; g: Group };
     const it = pick(d, g);
-    if (it) place(d, g, it);
+    if (it && fits(d, g, it)) place(d, g, it);
     else d.blocked.add(g);
   }
 
-  // A day the user set aside should not be a two-exercise session.
-  const minimum = Math.min(limit, Math.max(3, limit - 2));
+  // Fill each day to the session length. Spare time goes to focus muscles first, then whatever is furthest
+  // below target, never past the weekly ceiling or a group's per-session cap.
   for (const d of days) {
     const tried = new Set<Group>();
-    while (lifting(d) < minimum) {
+    while (room(d)) {
       const g = d.layout.groups
-        .filter((h) => targets.sets[h] > 0 && !tried.has(h))
-        .sort((a, b) => achieved[a] / targets.sets[a] - achieved[b] / targets.sets[b])[0];
+        .filter((h) => targets.sets[h] > 0 && !tried.has(h) && achieved[h] < cap && direct(d, h) * setsFor.accessory < SESSION_CAP)
+        .sort((x, y) => Number(targets.focus.has(y)) - Number(targets.focus.has(x)) || achieved[x] / targets.sets[x] - achieved[y] / targets.sets[y])[0];
       if (!g) break;
       const it = pick(d, g);
-      if (it) place(d, g, it);
+      if (it && fits(d, g, it)) place(d, g, it);
       else tried.add(g);
     }
   }

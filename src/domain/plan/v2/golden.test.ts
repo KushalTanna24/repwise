@@ -5,6 +5,8 @@ import { GOLDEN, dataFor } from './goldenProfiles';
 import { generatePlanV2, type PlanResultV2 } from './generate';
 import { GROUPS, type Group } from './groups';
 import { planDistance } from './score';
+import { dayBudgetSec, slotSeconds } from './timing';
+import { getExercise } from '../../catalogue';
 
 const strip = (r: PlanResultV2) => r.split.sessions.map((s) => ({ ...s, slots: s.slots.map(({ id: _id, ...rest }) => rest) }));
 
@@ -112,6 +114,21 @@ describe('generatePlanV2', () => {
     // Review finding: male look, 4 days, 60 min gave lats 6 of 12 and upper chest 6 of 8.
     const r = generatePlanV2(dataFor(GOLDEN.maleLook), { style: 'auto', seed: 1, shown: [] }, NOW);
     for (const g of ['lats', 'upper-chest', 'side-delts'] as const) expect(r.achieved[g], g).toBeGreaterThanOrEqual(0.9 * r.targets.sets[g]);
+  });
+
+  it('fills each day close to the session length', () => {
+    for (const name of ['maleLook', 'advanced6', 'ownerPairs5'] as const) {
+      const d = dataFor(GOLDEN[name]);
+      const r = generatePlanV2(d, { style: GOLDEN[name].style, seed: 1, shown: [] }, NOW);
+      const budget = dayBudgetSec(d.profile);
+      r.split.sessions.forEach((s, i) => {
+        if (r.layout[i].cardio) return;
+        const sec = s.slots.reduce((t, slot) => t + slotSeconds(d.profile, slot.role, getExercise(slot.candidates[0], [])), 0);
+        expect(sec, `${name} day ${i + 1}`).toBeLessThanOrEqual(budget);
+        // Uses most of the time, unless the day hit the exercise cap.
+        if (s.slots.length < r.targets.exerciseLimit) expect(sec, `${name} day ${i + 1}`).toBeGreaterThanOrEqual(0.8 * budget);
+      });
+    }
   });
 
   it('names the split after the style', () => {
