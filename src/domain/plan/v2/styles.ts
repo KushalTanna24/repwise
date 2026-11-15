@@ -1,4 +1,4 @@
-import { GROUPS, type DayLayout, type Group, type StyleId } from './groups';
+import { GROUPS, GROUP_LABEL, type DayLayout, type Group, type StyleId } from './groups';
 import type { Targets } from './targets';
 
 export type { DayLayout, StyleId };
@@ -19,6 +19,63 @@ export const STYLE_NAME: Record<StyleId, string> = {
   bro: 'Bro split',
   custom: 'Custom pairs',
 };
+
+/** One line on what each style is, for the style picker. */
+export const STYLE_BLURB: Record<StyleId, string> = {
+  full: 'Every muscle in every session. Simple and efficient on 2 or 3 days.',
+  'upper-lower': 'Upper body one day, legs the next. Each muscle twice a week.',
+  ppl: 'Push (chest, shoulders, triceps), pull (back, biceps), then legs.',
+  'hybrid-ppl': 'Push, pull and legs, plus extra days that hit muscles a second time.',
+  arnold: 'Chest with back, shoulders with arms, then legs. A classic bodybuilding split.',
+  pairs: 'A big muscle with a smaller one each day, plus a short cardio and abs day.',
+  bro: 'One body part a day. Lots of work per muscle, but each only once a week.',
+  custom: 'You choose which muscles go on which day.',
+};
+
+export interface StyleInsight {
+  /** Each day and the muscles it trains. */
+  days: { title: string; muscles: string }[];
+  /** How often the focus muscles are trained, or null without focus muscles. */
+  focus: string | null;
+  /** Why this style suits the person; used for the recommended style. */
+  why: string;
+  /** A plain warning when focus muscles get only one day a week. */
+  warning: string | null;
+}
+
+const listOf = (items: string[]) => (items.length <= 1 ? items.join('') : `${items.slice(0, -1).join(', ')} and ${items.at(-1)}`);
+const sentence = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+const per = (x: number) => Math.round(x * 2) / 2;
+const timesWord = (x: number) => (x === 1 ? 'once' : x === 2 ? 'twice' : `${x} times`);
+
+export function styleInsight(layout: DayLayout[], daysPerWeek: number, t: Targets): StyleInsight {
+  const f = frequency(layout, daysPerWeek);
+  const name = (g: Group) => GROUP_LABEL[g].toLowerCase();
+  const days = layout.map((d) => {
+    const muscles = d.groups.filter((g) => t.sets[g] > 0).map(name);
+    if (d.cardio) muscles.push('cardio');
+    return { title: d.title, muscles: sentence(muscles.join(', ')) };
+  });
+  // In the order the person picked them.
+  const focus = [...t.focus].filter((g) => t.sets[g] > 0);
+  const rare = focus.filter((g) => f[g] < LOW_FREQ);
+  const same = focus.length > 0 && focus.every((g) => per(f[g]) === per(f[focus[0]]));
+  const focusLine = !focus.length
+    ? null
+    : same
+      ? `${sentence(listOf(focus.map(name)))}: ${per(f[focus[0]])}× a week`
+      : sentence(`${listOf(focus.map((g) => `${name(g)} ${per(f[g])}×`))} a week`);
+  const trained = GROUPS.filter((g) => t.sets[g] > 0).map((g) => f[g]).sort((a, b) => a - b);
+  const typical = per(trained[trained.length >> 1] ?? 0);
+  const hit = focus.filter((g) => f[g] >= LOW_FREQ);
+  const why = hit.length
+    ? `Trains ${listOf(hit.map(name))} ${timesWord(per(Math.min(...hit.map((g) => f[g]))))} a week on ${daysPerWeek} days.`
+    : `Trains every muscle about ${timesWord(typical)} a week on ${daysPerWeek} days.`;
+  const warning = rare.length
+    ? `${sentence(listOf(rare.map(name)))} only ${rare.length > 1 ? 'get' : 'gets'} one day a week. Fine for keeping ${rare.length > 1 ? 'them' : 'it'}, slower for growing ${rare.length > 1 ? 'them' : 'it'}.`
+    : null;
+  return { days, focus: focusLine, why, warning };
+}
 
 const day = (title: string, groups: Group[], cardio = false): DayLayout => (cardio ? { title, groups, cardio } : { title, groups });
 
