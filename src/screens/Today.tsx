@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Check, ChevronRight, Ellipsis, Plane, Timer, GlassWater, Minus, Pill, Play, Plus, RefreshCw, Repeat, SkipForward, Sparkles } from 'lucide-react';
 import { getExercise } from '@/domain/catalogue';
-import { daysOff, getSplit, rebuildPlan, skipDay, type PlannedExercise } from '@/domain/training';
+import { daysOff, getSplit, rebuildPlan, skipDay, weekView, type PlannedExercise, type WeekDay } from '@/domain/training';
 import { addWater, DEFAULT_WATER_REMINDERS, GLASS_ML, waterPace } from '@/domain/water';
 import { startSession } from '@/domain/session';
 import { latestWeight, periodStats, sessionVolume, weekStats, type Period } from '@/domain/stats';
@@ -185,7 +185,9 @@ function UpNext({ data }: { data: AppData }) {
             </motion.span>
           </div>
           {open ? (
-            <RotationStrip titles={split.sessions.map((x) => x.title)} current={active?.sessionIndex ?? plan.sessionIndex} cycle={active?.cycle ?? plan.cycle} />
+            <RotationStrip
+              days={weekView(split, data.profile.daysPerWeek, { sessionIndex: active?.sessionIndex ?? plan.sessionIndex, cycle: active?.cycle ?? plan.cycle })}
+            />
           ) : active ? (
             <LiveProgress data={data} s={active} />
           ) : (
@@ -303,22 +305,28 @@ function useUpNextOpen(today: string, key: string, fallback: boolean): [boolean,
 }
 
 /** Where you are in the split: one chip per session, current one filled. Not a weekly count. */
-function RotationStrip({ titles, current, cycle }: { titles: string[]; current: number | null; cycle: number | null }) {
+/** The training week, counted in sessions: a 3-day split on 6 days a week shows all six. */
+function RotationStrip({ days }: { days: WeekDay[] }) {
   const short = (t: string) => t.replace(/^Full Body /, '');
+  const at = days.findIndex((d) => d.state === 'current');
   return (
     <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-footnote text-label-2">
-      {titles.map((t, i) => (
+      {days.map((d, i) => (
         <span
           key={i}
           className={cn(
             'rounded-full px-2 py-0.5 text-caption font-bold',
-            i === current ? 'bg-pink text-white' : current != null && i < current ? 'bg-pink/15 text-pink' : 'bg-fill text-label-2',
+            d.state === 'current' ? 'bg-pink text-white' : d.state === 'done' ? 'bg-pink/15 text-pink' : 'bg-fill text-label-2',
           )}
         >
-          {short(t)}
+          {short(d.title)}
         </span>
       ))}
-      {cycle != null && <span>· Cycle {cycle}</span>}
+      {at >= 0 && (
+        <span className="tabular">
+          {at + 1} of {days.length} this week
+        </span>
+      )}
     </div>
   );
 }

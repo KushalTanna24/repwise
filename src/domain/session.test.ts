@@ -111,6 +111,16 @@ describe('set logging', () => {
     expect(d.activeSession!.exercises[0].rec?.kind).toBe('first');
   });
 
+  it('swapExercise remembers the planned exercise across swaps and forgets it on swapping back', () => {
+    const planned = started().activeSession!.exercises[0].exerciseId;
+    let d = swapExercise(started(), 0, 'hack-squat');
+    expect(d.activeSession!.exercises[0].swappedFrom).toBe(planned);
+    d = swapExercise(d, 0, 'leg-press');
+    expect(d.activeSession!.exercises[0].swappedFrom).toBe(planned);
+    d = swapExercise(d, 0, planned);
+    expect(d.activeSession!.exercises[0]).not.toHaveProperty('swappedFrom');
+  });
+
   it('swapExercise keeps the exercise role when its slot was removed mid-workout', () => {
     const d = started();
     const base = swapExercise(d, 0, 'hack-squat').activeSession!.exercises[0];

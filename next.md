@@ -1,5 +1,13 @@
 # Next
 
+## Pro splits and week view (built, awaiting release)
+
+A library of 12 routines from famous bodybuilders, actors and athletes that people can copy into their own splits, fitted to their equipment and session length. The week strip and split cards now follow days per week, so a 3-day split on 6 days shows all six sessions. Swaps are now recorded (`swappedFrom`) for the learning work below. Spec: `docs/superpowers/specs/2026-11-16-pro-splits-and-learning-design.md`.
+
+## Learn from the user (after pro splits)
+
+Suggest swaps the user keeps making, log and suggest supersets, flag stalled lifts, and project strength toward goals. Explainable, can be undone, history never rewritten. See the spec above, section 3.
+
 ## Onboarding and plan builder (shipped in 4.6.0)
 
 New users answer a short set of questions (body, goal, daily life, calories, experience, schedule, equipment and up to three focus muscles) and get an evidence-based custom split plus a calorie and protein estimate. The split builder gains an "Abs + focus muscles" day, and Profile has "Build my plan" to run it again.

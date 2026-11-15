@@ -53,6 +53,8 @@ export interface SessionExercise {
   rec: Recommendation | null;
   sets: SetRecord[];
   skipped?: boolean;
+  /** The planned exercise this one replaced, kept so swaps can teach future plans. */
+  swappedFrom?: string;
 }
 
 export interface WorkoutSession {

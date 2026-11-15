@@ -3,6 +3,8 @@ import type { Kg, Pattern } from '../types';
 export type BuiltInSplitId = 'full-body-abc' | 'upper-lower' | 'ppl' | 'ppl-hybrid';
 export type CustomSplitId = `custom-${string}`;
 export type SplitId = BuiltInSplitId | CustomSplitId;
+/** Read-only routines of well-known lifters. Never trained directly; copied into a custom split. */
+export type ProSplitId = `pro-${string}`;
 
 export interface Slot {
   id: string;
@@ -25,7 +27,10 @@ export interface CustomSplit extends SplitDef {
   custom: true;
   createdAt: string;
   updatedAt: string;
-  copiedFrom?: SplitId;
+  /** A built-in, custom or pro split this one was copied from. */
+  copiedFrom?: SplitId | ProSplitId;
+  /** Built by the plan generator for a set number of days. */
+  generated?: true;
   /** Set on delete. Hidden from lists, still resolved for history and swaps. */
   deletedAt?: string;
 }

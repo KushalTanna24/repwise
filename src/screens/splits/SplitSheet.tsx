@@ -1,7 +1,7 @@
 import { Check, Copy, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react';
 import { COMFORT_LABELS, splitComfort } from '@/domain/comfort';
 import type { ComfortScore } from '@/domain/types';
-import { currentRotation, deleteCustomSplit, getSplit, listSplits, newCustomSplit, setSplit, type CustomSplit, type SplitId } from '@/domain/training';
+import { currentRotation, deleteCustomSplit, getSplit, listSplits, newCustomSplit, setSplit, weekSummary, weekView, type CustomSplit, type SplitId } from '@/domain/training';
 import { Sheet } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Menu } from '@/components/ui/menu';
@@ -11,6 +11,7 @@ import { openSheet } from '@/lib/route';
 import { toast } from '@/lib/toast';
 import { act, useData } from '@/store/app';
 import { useSplitDraft } from '@/store/splitDraft';
+import { ProSplitsEntry } from './ProSplitsSheet';
 
 /** The split cards; used inline on an empty Today and inside the sheet. */
 export function SplitChooser({ onPicked }: { onPicked?: () => void }) {
@@ -39,6 +40,7 @@ export function SplitChooser({ onPicked }: { onPicked?: () => void }) {
   }
 
   const { builtIn, custom } = listSplits(data);
+  const days = data.profile.daysPerWeek;
   const now = () => new Date().toISOString();
 
   function edit(split: CustomSplit) {
@@ -78,9 +80,12 @@ export function SplitChooser({ onPicked }: { onPicked?: () => void }) {
         </div>
         {s.id === current && <Check className="size-5 shrink-0 text-blue" strokeWidth={3} />}
       </div>
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        {s.sessions.map((x, i) => {
-          const day = comfort?.days[i];
+      <div className="mt-3 text-footnote text-label-2">
+        Your {days}-day week · {weekSummary(s.sessions.length, days)}
+      </div>
+      <div className="mt-1.5 flex flex-wrap gap-1.5">
+        {weekView(s, days, currentRotation(data, s.id)).map((x, i) => {
+          const day = comfort?.days[x.sessionIndex];
           return (
             <span key={i} className="rounded-full bg-fill px-2.5 py-1 text-caption font-semibold text-label-2">
               {x.title}
@@ -98,6 +103,7 @@ export function SplitChooser({ onPicked }: { onPicked?: () => void }) {
       {builtIn.map((s) => (
         <div key={s.id}>{card(s)}</div>
       ))}
+      <ProSplitsEntry />
       {custom.length > 0 && <h3 className="mt-2 px-1 text-footnote font-semibold uppercase text-label-2">Your splits</h3>}
       {custom.map((s) => (
         <div key={s.id} className="relative">

@@ -1,5 +1,5 @@
 import { applyProfileToActive } from '@/domain/session';
-import { getSplit } from '@/domain/training';
+import { currentRotation, getSplit, weekSummary } from '@/domain/training';
 import { Sheet } from '@/components/ui/sheet';
 import { List, Row } from '@/components/ui/card';
 import { FieldRow, Select } from '@/components/ui/field';
@@ -12,6 +12,11 @@ import { setProfile } from './setProfile';
 export function TrainingSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const data = useData();
   const p = data.profile;
+  const split = data.program.splitId ? getSplit(data, data.program.splitId) : undefined;
+  const len = split?.sessions.length ?? 0;
+  // A generated plan was built for a set number of days; a different count deserves a fresh plan, not a repeat.
+  const generated = !!split?.custom && ('generated' in split || split.name.startsWith('Your plan'));
+  const rebuild = generated && len !== p.daysPerWeek;
   return (
     <Sheet open={open} onClose={onClose} tall title="Training plan" right={<Done onClose={onClose} />}>
       <List>
@@ -60,6 +65,25 @@ export function TrainingSheet({ open, onClose }: { open: boolean; onClose: () =>
           <Select label="Units" value={p.units} onChange={(units) => setProfile({ units }, false)} options={[{ value: 'kg', label: 'kg' }, { value: 'lb', label: 'lb' }]} />
         </FieldRow>
       </List>
+      {split && (
+        <p className="px-4 pt-2 text-footnote text-label-2">
+          {split.name} has {len} {len === 1 ? 'day' : 'days'}. {weekSummary(len, p.daysPerWeek)}.
+          {currentRotation(data, split.id).sessionIndex > 0 ? ' Your place in the rotation stays.' : ''}
+        </p>
+      )}
+      {rebuild && (
+        <div className="mt-3">
+          <List>
+            <Row
+              title={`Rebuild your plan for ${p.daysPerWeek} days`}
+              subtitle="Answers stay filled in. Your current plan stays in your splits."
+              onClick={() => openSheet('plan', { replace: true })}
+              className="text-blue"
+              chevron
+            />
+          </List>
+        </div>
+      )}
       {data.activeSession && (
         <div className="mt-3">
           <List>

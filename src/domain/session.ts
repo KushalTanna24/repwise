@@ -123,7 +123,10 @@ export function swapExercise(data: AppData, exIdx: number, exerciseId: string): 
     if (e.sets.some((x) => x.status === 'done') || !getExercise(exerciseId, data.customExercises)) return null;
     const slot = findSlot(data, s!.splitId, e.slotId);
     const { plan, rec, sets } = prescribe(data, exerciseId, slot?.role ?? e.role ?? 'accessory', s!.startedAt);
-    return { ...e, exerciseId, plan, rec, skipped: false, sets };
+    // Remember the planned pick across repeated swaps; swapping back clears it.
+    const from = e.swappedFrom ?? (e.slotId ? e.exerciseId : undefined);
+    const { swappedFrom: _, ...rest } = e;
+    return { ...rest, exerciseId, plan, rec, skipped: false, sets, ...(from && from !== exerciseId ? { swappedFrom: from } : {}) };
   });
 }
 

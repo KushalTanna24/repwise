@@ -260,7 +260,7 @@ export function generatePlan(data: AppData, template: TemplateId, now: string): 
 
   const daysHit = Object.fromEntries(GROUPS.map((g) => [g, days.filter((d) => d.placed.some((x) => (x.option.groups[g] ?? 0) > 0)).length])) as Record<Group, number>;
   const base = newCustomSplit(data, null, now).split;
-  const split: CustomSplit = { ...base, name: `Your plan · ${TEMPLATES[template].name}`, sessions };
+  const split: CustomSplit = { ...base, name: `Your plan · ${TEMPLATES[template].name}`, generated: true, sessions };
   split.blurb = splitBlurb(split);
 
   return {

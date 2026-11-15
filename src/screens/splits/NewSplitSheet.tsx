@@ -31,6 +31,13 @@ export function NewSplitSheet({ open, onClose }: { open: boolean; onClose: () =>
     <Sheet open={open} onClose={onClose} title="Start from" right={<Button variant="plain" size="sm" onClick={onClose}>Cancel</Button>}>
       <div className="grid grid-cols-[minmax(0,1fr)] gap-2">
         {row('blank', 'Blank', 'One empty day to build on', null)}
+        <button onClick={() => openSheet('pros', { replace: true })} className="press flex min-h-14 w-full items-center justify-between gap-3 rounded-card bg-card px-4 py-3 text-left shadow-card">
+          <div className="min-w-0">
+            <div className="truncate text-body font-semibold">A pro split</div>
+            <div className="truncate text-footnote text-label-2">Arnold, Ronnie, CBum, The Rock and more</div>
+          </div>
+          <ChevronRight className="size-5 shrink-0 text-label-3" />
+        </button>
         {builtIn.map((s) => row(s.id, s.name, s.blurb, s.id))}
         {custom.map((s) => row(s.id, s.name, s.blurb, s.id))}
       </div>

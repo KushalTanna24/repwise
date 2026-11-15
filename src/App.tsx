@@ -19,6 +19,7 @@ import { SplitEditorSheet } from '@/screens/splits/SplitEditorSheet';
 import { DayEditorSheet } from '@/screens/splits/DayEditorSheet';
 import { NewSplitSheet } from '@/screens/splits/NewSplitSheet';
 import { SplitSheet } from '@/screens/splits/SplitSheet';
+import { ProSplitSheet, ProSplitsSheet } from '@/screens/splits/ProSplitsSheet';
 import { ExtraSheet } from '@/screens/LogExtra';
 import { LibrarySheet } from '@/screens/Library';
 import { SupplementSheet } from '@/screens/SupplementLibrary';
@@ -53,6 +54,8 @@ function Sheets() {
       <SessionSheet sessionId={kind === 'session' ? arg : null} onClose={closeSheet} />
       <SplitSheet open={kind === 'split'} onClose={closeSheet} />
       <NewSplitSheet open={kind === 'split-new'} onClose={closeSheet} />
+      <ProSplitsSheet open={kind === 'pros'} onClose={closeSheet} />
+      <ProSplitSheet proId={kind === 'pro' ? (arg ?? null) : null} onClose={closeSheet} />
       <SplitEditorSheet splitId={kind === 'split-edit' ? (arg ?? null) : null} onClose={closeSheet} />
       <DayEditorSheet splitId={kind === 'split-day' ? (arg ?? null) : null} day={Number(third)} onClose={closeSheet} />
       <ExtraSheet open={kind === 'extra'} onClose={closeSheet} />
