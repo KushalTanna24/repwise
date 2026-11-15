@@ -64,7 +64,8 @@ const openRow = async (title) => {
 const noSplash = () => page.waitForFunction(() => !document.querySelector('[data-splash]'), { timeout: 8000 });
 /** A fresh device opens on onboarding; most checks start from the plain app, so skip it. */
 const skipOnboarding = async (p = page) => {
-  const skip = await p.$('::-p-xpath(//button[normalize-space(.)="Skip, I\'ll pick a split"])');
+  // A cold dev server can take a moment to render the welcome step.
+  const skip = await p.waitForSelector('::-p-xpath(//button[normalize-space(.)="Skip, I\'ll pick a split"])', { visible: true, timeout: 6000 }).catch(() => null);
   if (skip) {
     await skip.click();
     await sleep(600);
@@ -114,9 +115,12 @@ check('Skipping onboarding sticks after refresh', !(await text()).includes('Buil
 await shot('01-empty-today');
 check('Empty state asks for a split', (await text()).includes('Pick how you train'));
 
-// Split persistence
+// Split persistence: a card opens the split viewer, which lists each day's exercises
 await click('button::-p-text(Full Body)');
-await sleep(500);
+await sleep(700);
+check('Split viewer lists the day and its exercises', (await text()).includes('Use this split') && (await text()).includes('Main lift'));
+await click('::-p-xpath(//button[normalize-space(.)="Use this split"])');
+await sleep(600);
 await shot('02-today-plan');
 let t = await text();
 check('Full Body A proposed after picking split', t.includes('Full Body A') && t.includes('Cycle 1'));
@@ -415,8 +419,10 @@ check('Ending early says so', (await text()).includes('Fast ended at 0h'));
   await sleep(1500);
   await skipOnboarding(p3);
   const body = () => p3.evaluate(() => document.body.textContent.replace(/\s+/g, ' '));
+  await p3.waitForSelector('button[aria-label="Add a glass of water"]', { visible: true, timeout: 8000 });
   for (let i = 0; i < 8; i++) {
-    await p3.click('button[aria-label="Add a glass of water"]');
+    // The empty Today can push this card under the tab bar; tap the button itself.
+    await p3.$eval('button[aria-label="Add a glass of water"]', (b) => b.click());
     await sleep(120);
   }
   await sleep(700);
@@ -487,6 +493,8 @@ check('Ending early says so', (await text()).includes('Fast ended at 0h'));
   await page.evaluate(() => { location.hash = '#/today/split'; });
   await sleep(600);
   await page.evaluate(() => [...document.querySelectorAll('button.ring-2')].find((b) => b.querySelector('.truncate')?.textContent === 'My Push / Pull / Legs')?.click());
+  await sleep(700);
+  await click('::-p-xpath(//button[normalize-space(.)="Use this split"])');
   await sleep(500);
   await click('[role="alertdialog"] button::-p-text(Switch)');
   await sleep(600);

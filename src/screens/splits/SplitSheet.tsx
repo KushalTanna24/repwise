@@ -1,4 +1,5 @@
-import { Check, Copy, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { Check, ChevronRight, Copy, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react';
 import { COMFORT_LABELS, splitComfort } from '@/domain/comfort';
 import type { ComfortScore } from '@/domain/types';
 import { currentRotation, deleteCustomSplit, getSplit, listSplits, newCustomSplit, setSplit, type CustomSplit, type SplitId } from '@/domain/training';
@@ -11,11 +12,14 @@ import { openSheet } from '@/lib/route';
 import { toast } from '@/lib/toast';
 import { act, useData } from '@/store/app';
 import { useSplitDraft } from '@/store/splitDraft';
+import { SplitViewerSheet } from './SplitViewerSheet';
 
 /** The split cards; used inline on an empty Today and inside the sheet. */
 export function SplitChooser({ onPicked }: { onPicked?: () => void }) {
   const data = useData();
   const current = data.program.splitId;
+  // Tapping a card opens it to look inside; switching happens from the viewer.
+  const [viewing, setViewing] = useState<SplitId | null>(null);
 
   async function pick(id: SplitId) {
     if (id === current) return onPicked?.();
@@ -63,7 +67,7 @@ export function SplitChooser({ onPicked }: { onPicked?: () => void }) {
     const comfort = splitComfort(data, s.id);
     return (
     <button
-      onClick={() => pick(s.id)}
+      onClick={() => setViewing(s.id)}
       className={cn('press w-full rounded-card bg-card p-4 text-left shadow-card ring-2', s.id === current ? 'ring-blue' : 'ring-transparent', s.custom && 'pr-14')}
     >
       <div className="flex items-start justify-between gap-3">
@@ -88,6 +92,9 @@ export function SplitChooser({ onPicked }: { onPicked?: () => void }) {
             </span>
           );
         })}
+      </div>
+      <div className="mt-3 flex items-center gap-0.5 text-footnote font-semibold text-blue">
+        See days and exercises <ChevronRight className="size-4" />
       </div>
     </button>
     );
@@ -122,6 +129,19 @@ export function SplitChooser({ onPicked }: { onPicked?: () => void }) {
       <Button variant="tinted" onClick={() => openSheet('split-new')}>
         <Plus className="size-5" /> Build your own
       </Button>
+      <SplitViewerSheet
+        splitId={viewing}
+        onClose={() => setViewing(null)}
+        onUse={(id) => {
+          setViewing(null);
+          void pick(id);
+        }}
+        onEdit={(id) => {
+          const s = custom.find((x) => x.id === id);
+          setViewing(null);
+          if (s) edit(s);
+        }}
+      />
     </div>
   );
 }
