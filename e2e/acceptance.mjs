@@ -71,6 +71,14 @@ const skipOnboarding = async (p = page) => {
     await sleep(600);
   }
 };
+/** The start-of-workout time sheet: take the plan as it is. */
+const pickFull = async () => {
+  const full = await page.$('::-p-xpath(//button[.//div[normalize-space(.)="Full session"]])');
+  if (full) {
+    await full.click();
+    await sleep(400);
+  }
+};
 const reload = async () => {
   await page.reload({ waitUntil: 'networkidle0' });
   await noSplash();
@@ -168,6 +176,9 @@ check('Water survives refresh and shows in the ring stats', t.includes('2 / 8 gl
 
 // Workout A, refresh mid-way, finish with the last exercise untouched
 await click('button[aria-label="Start workout"]');
+await sleep(600);
+check('Starting asks how much time there is today', (await text()).includes('How much time today?') && (await text()).includes('Short on time'));
+await pickFull();
 await sleep(800);
 await shot('03-workout-start');
 check('Freestyle Next bar suggests the first set', (await text()).includes('Next · set 1'));
@@ -186,10 +197,15 @@ check('Done-today card and Next line after finishing', t.includes('Done today') 
 await shot('05b-today-done');
 /** After today's workout the start button lives in the session menu as Train again. */
 async function startAgain() {
-  if (await page.$('button[aria-label="Start workout"]')) return click('button[aria-label="Start workout"]');
-  await click('button[aria-label="Session options"]');
-  await sleep(300);
-  await click('[role="menuitem"]::-p-text(Train again)');
+  if (await page.$('button[aria-label="Start workout"]')) {
+    await click('button[aria-label="Start workout"]');
+  } else {
+    await click('button[aria-label="Session options"]');
+    await sleep(300);
+    await click('[role="menuitem"]::-p-text(Train again)');
+  }
+  await sleep(500);
+  await pickFull();
 }
 
 await reload();

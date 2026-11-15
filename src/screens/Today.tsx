@@ -6,6 +6,7 @@ import { getExercise } from '@/domain/catalogue';
 import { daysOff, getSplit, rebuildPlan, skipDay, type PlannedExercise } from '@/domain/training';
 import { addWater, DEFAULT_WATER_REMINDERS, GLASS_ML, waterPace } from '@/domain/water';
 import { startSession } from '@/domain/session';
+import { applyStartMode, startChoices, type StartChoice, type StartMode } from '@/domain/startOptions';
 import { latestWeight, periodStats, sessionVolume, weekStats, type Period } from '@/domain/stats';
 import type { AppData, WorkoutSession } from '@/domain/types';
 import { activeSupplements, suppOverdue, toggleSupplement } from '@/domain/supplements';
@@ -27,6 +28,7 @@ import { GuideButton } from './Guide';
 import { NotifyPrompt } from '@/components/NotifyPrompt';
 import { StreakChip } from '@/components/StreakChip';
 import { LeaveCard } from './today/LeaveCard';
+import { StartSheet } from './today/StartSheet';
 import { DoneRow, useDoneCollapse } from './today/DoneRow';
 import { FastCard } from './today/FastCard';
 import { activeFast, elapsedHours } from '@/domain/fasting';
@@ -111,6 +113,8 @@ function UpNext({ data }: { data: AppData }) {
   const active = data.activeSession;
   const plan = data.plannedSession;
   const split = getSplit(data, data.program.splitId!);
+  // Starting asks how much time there is today, unless no option would change the session.
+  const [choices, setChoices] = useState<StartChoice[] | null>(null);
   if (!plan || !split) return null;
 
   async function skip() {
@@ -132,9 +136,15 @@ function UpNext({ data }: { data: AppData }) {
     toast('New accessories. Main lifts stay the same');
   }
 
-  function start() {
-    act((d) => startSession(d, nowIso()));
+  function begin(mode: StartMode) {
+    setChoices(null);
+    act((d) => applyStartMode(startSession(d, nowIso()), mode));
     openSheet('workout');
+  }
+  function start() {
+    const options = startChoices(useApp.getState().data, nowIso());
+    if (options.length <= 1) return begin('full');
+    setChoices(options);
   }
 
   const today = dayjs().format('YYYY-MM-DD');
@@ -169,6 +179,7 @@ function UpNext({ data }: { data: AppData }) {
             ]}
           />
         </div>
+        <StartSheet choices={choices} onPick={begin} onClose={() => setChoices(null)} />
       </>
     );
 
@@ -255,6 +266,7 @@ function UpNext({ data }: { data: AppData }) {
         )}
       </div>
       </Card>
+      <StartSheet choices={choices} onPick={begin} onClose={() => setChoices(null)} />
     </>
   );
 }

@@ -14,7 +14,7 @@ const VERSION_KEY = 'repwise_seen_version';
 const WHATS_NEW = {
   version: __APP_VERSION__,
   title: 'Repwise updated',
-  body: 'A new plan builder: Look better goal, split styles including Pairs and Custom pairs, Regenerate, and an Also get stronger option.',
+  body: 'See inside any split before you switch, pick how much time you have when you start, plans that fill your session, and a clearer day editor.',
 };
 
 function read(key: string) {

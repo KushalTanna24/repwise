@@ -8,6 +8,15 @@ A checklist tracker for skincare, posture, sleep and grooming with streaks, buil
 
 Evidence-graded guides on skin, hair, posture, body fat, style and face basics, in the exercise-guide format. Needs its own spec.
 
+## Version 1.1.0
+
+- Split viewer: tap any split to see each day's muscles and exercises before switching.
+- "How much time today?" when a workout starts: full, short on time, extra sets or an extra exercise.
+- Generated plans fill the session length you picked.
+- Split styles explain themselves, with Repwise's pick marked Recommended; custom pairs edit one day at a time with Copy Day.
+- Edit day: one numbered row per exercise, tap to change it.
+- Group invites ask a signed-out person to sign in first and survive onboarding; signed-out Profile uses the same compact account row.
+
 ## Version 1.0.0
 
 Versioning restarts at 1.0.0 with this release (the previous build was 4.8.0). It adds an "Also get stronger" switch on the Look better and Build muscle goals (main lifts at 4 × 4–6, everything else unchanged) and the final-review fixes for the plan builder.
