@@ -8,7 +8,8 @@ import { useSyncState } from '@/sync/useSync';
 import { normalize } from '@/domain/migrate';
 import { stripForGroup } from '@/domain/groups/privacy';
 import type { AppData } from '@/domain/types';
-import { act, useData } from '@/store/app';
+import { act, useApp, useData } from '@/store/app';
+import { needsOnboarding } from '@/domain/plan';
 import { useGroupsUi } from '@/store/groups';
 import { go, openSheet, useRoute } from './route';
 import { inviteCodeFromSheet, pendingJoin } from './pendingJoin';
@@ -353,11 +354,15 @@ export function useGroupsSession() {
   }, []);
   useEffect(() => {
     qc.removeQueries({ queryKey: ['groups'] });
-    if (!uid) return;
+  }, [uid, qc]);
+  // The join sheet can't show behind onboarding, so the invite waits until onboarding is done.
+  const onboarding = useApp((s) => !s.hydrated || needsOnboarding(s.data));
+  useEffect(() => {
+    if (!uid || onboarding) return;
     const code = pendingJoin.take();
     if (code) {
       go('groups');
       openSheet(`join:${code}`);
     }
-  }, [uid, qc]);
+  }, [uid, onboarding]);
 }

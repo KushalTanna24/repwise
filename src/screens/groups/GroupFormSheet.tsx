@@ -4,7 +4,7 @@ import { Sheet } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Card, List } from '@/components/ui/card';
 import { FieldRow, Switch, TextInput } from '@/components/ui/field';
-import { SignInCard } from '@/screens/profile/SignInCard';
+import { SignInForm } from '@/screens/profile/SignInCard';
 import { groupErrorMessage, useCreateGroup, useJoinGroup, useMyDisplayName } from '@/lib/groups';
 import { pendingJoin } from '@/lib/pendingJoin';
 import { enablePush, pushSupported } from '@/lib/push';
@@ -67,10 +67,15 @@ export function GroupFormSheet({ mode, onClose }: { mode: Mode | null; onClose: 
       <div className="pb-4">
         {!user ? (
           <>
-            <p className="mt-2 px-1 text-subhead text-label-2">
-              {joining ? 'Sign in first. Your invite is saved, so you land back here after the link.' : 'Sign in to create a group.'}
-            </p>
-            <SignInCard />
+            <Card className="mt-2 p-4">
+              <div className="text-headline font-semibold">{joining ? 'Sign in to join' : 'Sign in to create a group'}</div>
+              <p className="mt-1 text-subhead text-label-2">
+                {joining
+                  ? "Groups need an account. We'll email you a link: open it on this phone and you'll come back here to finish joining. Your invite is saved."
+                  : "Groups need an account. We'll email you a link to sign in. No password needed."}
+              </p>
+              <SignInForm />
+            </Card>
           </>
         ) : step === 'push' ? (
           <Card className="mt-2 p-5 text-center">

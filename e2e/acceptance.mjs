@@ -476,7 +476,7 @@ check('Ending early says so', (await text()).includes('Fast ended at 0h'));
   await click('[data-vaul-drawer] button::-p-text(Done)');
   await sleep(500);
   check('Split editor shows the renamed day', (await text()).includes('Chest day'));
-  await click('button::-p-text(Save)');
+  await click('::-p-xpath(//button[normalize-space(.)="Save"])');
   await sleep(600);
   t = await text();
   check('Saving toasts and returns to the split sheet', t.includes('My Push / Pull / Legs saved') && t.includes('Your splits'));
@@ -580,7 +580,7 @@ check('Ending early says so', (await text()).includes('Fast ended at 0h'));
   check('Abs day opens with core work', t.includes('Plank') || t.includes('Dead bug') || t.includes('Hanging knee raise') || t.includes('Cable crunch'));
   await click('[data-vaul-drawer] button::-p-text(Done)');
   await sleep(500);
-  await click('button::-p-text(Save)');
+  await click('::-p-xpath(//button[normalize-space(.)="Save"])');
   await sleep(700);
   ob = await plan();
   check('Rerun adds a second plan and the abs day is saved on it', ob.customSplits === 2 && ob.days === 5, JSON.stringify(ob));
@@ -636,6 +636,8 @@ check('Ending early says so', (await text()).includes('Fast ended at 0h'));
   const onboarding = await fresh.evaluate(() => document.body.innerText.includes('Build my plan'));
   const kept = await fresh.evaluate(() => localStorage.getItem('repwise_pending_join'));
   check('Invite opened during onboarding is kept', onboarding && kept === 'XYZ789', `onboarding=${onboarding} kept=${kept}`);
+  const invitedText = await fresh.evaluate(() => document.body.innerText);
+  check('Invite on a fresh phone asks to sign in first', invitedText.includes("You're invited to a group") && invitedText.includes('Send link'), invitedText.slice(0, 160));
   await fresh.close();
 }
 

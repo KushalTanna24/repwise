@@ -23,6 +23,16 @@ describe('pendingJoin', () => {
     expect(p.take()).toBeNull();
   });
 
+  it('peek reads the code without using it up', () => {
+    const p = createPendingJoin(memory());
+    expect(p.peek()).toBeNull();
+    p.save('xyz789');
+    expect(p.peek()).toBe('XYZ789');
+    expect(p.peek()).toBe('XYZ789');
+    expect(p.take()).toBe('XYZ789');
+    expect(p.peek()).toBeNull();
+  });
+
   it('ignores an empty code', () => {
     const p = createPendingJoin(memory());
     p.save('');

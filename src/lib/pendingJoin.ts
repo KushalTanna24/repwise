@@ -15,6 +15,14 @@ export function createPendingJoin(storage: KV | (() => KV | undefined)) {
         /* storage blocked: the user can paste the code again */
       }
     },
+    /** The saved code, left in place. */
+    peek(): string | null {
+      try {
+        return get()?.getItem(KEY) ?? null;
+      } catch {
+        return null;
+      }
+    },
     take(): string | null {
       try {
         const s = get();

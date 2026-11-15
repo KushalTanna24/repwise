@@ -9,7 +9,12 @@ import { FieldRow, Switch, TextInput } from '@/components/ui/field';
 import { Segmented } from '@/components/ui/segmented';
 import { act } from '@/store/app';
 import { useOnboarding } from '@/store/onboarding';
-import { SignInCard } from '@/screens/profile/SignInCard';
+import { SignInCard, SignInForm } from '@/screens/profile/SignInCard';
+import { Users } from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import { inviteCodeFromSheet, pendingJoin } from '@/lib/pendingJoin';
+import { useRoute } from '@/lib/route';
+import { useSyncState } from '@/sync/useSync';
 import { skipOnboarding } from '@/domain/plan';
 import { ChoiceList, FieldError, Label, NextButton, StepFooter, StepTitle, type Choice } from './parts';
 
@@ -19,6 +24,10 @@ const next = () => useOnboarding.getState().next();
 
 export function Welcome({ rerun }: { rerun: boolean }) {
   const [signIn, setSignIn] = useState(false);
+  const user = useSyncState().user;
+  const sheet = useRoute((r) => r.sheet);
+  const [invite] = useState(() => inviteCodeFromSheet(sheet) ?? pendingJoin.peek());
+  if (invite && !rerun) return <InvitedWelcome signedIn={!!user} />;
   return (
     <>
       <div className="flex min-h-[60dvh] flex-col justify-end px-1 pb-6">
@@ -41,6 +50,44 @@ export function Welcome({ rerun }: { rerun: boolean }) {
               </Button>
             )}
           </>
+        )}
+      </StepFooter>
+    </>
+  );
+}
+
+/** Opened from a group invite: sign in comes first, so the invite can't get lost. */
+function InvitedWelcome({ signedIn }: { signedIn: boolean }) {
+  const skip = () => act((d) => skipOnboarding(d, new Date().toISOString()));
+  return (
+    <>
+      <div className="flex min-h-[40dvh] flex-col justify-end px-1 pb-6">
+        <Users className="mb-3 size-10 text-blue" />
+        <h1 className="text-largetitle font-bold">You're invited to a group</h1>
+        <p className="mt-2 max-w-[36ch] text-body text-label-2">
+          {signedIn
+            ? "You're signed in. Set up your training, or skip it, and you'll go straight to the group to finish joining."
+            : 'Groups need an account. Sign in with your email first. Open the link we send on this phone and you come straight back here.'}
+        </p>
+      </div>
+      {!signedIn && (
+        <Card className="p-4">
+          <div className="text-headline font-semibold">Sign in or create an account</div>
+          <SignInForm />
+        </Card>
+      )}
+      <StepFooter>
+        {signedIn ? (
+          <>
+            <NextButton label="Build my plan" onClick={next} />
+            <Button variant="plain" onClick={skip}>
+              Skip, go to the group
+            </Button>
+          </>
+        ) : (
+          <Button variant="plain" onClick={next}>
+            Build my plan first
+          </Button>
         )}
       </StepFooter>
     </>
