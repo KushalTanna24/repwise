@@ -27,6 +27,8 @@ export function DayEditorSheet({ splitId, day, onClose }: { splitId: string | nu
   const draft = useSplitDraft((s) => s.draft);
   const focus = useSplitDraft((s) => s.focus[day]);
   const [mode, setMode] = useState<Mode>(null);
+  // One exercise open at a time keeps the day readable.
+  const [openSlot, setOpenSlot] = useState<string | null>(null);
   const live = splitId !== null && draft?.id === splitId ? draft : null;
   const d = live?.sessions[day];
   const missing = splitId !== null && !d;
@@ -111,8 +113,8 @@ export function DayEditorSheet({ splitId, day, onClose }: { splitId: string | nu
       )}
       {d && !mode && (
         <div className="grid gap-5">
-          <label className="flex items-center gap-3">
-            <span className="w-14 text-subhead text-label-2">Day name</span>
+          <label className="grid gap-1.5">
+            <span className="px-1 text-footnote font-semibold text-label-2">Day name</span>
             <input value={d.title} maxLength={30} onChange={(e) => change((s) => renameDay(s, day, e.target.value))} className={INPUT} aria-label="Day name" />
           </label>
           {slots.length === 0 ? (
@@ -127,11 +129,17 @@ export function DayEditorSheet({ splitId, day, onClose }: { splitId: string | nu
                   key={slot.id}
                   data={data}
                   slot={slot}
+                  index={i}
+                  open={openSlot === slot.id}
+                  onToggle={() => setOpenSlot(openSlot === slot.id ? null : slot.id)}
                   first={i === 0}
                   last={i === slots.length - 1}
                   onRole={(role) => change((s) => setRole(s, day, i, role))}
                   onMove={(dir) => change((s) => moveEntry(s, day, i, i + dir))}
-                  onRemove={() => change((s) => removeEntry(s, day, i))}
+                  onRemove={() => {
+                    setOpenSlot(null);
+                    change((s) => removeEntry(s, day, i));
+                  }}
                   onAddAlternate={() => setMode({ kind: 'alt', slot: i })}
                   onRemoveAlternate={(id) => change((s) => removeAlternate(s, day, i, id))}
                 />
