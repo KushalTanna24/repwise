@@ -3,9 +3,9 @@ import { decideNudge, localClock, type NudgeDecision } from './decide.ts';
 import { decideFast } from './decideFast.ts';
 import { decideStreak } from './decideStreak.ts';
 import { onLeaveDoc } from './leave.ts';
+import { isGone, targetOf, type PushTarget, type SubRow } from '../_shared/push.ts';
 
-export interface SubRow { id: string; user_id: string; endpoint: string; p256dh: string; auth: string; tz: string; last_sent_at: string | null; }
-export interface PushTarget { endpoint: string; keys: { p256dh: string; auth: string } }
+export type { PushTarget, SubRow };
 type DbResult = { error: unknown };
 
 export interface NudgeDeps {
@@ -40,15 +40,16 @@ export async function runNudges(deps: NudgeDeps, now: Date): Promise<{ checked: 
   let sent = 0;
   let removed = 0;
   for (const row of rows) {
+    // A device that took only group nudges never gets reminders (the query filters too; this is the second guard).
+    if (!row.kinds?.includes('reminders')) continue;
     try {
       const d = decide(row, docs.get(row.user_id) ?? null, now);
       if (!d.send) continue;
       try {
-        await deps.send({ endpoint: row.endpoint, keys: { p256dh: row.p256dh, auth: row.auth } }, JSON.stringify({ title: d.title, body: d.body, url: d.url }), d.topic);
+        await deps.send(targetOf(row), JSON.stringify({ title: d.title, body: d.body, url: d.url }), d.topic);
       } catch (e) {
-        const status = (e as { statusCode?: number }).statusCode;
         // Subscription is gone for good; any other failure is transient and retried next hour.
-        if (status !== 404 && status !== 410) throw e;
+        if (!isGone(e)) throw e;
         const { error } = await deps.remove(row.id);
         if (error) console.error('water-nudge delete failed', row.id, error);
         else removed++;

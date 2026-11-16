@@ -14,9 +14,9 @@ import { Card, Empty, List, Row } from '@/components/ui/card';
 import { confirm } from '@/components/ui/alert';
 import { cn } from '@/lib/cn';
 import { fmtDuration } from '@/lib/fmt';
-import { openSheet } from '@/lib/route';
 import { toast } from '@/lib/toast';
 import { act } from '@/store/app';
+import { useDoc } from '@/store/docContext';
 
 const KIND_ICON: Record<GoalKind, typeof Dumbbell> = { workout: Dumbbell, water: GlassWater, supplements: Pill, challenge: Trophy, fast: Timer };
 const EXTRA_ICON = { run: Footprints, mobility: StretchHorizontal, skills: Sparkles };
@@ -141,6 +141,7 @@ function Line({ children, done }: { children: ReactNode; done?: boolean }) {
 function WorkoutDetail({ data, date }: { data: AppData; date: string }) {
   const sessions = data.sessions.filter((s) => s.finishedAt && dayjs(s.startedAt).format('YYYY-MM-DD') === date);
   const extras = data.extras.filter((x) => x.date === date);
+  const { readOnly, openSession } = useDoc();
   if (!sessions.length && !extras.length) return <Line>Not logged</Line>;
 
   async function removeExtra(x: ExtraSession) {
@@ -153,16 +154,16 @@ function WorkoutDetail({ data, date }: { data: AppData; date: string }) {
   return (
     <List className="m-0 rounded-none bg-transparent shadow-none">
       {sessions.map((s) => (
-        <SessionRow key={s.id} s={s} />
+        <SessionRow key={s.id} s={s} onOpen={() => openSession(s.id)} />
       ))}
       {extras.map((x) => (
-        <ExtraRow key={x.id} x={x} onClick={() => void removeExtra(x)} />
+        <ExtraRow key={x.id} x={x} onClick={readOnly ? undefined : () => void removeExtra(x)} />
       ))}
     </List>
   );
 }
 
-function SessionRow({ s }: { s: WorkoutSession }) {
+function SessionRow({ s, onOpen }: { s: WorkoutSession; onOpen: () => void }) {
   const v = sessionVolume(s);
   const partial = s.exercises.some((e) => e.sets.some((x) => x.status === 'skipped'));
   return (
@@ -170,22 +171,16 @@ function SessionRow({ s }: { s: WorkoutSession }) {
       className="pl-16"
       title={s.title}
       subtitle={`${v.sets} sets · ${fmtDuration(Date.parse(s.finishedAt!) - Date.parse(s.startedAt))}${partial ? ' · partial' : ''}`}
-      onClick={() => openSheet(`session:${s.id}`)}
+      onClick={onOpen}
       chevron
     />
   );
 }
 
-function ExtraRow({ x, onClick }: { x: ExtraSession; onClick: () => void }) {
+/** Without `onClick` (someone else's history) the row is read-only and says nothing about deleting. */
+function ExtraRow({ x, onClick }: { x: ExtraSession; onClick?: () => void }) {
   const I = EXTRA_ICON[x.type];
   const bits = [x.distanceKm != null && `${x.distanceKm} km`, x.minutes != null && `${x.minutes} min`, x.note].filter(Boolean).join(' · ');
-  return (
-    <Row
-      className="pl-16"
-      leading={<I className="size-[18px] shrink-0 text-label-2" />}
-      title={EXTRA_NAME[x.type]}
-      subtitle={bits ? `${bits} · tap to delete` : 'Tap to delete'}
-      onClick={onClick}
-    />
-  );
+  const subtitle = onClick ? (bits ? `${bits} · tap to delete` : 'Tap to delete') : bits || undefined;
+  return <Row className="pl-16" leading={<I className="size-[18px] shrink-0 text-label-2" />} title={EXTRA_NAME[x.type]} subtitle={subtitle} onClick={onClick} />;
 }

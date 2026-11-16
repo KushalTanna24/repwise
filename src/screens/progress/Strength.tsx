@@ -9,7 +9,7 @@ import { Select } from '@/components/ui/field';
 import { Segmented } from '@/components/ui/segmented';
 import { cn } from '@/lib/cn';
 import { exName, fmtDay, fmtLoad } from '@/lib/fmt';
-import { useData } from '@/store/app';
+import { useDoc } from '@/store/docContext';
 
 const COLOR = '#007AFF';
 const ALL = 'all';
@@ -18,7 +18,7 @@ const pct = (x: number) => `${x >= 0 ? '+' : '−'}${Math.abs(Math.round(x * 100
 
 /** Every lift against its own start, averaged: the default view. */
 function Overall({ onPick }: { onPick: (id: string) => void }) {
-  const data = useData();
+  const { data } = useDoc();
   const units = data.profile.units;
   const o = useMemo(() => overallStrength(data), [data]);
   const [metric, setMetric] = useState<'index' | 'volume'>('index');
@@ -93,7 +93,7 @@ function Overall({ onPick }: { onPick: (id: string) => void }) {
 }
 
 export function Strength() {
-  const data = useData();
+  const { data, readOnly } = useDoc();
   const units = data.profile.units;
 
   const trained = useMemo(() => {
@@ -107,7 +107,7 @@ export function Strength() {
   const [picked, setPicked] = useState<string>(ALL);
   const [metric, setMetric] = useState<'top' | 'volume'>('top');
 
-  if (!trained.length) return <Empty icon={<TrendingUp className="size-12" />} title="No lifts yet" body="Finish a workout and your strength trend shows up here." />;
+  if (!trained.length) return <Empty icon={<TrendingUp className="size-12" />} title="No lifts yet" body={readOnly ? 'Their strength trend shows up after their first workout.' : 'Finish a workout and your strength trend shows up here.'} />;
 
   const picker = (
     <div className="mt-4 flex items-center justify-between rounded-[12px] bg-card px-4 py-2.5 shadow-card">

@@ -1,5 +1,17 @@
 export type EnableResult = 'on' | 'signed-out' | 'denied' | 'unsupported' | 'failed';
 
+/** What a device accepts: reminders (water, streak, fast) and/or group nudges. Each is its own opt-in. */
+export type PushKind = 'reminders' | 'nudges';
+const KINDS: PushKind[] = ['nudges', 'reminders'];
+
+/** The device's kinds after turning `kind` on or off; sorted, unique, known kinds only. */
+export function nextKinds(current: string[] | null, kind: PushKind, on: boolean): PushKind[] {
+  const set = new Set((current ?? []).filter((k): k is PushKind => (KINDS as string[]).includes(k)));
+  if (on) set.add(kind);
+  else set.delete(kind);
+  return KINDS.filter((k) => set.has(k));
+}
+
 /** VAPID public keys travel as URL-safe base64; pushManager.subscribe wants raw bytes. */
 export function urlBase64ToUint8Array(s: string): Uint8Array {
   const b64 = (s + '='.repeat((4 - (s.length % 4)) % 4)).replace(/-/g, '+').replace(/_/g, '/');

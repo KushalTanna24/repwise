@@ -14,14 +14,15 @@ import { Segmented } from '@/components/ui/segmented';
 import { confirm } from '@/components/ui/alert';
 import { fmtDay, fmtLoad } from '@/lib/fmt';
 import { toast } from '@/lib/toast';
-import { act, useData } from '@/store/app';
+import { act } from '@/store/app';
+import { useDoc } from '@/store/docContext';
 
 const COLOR = '#FF2D55';
 const RANGES = { '1M': 1, '3M': 3, '6M': 6, '1Y': 12, All: 0 } as const;
 type Range = keyof typeof RANGES;
 
 export function Body() {
-  const data = useData();
+  const { data, readOnly } = useDoc();
   const units = data.profile.units;
   const [range, setRange] = useState<Range>('3M');
   const [kg, setKg] = useState('');
@@ -80,7 +81,7 @@ export function Body() {
           <span className="text-headline text-label-2">{units}</span>
         </div>
         <div className="text-footnote text-label-2">
-          {latest ? `${fmtDay(latest.date)}${change != null ? ` · ${change > 0 ? '+' : change < 0 ? '−' : '±'}${fmtLoad(Math.abs(change), units)} since previous` : ''}` : 'Add your first weigh-in below'}
+          {latest ? `${fmtDay(latest.date)}${change != null ? ` · ${change > 0 ? '+' : change < 0 ? '−' : '±'}${fmtLoad(Math.abs(change), units)} since previous` : ''}` : readOnly ? 'No weigh-ins yet' : 'Add your first weigh-in below'}
           {data.profile.targetWeightKg ? ` · goal ${fmtLoad(data.profile.targetWeightKg, units)}` : ''}
         </div>
         {sorted.length > 0 && (
@@ -104,6 +105,8 @@ export function Body() {
         )}
       </Card>
 
+      {!readOnly && (
+      <>
       <SectionHeader title={editing ? 'Edit weigh-in' : 'Log weigh-in'} />
       <List>
         <FieldRow label={`Weight (${units})`}>
@@ -123,8 +126,10 @@ export function Body() {
           {editing ? 'Update' : 'Save weigh-in'}
         </Button>
       </div>
+      </>
+      )}
 
-      <BmiCard heightCm={data.profile.heightCm} latest={latest} units={units} />
+      <BmiCard heightCm={data.profile.heightCm} latest={latest} units={units} readOnly={readOnly} />
 
       <SectionHeader title="Water" />
       <WaterWeek />
@@ -132,13 +137,14 @@ export function Body() {
       <SectionHeader title="Weigh-ins" />
       {sorted.length === 0 ? (
         <Card>
-          <Empty icon={<Scale className="size-10" />} title="No weigh-ins yet" body="Weigh in at the same time of day for the cleanest trend." />
+          <Empty icon={<Scale className="size-10" />} title="No weigh-ins yet" body={readOnly ? undefined : 'Weigh in at the same time of day for the cleanest trend.'} />
         </Card>
       ) : (
         <List>
           {[...sorted].reverse().map((w) => (
             <div key={w.id} className="flex items-center [&:not(:last-child)]:border-b [&:not(:last-child)]:border-sep">
               <Row title={fmtLoad(w.kg, units)} subtitle={dayjs(w.date).format('ddd D MMM YYYY')} className="flex-1" />
+              {!readOnly && (
               <div className="pr-3">
                 <Menu
                   label="Weigh-in options"
@@ -153,6 +159,7 @@ export function Body() {
                   ]}
                 />
               </div>
+              )}
             </div>
           ))}
         </List>
@@ -161,7 +168,7 @@ export function Body() {
   );
 }
 
-function BmiCard({ heightCm, latest, units }: { heightCm?: number; latest?: BodyWeight; units: 'kg' | 'lb' }) {
+function BmiCard({ heightCm, latest, units, readOnly }: { heightCm?: number; latest?: BodyWeight; units: 'kg' | 'lb'; readOnly: boolean }) {
   const [h, setH] = useState('');
   const value = bmi(latest?.kg, heightCm);
 
@@ -176,7 +183,9 @@ function BmiCard({ heightCm, latest, units }: { heightCm?: number; latest?: Body
     <>
       <SectionHeader title="BMI" />
       <Card className="p-4">
-        {!heightCm ? (
+        {!heightCm && readOnly ? (
+          <p className="text-subhead text-label-2">No height added yet, so BMI isn't available.</p>
+        ) : !heightCm ? (
           <>
             <p className="text-subhead text-label-2">Add your height to calculate BMI from your latest weigh-in.</p>
             <div className="mt-3 flex gap-2">
@@ -213,7 +222,7 @@ function BmiCard({ heightCm, latest, units }: { heightCm?: number; latest?: Body
 }
 
 function WaterWeek() {
-  const data = useData();
+  const { data, readOnly } = useDoc();
   const w = waterWeek(data, dayjs().format('YYYY-MM-DD'));
   return (
     <Card className="p-4">
@@ -232,7 +241,7 @@ function WaterWeek() {
       <div className="mt-3">
         <Chart points={w.days.map((d) => ({ date: d.date, value: d.glasses }))} color="#007AFF" unit="glasses" kind="bar" height={150} />
       </div>
-      <p className="mt-1 text-caption text-label-2">Goal {data.profile.waterGoal} glasses a day. Log from Today with one tap.</p>
+      <p className="mt-1 text-caption text-label-2">Goal {data.profile.waterGoal} glasses a day.{readOnly ? '' : ' Log from Today with one tap.'}</p>
       {activeSupplements(data).length > 0 && (
         <div className="mt-3 flex items-center justify-between border-t border-sep pt-3">
           <span className="text-subhead text-label-2">Supplement streak</span>

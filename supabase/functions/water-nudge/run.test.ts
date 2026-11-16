@@ -5,7 +5,7 @@ import { authorized, runNudges, type NudgeDeps, type SubRow } from './run.ts';
 const NOW = new Date('2026-10-18T09:30:00Z');
 const DOC = { profile: { waterGoal: 8, waterReminders: { on: true, from: 9, to: 21, everyHours: 2 } }, water: {} };
 
-const row = (id: string, user = 'u1'): SubRow => ({ id, user_id: user, endpoint: `https://push.example/${id}`, p256dh: 'p', auth: 'a', tz: 'Asia/Kolkata', last_sent_at: null });
+const row = (id: string, user = 'u1', kinds = ['reminders']): SubRow => ({ id, user_id: user, endpoint: `https://push.example/${id}`, p256dh: 'p', auth: 'a', tz: 'Asia/Kolkata', last_sent_at: null, kinds });
 
 function deps(rows: SubRow[], over: Partial<NudgeDeps> = {}) {
   const d = {
@@ -34,6 +34,13 @@ describe('runNudges', () => {
     );
     expect(d.markSent).toHaveBeenCalledWith('s1', NOW.toISOString());
     expect(d.remove).not.toHaveBeenCalled();
+  });
+
+  it('skips rows whose kinds lack reminders', async () => {
+    const d = deps([row('s1', 'u1', ['nudges']), row('s2', 'u1', ['nudges', 'reminders'])]);
+    expect(await runNudges(d, NOW)).toEqual({ checked: 2, sent: 1, removed: 0 });
+    expect(d.send).toHaveBeenCalledTimes(1);
+    expect(d.send.mock.calls[0][0]).toMatchObject({ endpoint: 'https://push.example/s2' });
   });
 
   it('loads each user doc once', async () => {

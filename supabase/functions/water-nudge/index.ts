@@ -2,6 +2,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import webpush from 'npm:web-push@3.6.7';
 import { authorized, runNudges, type SubRow } from './run.ts';
+import { configureWebPush } from '../_shared/push.ts';
 
 // A reminder is only useful within the hour: drop it rather than deliver it late to a phone that was offline.
 const SEND_OPTIONS = { TTL: 1800, urgency: 'normal' } as const;
@@ -12,14 +13,14 @@ Deno.serve(async (req) => {
   // The cron job proves itself with a dedicated secret, so the gate never depends on which API key flavour the project hands the function.
   if (!authorized(req.headers.get('Authorization'), Deno.env.get('CRON_SECRET'))) return json({ error: 'unauthorized' }, 401);
 
-  webpush.setVapidDetails(Deno.env.get('VAPID_SUBJECT')!, Deno.env.get('VAPID_PUBLIC_KEY')!, Deno.env.get('VAPID_PRIVATE_KEY')!);
+  configureWebPush(webpush, (k) => Deno.env.get(k));
   const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
 
   try {
     const result = await runNudges(
       {
         async listSubscriptions() {
-          const { data, error } = await db.from('push_subscriptions').select('id,user_id,endpoint,p256dh,auth,tz,last_sent_at');
+          const { data, error } = await db.from('push_subscriptions').select('id,user_id,endpoint,p256dh,auth,tz,last_sent_at,kinds').contains('kinds', ['reminders']);
           if (error) throw error;
           return (data ?? []) as SubRow[];
         },
