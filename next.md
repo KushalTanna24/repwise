@@ -4,6 +4,10 @@
 
 A library of 12 routines from famous bodybuilders, actors and athletes that people can copy into their own splits, fitted to their equipment and session length. The week strip and split cards now follow days per week, so a 3-day split on 6 days shows all six sessions. Swaps are now recorded (`swappedFrom`) for the learning work below. Spec: `docs/superpowers/specs/2026-11-16-pro-splits-and-learning-design.md`.
 
+## Grow the pro splits roster (ongoing, incremental)
+
+Add more people in small batches: YouTubers and fitness creators, influencers, celebrities and athletes. Each entry is data in `src/domain/training/splits/pros.ts`, so a batch should not need code changes. A new `creator` category comes with the first YouTuber batch. Every entry needs a source line, and `inspired: true` when reports disagree. `pros.test.ts` checks the data.
+
 ## Learn from the user (after pro splits)
 
 Suggest swaps the user keeps making, log and suggest supersets, flag stalled lifts, and project strength toward goals. Explainable, can be undone, history never rewritten. See the spec above, section 3.
